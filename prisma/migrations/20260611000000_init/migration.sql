@@ -3,22 +3,22 @@
 -- Creates ALL tables and enums from scratch.
 -- ============================================================
 
--- ─── Enums ───────────────────────────────────────────────────
-CREATE TYPE "SplitType"        AS ENUM ('EQUAL','EXACT','PERCENTAGE');
-CREATE TYPE "ExpenseVisibility" AS ENUM ('GROUP','PAYERS_ONLY');
-CREATE TYPE "RecurFrequency"   AS ENUM ('WEEKLY','MONTHLY','QUARTERLY');
-CREATE TYPE "BudgetPeriod"     AS ENUM ('TRIP','MONTHLY','CUSTOM');
-CREATE TYPE "FundStatus"       AS ENUM ('COLLECTING','CLOSED','DISBURSED');
-CREATE TYPE "ContribStatus"    AS ENUM ('PENDING','PAID','REFUNDED');
-CREATE TYPE "SettlementMethod" AS ENUM ('MANUAL','STRIPE_ACH','STRIPE_INSTANT','WISE');
-CREATE TYPE "SettlementStatus" AS ENUM ('PENDING','PROCESSING','COMPLETED','FAILED');
-CREATE TYPE "WorkspaceType"    AS ENUM ('PERSONAL','TEAM','ENTERPRISE');
-CREATE TYPE "ApprovalStatus"   AS ENUM ('NA','PENDING_APPROVAL','APPROVED','REJECTED');
-CREATE TYPE "UserPlan"         AS ENUM ('FREE','PRO','FAMILY');
-CREATE TYPE "CardStatus"       AS ENUM ('ACTIVE','INACTIVE','CANCELLED');
+-- ─── Enums (idempotent) ──────────────────────────────────────
+DO $$ BEGIN CREATE TYPE "SplitType" AS ENUM ('EQUAL','EXACT','PERCENTAGE'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE "ExpenseVisibility" AS ENUM ('GROUP','PAYERS_ONLY'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE "RecurFrequency" AS ENUM ('WEEKLY','MONTHLY','QUARTERLY'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE "BudgetPeriod" AS ENUM ('TRIP','MONTHLY','CUSTOM'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE "FundStatus" AS ENUM ('COLLECTING','CLOSED','DISBURSED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE "ContribStatus" AS ENUM ('PENDING','PAID','REFUNDED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE "SettlementMethod" AS ENUM ('MANUAL','STRIPE_ACH','STRIPE_INSTANT','WISE'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE "SettlementStatus" AS ENUM ('PENDING','PROCESSING','COMPLETED','FAILED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE "WorkspaceType" AS ENUM ('PERSONAL','TEAM','ENTERPRISE'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE "ApprovalStatus" AS ENUM ('NA','PENDING_APPROVAL','APPROVED','REJECTED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE "UserPlan" AS ENUM ('FREE','PRO','FAMILY'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE "CardStatus" AS ENUM ('ACTIVE','INACTIVE','CANCELLED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ─── Auth tables ─────────────────────────────────────────────
-CREATE TABLE "User" (
+CREATE TABLE IF NOT EXISTS "User" (
   "id"                   TEXT        NOT NULL,
   "name"                 TEXT        NOT NULL,
   "email"                TEXT        NOT NULL,
@@ -38,9 +38,9 @@ CREATE TABLE "User" (
   "stripeCardholderId"   TEXT,
   CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
-CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
 
-CREATE TABLE "Account" (
+CREATE TABLE IF NOT EXISTS "Account" (
   "id"                TEXT    NOT NULL,
   "userId"            TEXT    NOT NULL,
   "type"              TEXT    NOT NULL,
@@ -55,27 +55,27 @@ CREATE TABLE "Account" (
   "session_state"     TEXT,
   CONSTRAINT "Account_pkey" PRIMARY KEY ("id")
 );
-CREATE UNIQUE INDEX "Account_provider_providerAccountId_key" ON "Account"("provider","providerAccountId");
+CREATE UNIQUE INDEX IF NOT EXISTS "Account_provider_providerAccountId_key" ON "Account"("provider","providerAccountId");
 
-CREATE TABLE "Session" (
+CREATE TABLE IF NOT EXISTS "Session" (
   "id"           TEXT        NOT NULL,
   "sessionToken" TEXT        NOT NULL,
   "userId"       TEXT        NOT NULL,
   "expires"      TIMESTAMP(3) NOT NULL,
   CONSTRAINT "Session_pkey" PRIMARY KEY ("id")
 );
-CREATE UNIQUE INDEX "Session_sessionToken_key" ON "Session"("sessionToken");
+CREATE UNIQUE INDEX IF NOT EXISTS "Session_sessionToken_key" ON "Session"("sessionToken");
 
-CREATE TABLE "VerificationToken" (
+CREATE TABLE IF NOT EXISTS "VerificationToken" (
   "identifier" TEXT NOT NULL,
   "token"      TEXT NOT NULL,
   "expires"    TIMESTAMP(3) NOT NULL
 );
-CREATE UNIQUE INDEX "VerificationToken_token_key"            ON "VerificationToken"("token");
-CREATE UNIQUE INDEX "VerificationToken_identifier_token_key" ON "VerificationToken"("identifier","token");
+CREATE UNIQUE INDEX IF NOT EXISTS "VerificationToken_token_key"            ON "VerificationToken"("token");
+CREATE UNIQUE INDEX IF NOT EXISTS "VerificationToken_identifier_token_key" ON "VerificationToken"("identifier","token");
 
 -- ─── Groups ──────────────────────────────────────────────────
-CREATE TABLE "Group" (
+CREATE TABLE IF NOT EXISTS "Group" (
   "id"            TEXT           NOT NULL,
   "name"          TEXT           NOT NULL,
   "description"   TEXT,
@@ -87,7 +87,7 @@ CREATE TABLE "Group" (
   CONSTRAINT "Group_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE "GroupMember" (
+CREATE TABLE IF NOT EXISTS "GroupMember" (
   "id"       TEXT        NOT NULL,
   "groupId"  TEXT        NOT NULL,
   "userId"   TEXT        NOT NULL,
@@ -95,10 +95,10 @@ CREATE TABLE "GroupMember" (
   "joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "GroupMember_pkey" PRIMARY KEY ("id")
 );
-CREATE UNIQUE INDEX "GroupMember_groupId_userId_key" ON "GroupMember"("groupId","userId");
+CREATE UNIQUE INDEX IF NOT EXISTS "GroupMember_groupId_userId_key" ON "GroupMember"("groupId","userId");
 
 -- ─── Expenses ────────────────────────────────────────────────
-CREATE TABLE "Expense" (
+CREATE TABLE IF NOT EXISTS "Expense" (
   "id"                 TEXT                NOT NULL,
   "groupId"            TEXT                NOT NULL,
   "description"        TEXT                NOT NULL,
@@ -119,19 +119,19 @@ CREATE TABLE "Expense" (
   "updatedAt"          TIMESTAMP(3)        NOT NULL,
   CONSTRAINT "Expense_pkey" PRIMARY KEY ("id")
 );
-CREATE UNIQUE INDEX "Expense_cardTransactionId_key" ON "Expense"("cardTransactionId");
+CREATE UNIQUE INDEX IF NOT EXISTS "Expense_cardTransactionId_key" ON "Expense"("cardTransactionId");
 
-CREATE TABLE "ExpenseSplit" (
+CREATE TABLE IF NOT EXISTS "ExpenseSplit" (
   "id"        TEXT             NOT NULL,
   "expenseId" TEXT             NOT NULL,
   "userId"    TEXT             NOT NULL,
   "amount"    DOUBLE PRECISION NOT NULL,
   CONSTRAINT "ExpenseSplit_pkey" PRIMARY KEY ("id")
 );
-CREATE UNIQUE INDEX "ExpenseSplit_expenseId_userId_key" ON "ExpenseSplit"("expenseId","userId");
+CREATE UNIQUE INDEX IF NOT EXISTS "ExpenseSplit_expenseId_userId_key" ON "ExpenseSplit"("expenseId","userId");
 
 -- ─── Settlements ─────────────────────────────────────────────
-CREATE TABLE "Settlement" (
+CREATE TABLE IF NOT EXISTS "Settlement" (
   "id"                    TEXT              NOT NULL,
   "groupId"               TEXT              NOT NULL,
   "fromUserId"            TEXT              NOT NULL,
@@ -149,7 +149,7 @@ CREATE TABLE "Settlement" (
 );
 
 -- ─── Trips ───────────────────────────────────────────────────
-CREATE TABLE "Trip" (
+CREATE TABLE IF NOT EXISTS "Trip" (
   "id"          TEXT        NOT NULL,
   "groupId"     TEXT        NOT NULL,
   "name"        TEXT        NOT NULL,
@@ -163,16 +163,16 @@ CREATE TABLE "Trip" (
   CONSTRAINT "Trip_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE "TripDay" (
+CREATE TABLE IF NOT EXISTS "TripDay" (
   "id"     TEXT        NOT NULL,
   "tripId" TEXT        NOT NULL,
   "date"   TIMESTAMP(3) NOT NULL,
   "label"  TEXT,
   CONSTRAINT "TripDay_pkey" PRIMARY KEY ("id")
 );
-CREATE UNIQUE INDEX "TripDay_tripId_date_key" ON "TripDay"("tripId","date");
+CREATE UNIQUE INDEX IF NOT EXISTS "TripDay_tripId_date_key" ON "TripDay"("tripId","date");
 
-CREATE TABLE "TripFund" (
+CREATE TABLE IF NOT EXISTS "TripFund" (
   "id"           TEXT         NOT NULL,
   "tripId"       TEXT         NOT NULL,
   "targetAmount" DOUBLE PRECISION NOT NULL DEFAULT 0,
@@ -181,9 +181,9 @@ CREATE TABLE "TripFund" (
   "createdAt"    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "TripFund_pkey" PRIMARY KEY ("id")
 );
-CREATE UNIQUE INDEX "TripFund_tripId_key" ON "TripFund"("tripId");
+CREATE UNIQUE INDEX IF NOT EXISTS "TripFund_tripId_key" ON "TripFund"("tripId");
 
-CREATE TABLE "FundContribution" (
+CREATE TABLE IF NOT EXISTS "FundContribution" (
   "id"               TEXT           NOT NULL,
   "fundId"           TEXT           NOT NULL,
   "userId"           TEXT           NOT NULL,
@@ -196,7 +196,7 @@ CREATE TABLE "FundContribution" (
 );
 
 -- ─── Budgets ─────────────────────────────────────────────────
-CREATE TABLE "GroupBudget" (
+CREATE TABLE IF NOT EXISTS "GroupBudget" (
   "id"             TEXT           NOT NULL,
   "groupId"        TEXT           NOT NULL,
   "totalLimit"     DOUBLE PRECISION NOT NULL,
@@ -208,19 +208,19 @@ CREATE TABLE "GroupBudget" (
   "updatedAt"      TIMESTAMP(3)   NOT NULL,
   CONSTRAINT "GroupBudget_pkey" PRIMARY KEY ("id")
 );
-CREATE UNIQUE INDEX "GroupBudget_groupId_key" ON "GroupBudget"("groupId");
+CREATE UNIQUE INDEX IF NOT EXISTS "GroupBudget_groupId_key" ON "GroupBudget"("groupId");
 
-CREATE TABLE "CategoryBudget" (
+CREATE TABLE IF NOT EXISTS "CategoryBudget" (
   "id"       TEXT             NOT NULL,
   "budgetId" TEXT             NOT NULL,
   "category" TEXT             NOT NULL,
   "limit"    DOUBLE PRECISION NOT NULL,
   CONSTRAINT "CategoryBudget_pkey" PRIMARY KEY ("id")
 );
-CREATE UNIQUE INDEX "CategoryBudget_budgetId_category_key" ON "CategoryBudget"("budgetId","category");
+CREATE UNIQUE INDEX IF NOT EXISTS "CategoryBudget_budgetId_category_key" ON "CategoryBudget"("budgetId","category");
 
 -- ─── Recurring expenses ──────────────────────────────────────
-CREATE TABLE "RecurringExpense" (
+CREATE TABLE IF NOT EXISTS "RecurringExpense" (
   "id"          TEXT             NOT NULL,
   "groupId"     TEXT             NOT NULL,
   "description" TEXT             NOT NULL,
@@ -236,7 +236,7 @@ CREATE TABLE "RecurringExpense" (
 );
 
 -- ─── Expense policy (B2B) ────────────────────────────────────
-CREATE TABLE "ExpensePolicy" (
+CREATE TABLE IF NOT EXISTS "ExpensePolicy" (
   "id"                    TEXT             NOT NULL,
   "groupId"               TEXT             NOT NULL,
   "maxAmountNoReceipt"    DOUBLE PRECISION NOT NULL DEFAULT 25,
@@ -246,10 +246,10 @@ CREATE TABLE "ExpensePolicy" (
   "updatedAt"             TIMESTAMP(3)     NOT NULL,
   CONSTRAINT "ExpensePolicy_pkey" PRIMARY KEY ("id")
 );
-CREATE UNIQUE INDEX "ExpensePolicy_groupId_key" ON "ExpensePolicy"("groupId");
+CREATE UNIQUE INDEX IF NOT EXISTS "ExpensePolicy_groupId_key" ON "ExpensePolicy"("groupId");
 
 -- ─── Virtual card (Stripe Issuing) ──────────────────────────
-CREATE TABLE "GroupCard" (
+CREATE TABLE IF NOT EXISTS "GroupCard" (
   "id"                  TEXT        NOT NULL,
   "groupId"             TEXT        NOT NULL,
   "stripeCardId"        TEXT        NOT NULL,
@@ -263,10 +263,10 @@ CREATE TABLE "GroupCard" (
   "createdAt"           TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "GroupCard_pkey" PRIMARY KEY ("id")
 );
-CREATE UNIQUE INDEX "GroupCard_groupId_key"    ON "GroupCard"("groupId");
-CREATE UNIQUE INDEX "GroupCard_stripeCardId_key" ON "GroupCard"("stripeCardId");
+CREATE UNIQUE INDEX IF NOT EXISTS "GroupCard_groupId_key"    ON "GroupCard"("groupId");
+CREATE UNIQUE INDEX IF NOT EXISTS "GroupCard_stripeCardId_key" ON "GroupCard"("stripeCardId");
 
-CREATE TABLE "CardTransaction" (
+CREATE TABLE IF NOT EXISTS "CardTransaction" (
   "id"               TEXT             NOT NULL,
   "groupId"          TEXT             NOT NULL,
   "cardId"           TEXT             NOT NULL,
@@ -280,10 +280,10 @@ CREATE TABLE "CardTransaction" (
   "createdAt"        TIMESTAMP(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "CardTransaction_pkey" PRIMARY KEY ("id")
 );
-CREATE UNIQUE INDEX "CardTransaction_stripeAuthId_key" ON "CardTransaction"("stripeAuthId");
+CREATE UNIQUE INDEX IF NOT EXISTS "CardTransaction_stripeAuthId_key" ON "CardTransaction"("stripeAuthId");
 
 -- ─── Push subscriptions ──────────────────────────────────────
-CREATE TABLE "PushSubscription" (
+CREATE TABLE IF NOT EXISTS "PushSubscription" (
   "id"        TEXT        NOT NULL,
   "userId"    TEXT        NOT NULL,
   "endpoint"  TEXT        NOT NULL,
@@ -292,10 +292,10 @@ CREATE TABLE "PushSubscription" (
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "PushSubscription_pkey" PRIMARY KEY ("id")
 );
-CREATE UNIQUE INDEX "PushSubscription_endpoint_key" ON "PushSubscription"("endpoint");
+CREATE UNIQUE INDEX IF NOT EXISTS "PushSubscription_endpoint_key" ON "PushSubscription"("endpoint");
 
 -- ─── Group invites ───────────────────────────────────────────
-CREATE TABLE "GroupInvite" (
+CREATE TABLE IF NOT EXISTS "GroupInvite" (
   "id"          TEXT        NOT NULL,
   "groupId"     TEXT        NOT NULL,
   "email"       TEXT        NOT NULL,
@@ -306,7 +306,7 @@ CREATE TABLE "GroupInvite" (
   "createdAt"   TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "GroupInvite_pkey" PRIMARY KEY ("id")
 );
-CREATE UNIQUE INDEX "GroupInvite_token_key" ON "GroupInvite"("token");
+CREATE UNIQUE INDEX IF NOT EXISTS "GroupInvite_token_key" ON "GroupInvite"("token");
 
 -- ─── Foreign keys ────────────────────────────────────────────
 ALTER TABLE "Account"
