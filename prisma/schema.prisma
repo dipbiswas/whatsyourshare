@@ -1,0 +1,433 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Phase 5 — Stripe Connect
+  stripeConnectId    String?
+  stripeOnboarded    Boolean  @default(false)
+  // Phase 7 — Subscriptions
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+  plan                  UserPlan  @default(FREE)
+  planExpiresAt         DateTime?
+  // Phase 8 — Virtual card cardholder
+  stripeCardholderId    String?
+
+  groupMemberships         GroupMember[]
+  paidExpenses             Expense[]     @relation("PaidBy")
+  expenseSplits            ExpenseSplit[]
+  sentSettlements          Settlement[]  @relation("SentBy")
+  receivedSettlements      Settlement[]  @relation("ReceivedBy")
+  createdGroups            Group[]
+  accounts                 Account[]
+  sessions                 Session[]
+  createdRecurringExpenses RecurringExpense[]
+  createdTrips             Trip[]
+  fundContributions        FundContribution[]
+  cardTransactions         CardTransaction[]
+  pushSubscriptions        PushSubscription[]
+  createdInvites           GroupInvite[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  currency    String   @default("USD")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdById   String
+  workspaceType WorkspaceType @default(PERSONAL)
+  createdBy     User   @relation(fields: [createdById], references: [id])
+
+  members            GroupMember[]
+  expenses           Expense[]
+  settlements        Settlement[]
+  recurringExpenses  RecurringExpense[]
+  budget             GroupBudget?
+  trips              Trip[]
+  policy             ExpensePolicy?
+  card               GroupCard?
+  invites            GroupInvite[]
+}
+
+model GroupMember {
+  id       String   @id @default(cuid())
+  groupId  String
+  userId   String
+  role     String   @default("MEMBER")
+  joinedAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+}
+
+model Expense {
+  id          String    @id @default(cuid())
+  groupId     String
+  description String
+  amount      Float
+  currency    String    @default("USD")
+  category    String    @default("General")
+  splitType   SplitType @default(EQUAL)
+  date        DateTime  @default(now())
+  paidById           String
+  visibility         ExpenseVisibility @default(GROUP)
+  approvalStatus     ApprovalStatus    @default(NA)
+  approvedById       String?
+  approvedAt         DateTime?
+  recurringExpenseId String?
+  tripDayId          String?
+  cardTransactionId  String?           @unique
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  group             Group             @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  paidBy            User              @relation("PaidBy", fields: [paidById], references: [id])
+  splits            ExpenseSplit[]
+  recurringExpense  RecurringExpense?  @relation(fields: [recurringExpenseId], references: [id])
+  tripDay           TripDay?           @relation(fields: [tripDayId], references: [id])
+  cardTransaction   CardTransaction?   @relation(fields: [cardTransactionId], references: [id])
+}
+
+enum SplitType {
+  EQUAL
+  EXACT
+  PERCENTAGE
+}
+
+enum ExpenseVisibility {
+  GROUP
+  PAYERS_ONLY
+}
+
+enum RecurFrequency {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+}
+
+enum BudgetPeriod {
+  TRIP
+  MONTHLY
+  CUSTOM
+}
+
+enum FundStatus {
+  COLLECTING
+  CLOSED
+  DISBURSED
+}
+
+enum ContribStatus {
+  PENDING
+  PAID
+  REFUNDED
+}
+
+// Phase 5 — Settlement payments
+enum SettlementMethod {
+  MANUAL
+  STRIPE_ACH
+  STRIPE_INSTANT
+  WISE
+}
+
+enum SettlementStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// Phase 6 — B2B
+enum WorkspaceType {
+  PERSONAL
+  TEAM
+  ENTERPRISE
+}
+
+enum ApprovalStatus {
+  NA
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+// Phase 7 — Subscriptions
+enum UserPlan {
+  FREE
+  PRO
+  FAMILY
+}
+
+// Phase 8 — Virtual card
+enum CardStatus {
+  ACTIVE
+  INACTIVE
+  CANCELLED
+}
+
+model ExpenseSplit {
+  id        String @id @default(cuid())
+  expenseId String
+  userId    String
+  amount    Float
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([expenseId, userId])
+}
+
+model Settlement {
+  id                    String           @id @default(cuid())
+  groupId               String
+  fromUserId            String
+  toUserId              String
+  amount                Float
+  currency              String           @default("USD")
+  note                  String?
+  paymentMethod         SettlementMethod @default(MANUAL)
+  status                SettlementStatus @default(COMPLETED)
+  stripeTransferId      String?
+  stripePaymentIntentId String?
+  completedAt           DateTime?
+  createdAt             DateTime         @default(now())
+
+  group    Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  fromUser User  @relation("SentBy", fields: [fromUserId], references: [id])
+  toUser   User  @relation("ReceivedBy", fields: [toUserId], references: [id])
+}
+
+model Trip {
+  id          String    @id @default(cuid())
+  groupId     String
+  name        String
+  destination String?
+  coverEmoji  String?   @default("✈️")
+  startDate   DateTime
+  endDate     DateTime
+  createdById String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  group       Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  days        TripDay[]
+  fund        TripFund?
+}
+
+model TripDay {
+  id       String    @id @default(cuid())
+  tripId   String
+  date     DateTime
+  label    String?
+
+  trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+
+  @@unique([tripId, date])
+}
+
+model TripFund {
+  id           String     @id @default(cuid())
+  tripId       String     @unique
+  targetAmount Float
+  currency     String     @default("USD")
+  status       FundStatus @default(COLLECTING)
+  description  String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  trip          Trip               @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  contributions FundContribution[]
+}
+
+model FundContribution {
+  id                    String        @id @default(cuid())
+  fundId                String
+  userId                String
+  amount                Float
+  stripeSessionId       String?       @unique
+  stripePaymentIntentId String?
+  status                ContribStatus @default(PENDING)
+  paidAt                DateTime?
+  createdAt             DateTime      @default(now())
+
+  fund TripFund @relation(fields: [fundId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id])
+
+  @@unique([fundId, userId])
+}
+
+model GroupBudget {
+  id          String       @id @default(cuid())
+  groupId     String       @unique
+  totalAmount Float
+  currency    String       @default("USD")
+  period      BudgetPeriod @default(MONTHLY)
+  startDate   DateTime
+  endDate     DateTime?
+  alertAt     Float        @default(0.8)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  group           Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  categoryBudgets CategoryBudget[]
+}
+
+model CategoryBudget {
+  id        String      @id @default(cuid())
+  budgetId  String
+  category  String
+  amount    Float
+
+  budget GroupBudget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+
+  @@unique([budgetId, category])
+}
+
+// Phase 6 — B2B expense policy
+model ExpensePolicy {
+  id                     String  @id @default(cuid())
+  groupId                String  @unique
+  maxAmountNoReceipt     Float   @default(25)
+  requiresApprovalAbove  Float   @default(100)
+  allowedCategories      String  @default("")  // comma-separated; empty = all allowed
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+}
+
+// Phase 8 — Virtual group card (Stripe Issuing)
+model GroupCard {
+  id                  String     @id @default(cuid())
+  groupId             String     @unique
+  stripeCardId        String     @unique
+  stripeCardholderIds String     @default("")  // comma-separated
+  last4               String     @default("")
+  brand               String     @default("Visa")
+  status              CardStatus @default(ACTIVE)
+  currency            String     @default("USD")
+  spendLimit          Float      @default(0)
+  spendLimitInterval  String     @default("MONTHLY")
+  createdAt           DateTime   @default(now())
+
+  group        Group             @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  transactions CardTransaction[]
+}
+
+model CardTransaction {
+  id               String   @id @default(cuid())
+  groupId          String
+  cardId           String
+  userId           String?
+  amount           Float
+  currency         String   @default("usd")
+  merchantName     String
+  merchantCategory String   @default("General")
+  stripeAuthId     String   @unique
+  approved         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  card    GroupCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user    User?     @relation(fields: [userId], references: [id])
+  expense Expense?
+}
+
+model RecurringExpense {
+  id          String         @id @default(cuid())
+  groupId     String
+  description String
+  lastAmount  Float
+  currency    String         @default("USD")
+  category    String         @default("General")
+  splitType   SplitType      @default(EQUAL)
+  frequency   RecurFrequency @default(MONTHLY)
+  nextDueDate DateTime
+  isActive    Boolean        @default(true)
+  createdById String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  group             Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdBy         User      @relation(fields: [createdById], references: [id])
+  generatedExpenses Expense[]
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model GroupInvite {
+  id          String    @id @default(cuid())
+  groupId     String
+  email       String
+  token       String    @unique @default(cuid())
+  createdById String
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  group     Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdBy User  @relation(fields: [createdById], references: [id])
+}

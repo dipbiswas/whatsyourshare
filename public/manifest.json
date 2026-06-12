@@ -1,0 +1,37 @@
+{
+  "name": "WhatsYourShare",
+  "short_name": "WYShare",
+  "description": "Split expenses with friends, roommates, and teams",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "description": "View your balances"
+    },
+    {
+      "name": "Groups",
+      "url": "/groups",
+      "description": "Manage your groups"
+    }
+  ]
+}

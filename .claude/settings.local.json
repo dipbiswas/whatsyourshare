@@ -1,7 +1,23 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm --version)"
+      "Bash(npm --version)",
+      "mcp__f4bdb06a-95f3-4007-ba6d-3c44ec9c192d__WixSiteBuilder",
+      "mcp__f4bdb06a-95f3-4007-ba6d-3c44ec9c192d__pullSiteCreationJob",
+      "mcp__f4bdb06a-95f3-4007-ba6d-3c44ec9c192d__WixREADME",
+      "WebSearch",
+      "Bash(npx prisma *)",
+      "Bash(ls ~/.nvm/versions/node/ && cat /Users/dipanjanbiswas/dev/whatsyourshare/.nvmrc 2>/dev/null || echo \"no .nvmrc\")",
+      "Bash(pg_isready)",
+      "Bash(brew services *)",
+      "Bash(pg_ctl -D /usr/local/var/postgresql@14 start)",
+      "Bash(which psql *)",
+      "Bash(mkdir -p /Users/dipanjanbiswas/dev/whatsyourshare/src/app/api/recurring-expenses/\\\\[id\\\\] *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d['scripts'].get\\('build',''\\)\\)\")",
+      "Bash(python3 -c ' *)",
+      "Bash(mv /tmp/pkg.json /Users/dipanjanbiswas/dev/whatsyourshare/package.json)",
+      "Bash(git add *)"
     ]
   }
 }
