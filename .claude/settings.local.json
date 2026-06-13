@@ -17,7 +17,24 @@
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d['scripts'].get\\('build',''\\)\\)\")",
       "Bash(python3 -c ' *)",
       "Bash(mv /tmp/pkg.json /Users/dipanjanbiswas/dev/whatsyourshare/package.json)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(gh --version)",
+      "Bash(/usr/bin/git --version)",
+      "Bash(/usr/bin/git -C /Users/dipanjanbiswas/dev/whatsyourshare push -u origin main)",
+      "Bash(ls ~/.ssh/*.pub 2>/dev/null || echo \"no ssh keys\")",
+      "Bash(git -C /Users/dipanjanbiswas/dev/whatsyourshare add prisma/migrations/)",
+      "Bash(git -C /Users/dipanjanbiswas/dev/whatsyourshare commit -m \"fix: make migration fully idempotent \\(IF NOT EXISTS + DO blocks for enums\\)\")",
+      "Bash(git -C /Users/dipanjanbiswas/dev/whatsyourshare push)",
+      "Bash(git -C /Users/dipanjanbiswas/dev/whatsyourshare add package.json)",
+      "Bash(git -C /Users/dipanjanbiswas/dev/whatsyourshare commit -m \"fix: add prisma generate to build script before migrate and build\")",
+      "Bash(node -e \"require.resolve\\('next-auth/jwt'\\)\")",
+      "Bash(git -C /Users/dipanjanbiswas/dev/whatsyourshare add src/middleware.ts)",
+      "Bash(git -C /Users/dipanjanbiswas/dev/whatsyourshare commit -m 'fix: rewrite middleware to use next-auth/jwt instead of Prisma-dependent auth\\(\\) *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('next-auth:', d['dependencies'].get\\('next-auth','not found'\\)\\)\")",
+      "Bash(git -C /Users/dipanjanbiswas/dev/whatsyourshare add src/app/api/groups/\\\\[id\\\\]/route.ts)",
+      "Bash(git -C /Users/dipanjanbiswas/dev/whatsyourshare commit -m \"debug: wrap group API in try-catch to expose actual 500 error message\")"
     ]
   }
 }

@@ -397,10 +397,8 @@ model RecurringExpense {
   splitType   SplitType      @default(EQUAL)
   frequency   RecurFrequency @default(MONTHLY)
   nextDueDate DateTime
-  isActive    Boolean        @default(true)
   createdById String
   createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
 
   group             Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
   createdBy         User      @relation(fields: [createdById], references: [id])
