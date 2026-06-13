@@ -174,11 +174,9 @@ export default function ExpensesPage() {
             )}
           </div>
 
-          {/* Filter chips row */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-none">
-
-            {/* Category chips */}
-            <div className="flex items-center gap-1.5 shrink-0">
+          {/* Category chips — scrollable row */}
+          {categories.length > 0 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
               {categories.map((cat) => {
                 const meta = CATEGORY_META[cat]
                 const active = activeCategory === cat
@@ -187,7 +185,7 @@ export default function ExpensesPage() {
                     key={cat}
                     onClick={() => setActiveCategory(active ? null : cat)}
                     className={cn(
-                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap border",
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap border shrink-0",
                       active
                         ? `${meta?.color ?? "bg-muted text-foreground"} border-transparent shadow-sm`
                         : "bg-transparent border-border text-muted-foreground hover:text-foreground hover:bg-accent"
@@ -199,11 +197,12 @@ export default function ExpensesPage() {
                 )
               })}
             </div>
+          )}
 
-            <div className="h-4 w-px bg-border shrink-0" />
-
+          {/* Group filter + Sort — separate row so dropdowns are never clipped */}
+          <div className="flex items-center gap-2">
             {/* Group filter */}
-            <div className="relative shrink-0">
+            <div className="relative">
               <button
                 onClick={() => { setShowGroupMenu((v) => !v); setShowSortMenu(false) }}
                 className={cn(
@@ -220,7 +219,7 @@ export default function ExpensesPage() {
               {showGroupMenu && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setShowGroupMenu(false)} />
-                  <div className="absolute left-0 top-full mt-1 z-20 w-48 glass-strong rounded-xl shadow-xl py-1 overflow-hidden">
+                  <div className="absolute left-0 top-full mt-1 z-20 w-48 bg-background border border-border rounded-xl shadow-xl py-1 overflow-hidden">
                     <button
                       onClick={() => { setActiveGroup(null); setShowGroupMenu(false) }}
                       className={cn("w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors", !activeGroup && "font-semibold text-foreground")}
@@ -242,7 +241,7 @@ export default function ExpensesPage() {
             </div>
 
             {/* Sort */}
-            <div className="relative shrink-0">
+            <div className="relative">
               <button
                 onClick={() => { setShowSortMenu((v) => !v); setShowGroupMenu(false) }}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-all whitespace-nowrap"
@@ -253,7 +252,7 @@ export default function ExpensesPage() {
               {showSortMenu && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setShowSortMenu(false)} />
-                  <div className="absolute right-0 top-full mt-1 z-20 w-44 glass-strong rounded-xl shadow-xl py-1 overflow-hidden">
+                  <div className="absolute left-0 top-full mt-1 z-20 w-44 bg-background border border-border rounded-xl shadow-xl py-1 overflow-hidden">
                     {(Object.entries(SORT_LABELS) as [SortKey, string][]).map(([key, label]) => (
                       <button
                         key={key}
@@ -272,7 +271,7 @@ export default function ExpensesPage() {
             {hasFilters && (
               <button
                 onClick={clearFilters}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 <X className="h-3 w-3" />
                 Clear
