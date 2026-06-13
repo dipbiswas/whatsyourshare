@@ -41,6 +41,7 @@ import { CreateTripDialog } from "@/components/trips/CreateTripDialog"
 import { ExpensePolicyCard } from "@/components/groups/ExpensePolicyCard"
 import { GroupCardCard } from "@/components/cards/GroupCardCard"
 import { InviteMemberDialog } from "@/components/groups/InviteMemberDialog"
+import { InteracHelperDialog } from "@/components/settlements/InteracHelperDialog"
 import { formatCurrency } from "@/lib/balance"
 import type { AnnotatedTransfer } from "@/lib/balance"
 
@@ -309,15 +310,26 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                     </button>
                     {isMyDebt && (
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <a
-                          href={`https://etransfer.interac.ca/send?amount=${s.amount.toFixed(2)}&message=WhatsYourShare%20-%20${encodeURIComponent(group.name)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
-                          title="Pay via Interac e-Transfer"
-                        >
-                          Interac
-                        </a>
+                        <InteracHelperDialog
+                          amount={s.amount}
+                          currency={group.currency}
+                          toName={s.toName}
+                          toEmail={group.members.find((m) => m.userId === s.to)?.user.email ?? ""}
+                          groupName={group.name}
+                          onSent={async () => {
+                            await fetch("/api/settlements", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                groupId: group.id,
+                                toUserId: s.to,
+                                amount: s.amount,
+                                note: "Interac e-Transfer",
+                              }),
+                            })
+                            refreshGroup()
+                          }}
+                        />
                         <AddSettlementDialog
                           groupId={group.id}
                           currency={group.currency}
