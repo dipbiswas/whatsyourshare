@@ -83,3 +83,23 @@ export async function PATCH(req: Request) {
 
   return NextResponse.json(updated)
 }
+
+// DELETE /api/account — permanently delete the account
+export async function DELETE() {
+  const session = await auth()
+  if (!session?.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const id = session.user.id
+
+  // Delete in dependency order to avoid FK violations
+  await prisma.expenseSplit.deleteMany({ where: { userId: id } })
+  await prisma.settlement.deleteMany({ where: { OR: [{ fromUserId: id }, { toUserId: id }] } })
+  await prisma.expense.deleteMany({ where: { paidById: id } })
+  await prisma.groupMember.deleteMany({ where: { userId: id } })
+  await prisma.pushSubscription.deleteMany({ where: { userId: id } })
+  await prisma.session.deleteMany({ where: { userId: id } })
+  await prisma.account.deleteMany({ where: { userId: id } })
+  await prisma.user.delete({ where: { id } })
+
+  return NextResponse.json({ ok: true })
+}

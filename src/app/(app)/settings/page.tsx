@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Check, CreditCard, Link2, Loader2, Zap, Crown, DollarSign, Shield, User, Lock, KeyRound, Bell } from "lucide-react"
+import { Check, CreditCard, Link2, Loader2, Zap, Crown, DollarSign, Shield, User, Lock, KeyRound, Bell, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface BillingStatus {
@@ -566,6 +566,9 @@ export default function SettingsPage() {
         )}
       </div>
 
+      {/* Danger Zone */}
+      <DangerZone />
+
       {/* Security / app info footer */}
       <div className="flex items-center justify-between text-xs text-muted-foreground/40 px-1">
         <div className="flex items-center gap-1.5">
@@ -576,6 +579,61 @@ export default function SettingsPage() {
           <DollarSign className="h-3.5 w-3.5" />
           Built with Next.js · Prisma · Stripe
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Danger Zone ───────────────────────────────────────────────────────────────
+
+function DangerZone() {
+  const [confirming, setConfirming] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      const res = await fetch("/api/account", { method: "DELETE" })
+      if (!res.ok) { toast.error("Failed to delete account"); return }
+      // Sign out and redirect to home
+      window.location.href = "/api/auth/signout"
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <div className="glass rounded-2xl border border-red-200 dark:border-red-500/25 p-5">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="h-10 w-10 rounded-xl bg-red-50 dark:bg-red-500/15 flex items-center justify-center shrink-0">
+          <Trash2 className="h-5 w-5 text-red-500 dark:text-red-400" />
+        </div>
+        <div>
+          <p className="font-semibold text-red-500 dark:text-red-400">Danger Zone</p>
+          <p className="text-xs text-muted-foreground">Irreversible actions</p>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-4 bg-red-50 dark:bg-red-500/10 rounded-xl p-4">
+        <div>
+          <p className="text-sm font-medium text-foreground/80">Delete account</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Permanently deletes your account, expenses, and all data. This cannot be undone.
+          </p>
+        </div>
+        {!confirming ? (
+          <Button variant="destructive" size="sm" className="shrink-0" onClick={() => setConfirming(true)}>
+            Delete
+          </Button>
+        ) : (
+          <div className="flex items-center gap-2 shrink-0">
+            <p className="text-xs text-red-600 dark:text-red-400 font-medium">Are you sure?</p>
+            <Button variant="outline" size="sm" onClick={() => setConfirming(false)}>Cancel</Button>
+            <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleting}>
+              {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Yes, delete"}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )
