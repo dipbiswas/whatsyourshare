@@ -37,6 +37,7 @@ import { AddMemberDialog } from "@/components/groups/AddMemberDialog"
 import { AddRecurringExpenseDialog } from "@/components/expenses/AddRecurringExpenseDialog"
 import { BudgetProgressCard } from "@/components/budget/BudgetProgressCard"
 import { CreateTripDialog } from "@/components/trips/CreateTripDialog"
+import { Plane } from "lucide-react"
 import { ExpensePolicyCard } from "@/components/groups/ExpensePolicyCard"
 import { GroupCardCard } from "@/components/cards/GroupCardCard"
 import { InteracHelperDialog } from "@/components/settlements/InteracHelperDialog"
@@ -129,6 +130,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
   const [expandedExpenses, setExpandedExpenses] = useState<Set<string>>(new Set())
   const [approvingId, setApprovingId] = useState<string | null>(null)
   const [openDialog, setOpenDialog] = useState<"addMember" | "addRecurring" | "createTrip" | null>(null)
+  const [trips, setTrips] = useState<{ id: string; name: string; destination: string | null; coverEmoji: string | null; startDate: string; endDate: string; _count: { days: number } }[]>([])
 
   const userId = session?.user.id ?? ""
 
@@ -149,6 +151,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
   useEffect(() => {
     refreshGroup().finally(() => setLoading(false))
+    fetch(`/api/trips?groupId=${id}`).then((r) => r.ok ? r.json() : []).then(setTrips)
   }, [id, router])
 
   async function approveExpense(expenseId: string, action: "APPROVE" | "REJECT") {
@@ -445,6 +448,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               { value: "expenses", label: "Expenses", count: group.expenses.length },
               { value: "settlements", label: "Settlements", count: group.settlements.length },
               { value: "recurring", label: "Recurring", count: group.recurringExpenses.length },
+              { value: "trips", label: "Trips", count: trips.length },
               { value: "members", label: "Members", count: group.members.length },
               { value: "balances", label: "Balances", count: null },
               { value: "settings", label: "Settings", count: null },
@@ -629,6 +633,56 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           )}
         </TabsContent>
 
+        {/* Trips */}
+        <TabsContent value="trips" className="mt-4">
+          {trips.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="mx-auto h-14 w-14 rounded-2xl bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center mb-3">
+                <Plane className="h-6 w-6 text-violet-600 dark:text-violet-400" />
+              </div>
+              <p className="text-sm font-medium text-muted-foreground">No trips yet</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">Create a trip to track day-by-day expenses</p>
+              <button
+                onClick={() => setOpenDialog("createTrip")}
+                className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-violet-600 dark:text-violet-400 hover:underline"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Create first trip
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {trips.map((t) => (
+                <Link key={t.id} href={`/trips/${t.id}`}>
+                  <div className="glass rounded-2xl p-4 hover:bg-accent/40 transition-colors flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-violet-100 dark:bg-violet-500/20 flex items-center justify-center text-2xl shrink-0">
+                      {t.coverEmoji ?? "✈️"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-foreground">{t.name}</p>
+                      {t.destination && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{t.destination}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {format(new Date(t.startDate), "MMM d")} – {format(new Date(t.endDate), "MMM d, yyyy")}
+                        {t._count.days > 0 && ` · ${t._count.days} day${t._count.days !== 1 ? "s" : ""}`}
+                      </p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </div>
+                </Link>
+              ))}
+              <button
+                onClick={() => setOpenDialog("createTrip")}
+                className="w-full glass rounded-2xl p-4 border-2 border-dashed border-border hover:border-violet-400/50 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-all flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground"
+              >
+                <Plus className="h-4 w-4" />
+                New trip
+              </button>
+            </div>
+          )}
+        </TabsContent>
+
         {/* Members */}
         <TabsContent value="members" className="mt-4 space-y-3">
           <MembersTab
@@ -790,6 +844,10 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
         groupId={group.id}
         open={openDialog === "createTrip"}
         onOpenChange={(v) => !v && setOpenDialog(null)}
+        onCreated={(t) => {
+          setTrips((prev) => [t as typeof trips[0], ...prev])
+          setOpenDialog(null)
+        }}
       />
     </div>
   )
