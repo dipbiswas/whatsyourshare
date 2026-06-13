@@ -115,7 +115,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
   const userId = session?.user.id ?? ""
 
-  useEffect(() => {
+  const refreshGroup = () =>
     fetch(`/api/groups/${id}`)
       .then(async (r) => {
         if (!r.ok) {
@@ -129,7 +129,9 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
         console.error("Group fetch error:", err)
         toast.error("Error: " + (err?.message ?? "unknown"))
       })
-      .finally(() => setLoading(false))
+
+  useEffect(() => {
+    refreshGroup().finally(() => setLoading(false))
   }, [id, router])
 
   async function approveExpense(expenseId: string, action: "APPROVE" | "REJECT") {
@@ -357,11 +359,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           currency={group.currency}
           members={group.members}
           currentUserId={userId}
-          onCreated={(settlement) =>
-            setGroup((g) =>
-              g ? { ...g, settlements: [settlement as Settlement, ...g.settlements] } : g
-            )
-          }
+          onCreated={() => refreshGroup()}
         />
         <AddMemberDialog
           groupId={group.id}

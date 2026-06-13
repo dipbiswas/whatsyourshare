@@ -27,7 +27,7 @@ interface Props {
   currentUserId: string
   suggestedTo?: string
   suggestedAmount?: number
-  onCreated: (settlement: object) => void
+  onCreated: () => void
 }
 
 export function AddSettlementDialog({
@@ -71,9 +71,8 @@ export function AddSettlementDialog({
         toast.error("Failed to record settlement")
         return
       }
-      const settlement = await res.json()
       toast.success("Settlement recorded!")
-      onCreated(settlement)
+      onCreated()
       setOpen(false)
       setForm({ toUserId: "", amount: "", note: "" })
     } finally {
