@@ -11,6 +11,7 @@ export async function GET(
 
   const { id } = await params
 
+  try {
   const trip = await prisma.trip.findFirst({
     where: {
       id,
@@ -72,6 +73,10 @@ export async function GET(
   }
 
   return NextResponse.json({ ...trip, unlinkedExpenses, memberSpend })
+  } catch (err) {
+    console.error("[GET /api/trips/[id]] error:", err)
+    return NextResponse.json({ error: String(err) }, { status: 500 })
+  }
 }
 
 export async function DELETE(
