@@ -4,6 +4,11 @@ import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 
 const patchSchema = z.object({
+  description: z.string().min(1).max(200).optional(),
+  amount: z.number().positive().optional(),
+  category: z.string().optional(),
+  paidById: z.string().optional(),
+  date: z.string().optional(),
   tripDayId: z.string().nullable().optional(),
 })
 
@@ -25,11 +30,40 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const isMember = expense.group.members.some((m: { userId: string }) => m.userId === session.user.id)
   if (!isMember) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
+  const { date, tripDayId, amount, ...rest } = parsed.data
+
+  // If amount changed, recalculate equal splits
+  let splitsUpdate = {}
+  if (amount !== undefined) {
+    const memberCount = expense.group.members.length
+    const perPerson = Math.round((amount / memberCount) * 100) / 100
+    splitsUpdate = {
+      splits: {
+        deleteMany: {},
+        createMany: {
+          data: expense.group.members.map((m: { userId: string }) => ({
+            userId: m.userId,
+            amount: perPerson,
+          })),
+        },
+      },
+    }
+  }
+
   const updated = await prisma.expense.update({
     where: { id },
-    data: { tripDayId: parsed.data.tripDayId ?? null },
+    data: {
+      ...rest,
+      ...(amount !== undefined ? { amount } : {}),
+      ...(date ? { date: new Date(date) } : {}),
+      ...(tripDayId !== undefined ? { tripDayId: tripDayId ?? null } : {}),
+      ...splitsUpdate,
+    },
+    include: {
+      paidBy: { select: { id: true, name: true, avatar: true } },
+      splits: { include: { user: { select: { id: true, name: true } } } },
+    },
   })
-
   return NextResponse.json(updated)
 }
 

@@ -28,6 +28,7 @@ interface Props {
   suggestedTo?: string
   suggestedAmount?: number
   onCreated: () => void
+  compact?: boolean
 }
 
 export function AddSettlementDialog({
@@ -38,6 +39,7 @@ export function AddSettlementDialog({
   suggestedTo,
   suggestedAmount,
   onCreated,
+  compact,
 }: Props) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -82,9 +84,16 @@ export function AddSettlementDialog({
 
   return (
     <>
-      <Button variant="outline" className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => setOpen(true)}>
-        <CheckCircle className="h-4 w-4" />
-        Record Payment
+      <Button
+        variant="outline"
+        size="sm"
+        className={compact
+          ? "h-7 text-xs px-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+          : "gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+        }
+        onClick={() => setOpen(true)}
+      >
+        {compact ? "Settle Up" : <><CheckCircle className="h-4 w-4" />Record Payment</>}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -96,9 +105,9 @@ export function AddSettlementDialog({
               <Label>Paying to</Label>
               <Select value={form.toUserId} onValueChange={(v) => setForm((f) => ({ ...f, toUserId: v ?? f.toUserId }))}>
                 <SelectTrigger>
-                  <span className="flex flex-1 text-left text-sm">
+                  <SelectValue>
                     {others.find((m) => m.userId === form.toUserId)?.user.name ?? "Select member…"}
-                  </span>
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {others.map((m) => (

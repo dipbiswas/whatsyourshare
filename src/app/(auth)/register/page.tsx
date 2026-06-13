@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
+import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -32,8 +33,14 @@ export default function RegisterPage() {
         toast.error(data.error ?? "Registration failed")
         return
       }
-      toast.success("Account created! Please sign in.")
-      router.push("/login")
+      toast.success("Account created! Signing you in…")
+      await signIn("credentials", {
+        email: form.email,
+        password: form.password,
+        redirect: false,
+      })
+      router.push("/dashboard")
+      router.refresh()
     } finally {
       setLoading(false)
     }

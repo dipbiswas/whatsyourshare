@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
 import { AddExpenseDialog } from "@/components/expenses/AddExpenseDialog"
+import { EditExpenseDialog } from "@/components/expenses/EditExpenseDialog"
 import { AddSettlementDialog } from "@/components/settlements/AddSettlementDialog"
 import { AddMemberDialog } from "@/components/groups/AddMemberDialog"
 import { AddRecurringExpenseDialog } from "@/components/expenses/AddRecurringExpenseDialog"
@@ -65,6 +66,7 @@ interface Expense {
   date: string
   visibility: "GROUP" | "PAYERS_ONLY"
   approvalStatus: "NA" | "PENDING_APPROVAL" | "APPROVED" | "REJECTED"
+  paidById: string
   paidBy: { id: string; name: string; avatar: string | null }
   splits: Split[]
 }
@@ -275,6 +277,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           <CardContent className="space-y-1">
             {group.suggestedSettlements.map((s, i) => {
               const isExpanded = expandedDebts.has(i)
+              const isMyDebt = s.from === userId
               const toggle = () =>
                 setExpandedDebts((prev) => {
                   const next = new Set(prev)
@@ -283,26 +286,51 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                 })
               return (
                 <div key={i} className="rounded-lg overflow-hidden">
-                  <button
-                    onClick={toggle}
-                    className="w-full flex items-center justify-between text-sm px-1 py-1.5 hover:bg-amber-100 rounded-lg transition-colors"
-                  >
-                    <div className="flex items-center gap-2 text-amber-900">
-                      <span className="font-medium">{s.fromName}</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
-                      <span className="font-medium">{s.toName}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-amber-800">
-                        {formatCurrency(s.amount, group.currency)}
-                      </span>
-                      {isExpanded ? (
-                        <ChevronUp className="h-3.5 w-3.5 text-amber-600" />
-                      ) : (
-                        <ChevronDown className="h-3.5 w-3.5 text-amber-600" />
-                      )}
-                    </div>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={toggle}
+                      className="flex-1 flex items-center justify-between text-sm px-1 py-1.5 hover:bg-amber-100 rounded-lg transition-colors"
+                    >
+                      <div className="flex items-center gap-2 text-amber-900">
+                        <span className="font-medium">{s.fromName}</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
+                        <span className="font-medium">{s.toName}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-amber-800">
+                          {formatCurrency(s.amount, group.currency)}
+                        </span>
+                        {isExpanded ? (
+                          <ChevronUp className="h-3.5 w-3.5 text-amber-600" />
+                        ) : (
+                          <ChevronDown className="h-3.5 w-3.5 text-amber-600" />
+                        )}
+                      </div>
+                    </button>
+                    {isMyDebt && (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <a
+                          href={`https://etransfer.interac.ca/send?amount=${s.amount.toFixed(2)}&message=WhatsYourShare%20-%20${encodeURIComponent(group.name)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
+                          title="Pay via Interac e-Transfer"
+                        >
+                          Interac
+                        </a>
+                        <AddSettlementDialog
+                          groupId={group.id}
+                          currency={group.currency}
+                          members={group.members}
+                          currentUserId={userId}
+                          suggestedTo={s.to}
+                          suggestedAmount={s.amount}
+                          onCreated={() => refreshGroup()}
+                          compact
+                        />
+                      </div>
+                    )}
+                  </div>
 
                   {isExpanded && (
                     <div className="ml-2 mb-1 pl-3 border-l-2 border-amber-200 space-y-1.5">
@@ -348,11 +376,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           currency={group.currency}
           members={group.members}
           currentUserId={userId}
-          onCreated={(expense) =>
-            setGroup((g) =>
-              g ? { ...g, expenses: [expense as Expense, ...g.expenses] } : g
-            )
-          }
+          onCreated={() => refreshGroup()}
         />
         <AddSettlementDialog
           groupId={group.id}
@@ -486,6 +510,11 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                               </Button>
                             </>
                           )}
+                          <EditExpenseDialog
+                            expense={expense}
+                            members={group.members}
+                            onUpdated={() => refreshGroup()}
+                          />
                           <Button
                             variant="ghost"
                             size="icon"

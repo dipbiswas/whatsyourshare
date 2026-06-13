@@ -26,7 +26,7 @@ interface Props {
   currency: string
   members: Member[]
   currentUserId: string
-  onCreated: (expense: object) => void
+  onCreated: () => void
 }
 
 const CATEGORIES = ["General", "Food", "Transport", "Accommodation", "Entertainment", "Utilities", "Other"]
@@ -118,9 +118,8 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, on
         toast.error("Failed to add expense")
         return
       }
-      const expense = await res.json()
       toast.success("Expense added!")
-      onCreated(expense)
+      onCreated()
       setOpen(false)
       setForm({ description: "", amount: "", category: "General", paidById: currentUserId, visibility: "GROUP" })
       setExactSplits({})
@@ -210,10 +209,10 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, on
               <Label>Paid by</Label>
               <Select value={form.paidById} onValueChange={(v) => setForm((f) => ({ ...f, paidById: v ?? f.paidById }))}>
                 <SelectTrigger>
-                  <span className="flex flex-1 text-left text-sm">
+                  <SelectValue>
                     {members.find((m) => m.userId === form.paidById)?.user.name ?? "Select member"}
                     {form.paidById === currentUserId ? " (you)" : ""}
-                  </span>
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {members.map((m) => (
