@@ -18,7 +18,7 @@ const nav = [
   { href: "/activity",   label: "Recent Activity",  icon: Activity,        mobile: true },
   { href: "/trips",      label: "Trips",            icon: Plane,           mobile: false },
   { href: "/expenses",   label: "Expenses",         icon: Receipt,         mobile: false },
-  { href: "/settings",   label: "Settings",         icon: Settings,        mobile: false },
+  { href: "/settings",   label: "Account",          icon: Settings,        mobile: false },
 ]
 
 interface SidebarProps {
