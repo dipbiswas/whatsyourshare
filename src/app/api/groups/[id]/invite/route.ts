@@ -12,7 +12,10 @@ import { prisma } from "@/lib/prisma"
 import { sendInviteEmail } from "@/lib/email"
 import { z } from "zod"
 
-const schema = z.object({ email: z.string().email() })
+const schema = z.object({
+  email: z.string().email(),
+  splitValue: z.number().optional(),
+})
 
 export async function POST(
   req: Request,
@@ -26,7 +29,7 @@ export async function POST(
   const parsed = schema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
 
-  const { email } = parsed.data
+  const { email, splitValue } = parsed.data
 
   const isMember = await prisma.groupMember.findFirst({
     where: { groupId, userId: session.user.id },
@@ -51,13 +54,15 @@ export async function POST(
 
   let invite
   if (existing) {
-    invite = await prisma.groupInvite.update({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    invite = await (prisma.groupInvite.update as any)({
       where: { id: existing.id },
-      data: { expiresAt, createdById: session.user.id },
+      data: { expiresAt, createdById: session.user.id, ...(splitValue != null ? { splitValue } : {}) },
     })
   } else {
-    invite = await prisma.groupInvite.create({
-      data: { groupId, email, createdById: session.user.id, expiresAt },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    invite = await (prisma.groupInvite.create as any)({
+      data: { groupId, email, createdById: session.user.id, expiresAt, ...(splitValue != null ? { splitValue } : {}) },
     })
   }
 

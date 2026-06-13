@@ -434,6 +434,7 @@ model GroupInvite {
   createdById String
   expiresAt   DateTime
   acceptedAt  DateTime?
+  splitValue  Float?
   createdAt   DateTime  @default(now())
 
   group     Group @relation(fields: [groupId], references: [id], onDelete: Cascade)

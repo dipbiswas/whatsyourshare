@@ -154,10 +154,11 @@ export function AddMemberDialog({
       const addData = await addRes.json()
       if (addRes.status === 409) { toast.error(addData.error ?? "Already a member"); return }
       if (addRes.status === 404) {
+        const splitVal = needsSplitValue && splitValue.trim() ? parseFloat(splitValue) : undefined
         const inviteRes = await fetch(`/api/groups/${groupId}/invite`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: emailToAdd }),
+          body: JSON.stringify({ email: emailToAdd, ...(splitVal != null && splitVal > 0 ? { splitValue: splitVal } : {}) }),
         })
         const inviteData = await inviteRes.json()
         if (!inviteRes.ok) { toast.error(inviteData.error ?? "Failed to send invite"); return }

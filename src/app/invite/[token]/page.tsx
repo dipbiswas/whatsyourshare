@@ -108,6 +108,24 @@ export default async function InvitePage({ params }: Props) {
     })
   }
 
+  // Apply stored split value to group's defaultSplitShares if present
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const inviteWithSplit = invite as any
+  if (inviteWithSplit.splitValue != null && inviteWithSplit.splitValue > 0) {
+    const group = await prisma.group.findUnique({
+      where: { id: invite.group.id },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      select: { defaultSplitShares: true } as any,
+    })
+    const existing_shares = ((group as any)?.defaultSplitShares ?? {}) as Record<string, number>
+    const updated_shares = { ...existing_shares, [session.user.id]: inviteWithSplit.splitValue }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (prisma.group.update as any)({
+      where: { id: invite.group.id },
+      data: { defaultSplitShares: updated_shares },
+    })
+  }
+
   await prisma.groupInvite.update({
     where: { token },
     data: { acceptedAt: new Date() },

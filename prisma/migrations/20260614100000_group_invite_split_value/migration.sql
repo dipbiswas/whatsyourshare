@@ -1,0 +1,1 @@
+ALTER TABLE "GroupInvite" ADD COLUMN "splitValue" DOUBLE PRECISION;
