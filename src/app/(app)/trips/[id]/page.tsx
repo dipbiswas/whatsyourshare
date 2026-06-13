@@ -15,6 +15,7 @@ import {
   ChevronUp,
   Link2,
   Link2Off,
+  Plus,
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -25,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TripFundCard } from "@/components/trips/TripFundCard"
+import { AddExpenseDialog } from "@/components/expenses/AddExpenseDialog"
 import { formatCurrency } from "@/lib/balance"
 
 interface Member {
@@ -154,7 +156,6 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
         body: JSON.stringify({ generate: "all" }),
       })
       if (!res.ok) { toast.error("Failed to generate days"); return }
-      // Refetch the full trip
       const updated = await fetch(`/api/trips/${id}`).then((r) => r.json())
       setTrip(updated)
       setExpandedDays(new Set(updated.days.map((d: TripDay) => d.id)))
@@ -162,6 +163,11 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
     } finally {
       setGeneratingDays(false)
     }
+  }
+
+  async function refreshTrip() {
+    const updated = await fetch(`/api/trips/${id}`).then((r) => r.json())
+    setTrip(updated)
   }
 
   async function linkExpenseToDay(expenseId: string, dayId: string | null) {
@@ -172,9 +178,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
     })
     if (!res.ok) { toast.error("Failed to link expense"); return }
 
-    // Refresh trip
-    const updated = await fetch(`/api/trips/${id}`).then((r) => r.json())
-    setTrip(updated)
+    await refreshTrip()
     toast.success(dayId ? "Expense linked to day" : "Expense unlinked")
   }
 
@@ -353,7 +357,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
               const isOpen = expandedDays.has(day.id)
               const dayTotal = day.expenses.reduce((s, e) => s + e.amount, 0)
               return (
-                <Card key={day.id} className="border-0 shadow-sm overflow-hidden">
+                <Card key={day.id} className="border-0 shadow-sm overflow-hidden relative">
                   {/* Day header */}
                   <button
                     onClick={() =>
@@ -388,12 +392,43 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                       <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" />
                     )}
                   </button>
+                  {/* Add expense button – stops propagation so it doesn't toggle the day */}
+                  <div className="absolute right-12 top-1/2 -translate-y-1/2" onClick={(e) => e.stopPropagation()}>
+                    <AddExpenseDialog
+                      groupId={trip.group.id}
+                      currency={trip.group.currency}
+                      members={trip.group.members}
+                      currentUserId={userId}
+                      tripDayId={day.id}
+                      onCreated={refreshTrip}
+                      trigger={
+                        <button className="flex items-center gap-1 text-xs font-medium text-violet-600 hover:text-violet-800 bg-violet-50 hover:bg-violet-100 dark:bg-violet-500/10 dark:hover:bg-violet-500/20 dark:text-violet-400 px-2.5 py-1.5 rounded-lg transition-colors">
+                          <Plus className="h-3.5 w-3.5" /> Add
+                        </button>
+                      }
+                    />
+                  </div>
 
                   {/* Day expenses */}
                   {isOpen && (
                     <div className="border-t border-gray-100">
                       {day.expenses.length === 0 ? (
-                        <p className="text-sm text-gray-400 px-4 py-3">No expenses for this day</p>
+                        <div className="flex items-center justify-between px-4 py-3 pl-16">
+                          <p className="text-sm text-gray-400">No expenses for this day</p>
+                          <AddExpenseDialog
+                            groupId={trip.group.id}
+                            currency={trip.group.currency}
+                            members={trip.group.members}
+                            currentUserId={userId}
+                            tripDayId={day.id}
+                            onCreated={refreshTrip}
+                            trigger={
+                              <button className="flex items-center gap-1 text-xs font-medium text-violet-600 hover:text-violet-800 bg-violet-50 hover:bg-violet-100 dark:bg-violet-500/10 dark:text-violet-400 px-2.5 py-1.5 rounded-lg transition-colors">
+                                <Plus className="h-3.5 w-3.5" /> Add expense
+                              </button>
+                            }
+                          />
+                        </div>
                       ) : (
                         day.expenses.map((expense, idx) => (
                           <div key={expense.id}>

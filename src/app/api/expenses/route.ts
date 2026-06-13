@@ -23,6 +23,7 @@ const expenseSchema = z.object({
   splits: z.array(splitSchema).min(1),
   recurringExpenseId: z.string().optional(),
   guestPayeeName: z.string().max(100).optional(),
+  tripDayId: z.string().optional(),
 })
 
 export async function GET() {
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
   const parsed = expenseSchema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
 
-  const { splits, date, guestPayeeName, ...rest } = parsed.data
+  const { splits, date, guestPayeeName, tripDayId, ...rest } = parsed.data
 
   const isMember = await prisma.groupMember.findFirst({
     where: { groupId: rest.groupId, userId: session.user.id },
@@ -63,6 +64,7 @@ export async function POST(req: Request) {
       ...rest,
       date: date ? new Date(date) : new Date(),
       ...(guestPayeeName ? { guestPayeeName } : {}),
+      ...(tripDayId ? { tripDayId } : {}),
       splits: { createMany: { data: splits } },
     },
     include: {
