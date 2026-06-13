@@ -76,7 +76,7 @@ export function InviteMemberDialog({ groupId }: Props) {
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="h-4 w-4 text-violet-600" />
+            <UserPlus className="h-4 w-4 text-indigo-600" />
             Invite to Group
           </DialogTitle>
         </DialogHeader>
@@ -102,7 +102,7 @@ export function InviteMemberDialog({ groupId }: Props) {
               <Button
                 onClick={handleInvite}
                 disabled={loading || !email.trim()}
-                className="flex-1 bg-violet-600 hover:bg-violet-700"
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700"
               >
                 {loading ? "Sending…" : "Send Invite"}
               </Button>
@@ -135,7 +135,7 @@ export function InviteMemberDialog({ groupId }: Props) {
               >
                 Invite another
               </Button>
-              <Button onClick={() => setOpen(false)} className="flex-1 bg-violet-600 hover:bg-violet-700">
+              <Button onClick={() => setOpen(false)} className="flex-1 bg-indigo-600 hover:bg-indigo-700">
                 Done
               </Button>
             </div>

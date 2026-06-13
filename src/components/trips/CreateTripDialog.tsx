@@ -79,7 +79,7 @@ export function CreateTripDialog({ groupId, onCreated, open: controlledOpen, onO
   return (
     <>
       {controlledOpen === undefined && (
-        <Button className="bg-violet-600 hover:bg-violet-700 gap-2" onClick={() => setOpen(true)}>
+        <Button className="bg-indigo-600 hover:bg-indigo-700 gap-2" onClick={() => setOpen(true)}>
           <Plus className="h-4 w-4" /> New Event
         </Button>
       )}
@@ -103,8 +103,8 @@ export function CreateTripDialog({ groupId, onCreated, open: controlledOpen, onO
                     className={cn(
                       "flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 text-center transition-colors",
                       form.eventType === t.value
-                        ? "border-violet-500 bg-violet-50 dark:bg-violet-500/15"
-                        : "border-border hover:border-violet-300 hover:bg-accent"
+                        ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-500/15"
+                        : "border-border hover:border-indigo-300 hover:bg-accent"
                     )}
                   >
                     <span className="text-xl">{t.emoji}</span>
@@ -169,7 +169,7 @@ export function CreateTripDialog({ groupId, onCreated, open: controlledOpen, onO
 
             <DialogFooter>
               <Button variant="outline" type="button" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button type="submit" className="bg-violet-600 hover:bg-violet-700" disabled={loading}>
+              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={loading}>
                 {loading ? "Creating…" : "Create event"}
               </Button>
             </DialogFooter>

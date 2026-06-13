@@ -402,7 +402,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               defaultSplitShares={group.defaultSplitShares ?? undefined}
               onCreated={() => refreshGroup()}
               trigger={
-                <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold transition-colors">
+                <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors">
                   <Plus className="h-4 w-4 shrink-0" />
                   Add Expense
                 </button>
@@ -459,12 +459,12 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                 className="relative px-4 py-2.5 text-sm font-medium rounded-none bg-transparent text-muted-foreground whitespace-nowrap
                   data-[state=active]:text-foreground data-[state=active]:shadow-none
                   after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-full after:bg-transparent
-                  data-[state=active]:after:bg-violet-600 dark:data-[state=active]:after:bg-violet-400
+                  data-[state=active]:after:bg-indigo-600 dark:data-[state=active]:after:bg-indigo-400
                   hover:text-foreground transition-colors"
               >
                 {label}
                 {count !== null && count > 0 && (
-                  <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground data-[state=active]:bg-violet-100 data-[state=active]:text-violet-700 dark:data-[state=active]:bg-violet-500/20 dark:data-[state=active]:text-violet-300">
+                  <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground data-[state=active]:bg-indigo-100 data-[state=active]:text-indigo-700 dark:data-[state=active]:bg-indigo-500/20 dark:data-[state=active]:text-indigo-300">
                     {count}
                   </span>
                 )}
@@ -578,7 +578,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                       </Avatar>
                       <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/50" />
                       <Avatar className="h-7 w-7">
-                        <AvatarFallback className="text-[10px] font-bold bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300">
+                        <AvatarFallback className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300">
                           {s.toUser.name.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
@@ -599,8 +599,8 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
         <TabsContent value="recurring" className="mt-4">
           {group.recurringExpenses.length === 0 ? (
             <div className="text-center py-16">
-              <div className="mx-auto h-14 w-14 rounded-2xl bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center mb-3">
-                <RefreshCw className="h-6 w-6 text-violet-600 dark:text-violet-400" />
+              <div className="mx-auto h-14 w-14 rounded-2xl bg-indigo-50 dark:bg-indigo-500/15 flex items-center justify-center mb-3">
+                <RefreshCw className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
               </div>
               <p className="text-sm font-medium text-muted-foreground">No recurring expenses</p>
               <p className="text-xs text-muted-foreground/70 mt-1">Auto-split bills every week, month, or quarter</p>
@@ -614,7 +614,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="font-semibold text-foreground text-sm">{r.description}</p>
-                        <Badge variant="outline" className="text-[10px] text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-500/30 px-1.5 py-0">
+                        <Badge variant="outline" className="text-[10px] text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/30 px-1.5 py-0">
                           {r.frequency === "WEEKLY" ? "Weekly" : r.frequency === "MONTHLY" ? "Monthly" : "Quarterly"}
                         </Badge>
                       </div>
@@ -637,14 +637,14 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
         <TabsContent value="trips" className="mt-4">
           {trips.length === 0 ? (
             <div className="text-center py-16">
-              <div className="mx-auto h-14 w-14 rounded-2xl bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center mb-3">
-                <Plane className="h-6 w-6 text-violet-600 dark:text-violet-400" />
+              <div className="mx-auto h-14 w-14 rounded-2xl bg-indigo-50 dark:bg-indigo-500/15 flex items-center justify-center mb-3">
+                <Plane className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
               </div>
               <p className="text-sm font-medium text-muted-foreground">No events yet</p>
               <p className="text-xs text-muted-foreground/70 mt-1">Create an event to track expenses for a trip, dinner, or celebration</p>
               <button
                 onClick={() => setOpenDialog("createTrip")}
-                className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-violet-600 dark:text-violet-400 hover:underline"
+                className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Create first event
@@ -655,7 +655,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               {trips.map((t) => (
                 <Link key={t.id} href={`/trips/${t.id}`}>
                   <div className="glass rounded-2xl p-4 hover:bg-accent/40 transition-colors flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-xl bg-violet-100 dark:bg-violet-500/20 flex items-center justify-center text-2xl shrink-0">
+                    <div className="h-12 w-12 rounded-xl bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center text-2xl shrink-0">
                       {t.coverEmoji ?? "✈️"}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -677,7 +677,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               ))}
               <button
                 onClick={() => setOpenDialog("createTrip")}
-                className="w-full glass rounded-2xl p-4 border-2 border-dashed border-border hover:border-violet-400/50 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-all flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground"
+                className="w-full glass rounded-2xl p-4 border-2 border-dashed border-border hover:border-indigo-400/50 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground"
               >
                 <Plus className="h-4 w-4" />
                 New event
@@ -709,7 +709,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                   <div className="flex items-center justify-between mb-2.5">
                     <div className="flex items-center gap-2">
                       <Avatar className="h-7 w-7 shrink-0">
-                        <AvatarFallback className="text-[10px] font-bold bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300">
+                        <AvatarFallback className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300">
                           {m.user.name.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
@@ -757,8 +757,8 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
           <div className="glass rounded-2xl p-5">
             <div className="flex items-center gap-3 mb-4">
-              <div className="h-8 w-8 rounded-lg bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center">
-                <Download className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+              <div className="h-8 w-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/15 flex items-center justify-center">
+                <Download className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-foreground">Export Data</p>
@@ -933,7 +933,7 @@ function MembersTab({
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <p className="font-semibold text-foreground text-sm">{m.user.name}</p>
                   {isSelf && <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">you</span>}
-                  {m.role === "ADMIN" && <span className="text-[10px] text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-500/15 px-1.5 py-0.5 rounded-full font-medium">Admin</span>}
+                  {m.role === "ADMIN" && <span className="text-[10px] text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-500/15 px-1.5 py-0.5 rounded-full font-medium">Admin</span>}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">{m.user.email}</p>
 
@@ -961,7 +961,7 @@ function MembersTab({
                         <button
                           onClick={() => saveShare(m.userId)}
                           disabled={savingShares}
-                          className="text-xs font-medium text-violet-600 dark:text-violet-400 hover:underline disabled:opacity-50"
+                          className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline disabled:opacity-50"
                         >
                           Save
                         </button>
@@ -975,7 +975,7 @@ function MembersTab({
                     ) : (
                       <button
                         onClick={() => { setEditingSharesFor(m.userId); setShareInput(String(currentShare ?? "")) }}
-                        className="inline-flex items-center gap-1 text-xs hover:text-violet-600 dark:hover:text-violet-400 transition-colors group/share"
+                        className="inline-flex items-center gap-1 text-xs hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group/share"
                       >
                         <span className={cn(
                           "font-medium",
@@ -985,7 +985,7 @@ function MembersTab({
                             ? isPercentage ? `${currentShare}%` : `${currentShare} shares`
                             : isPercentage ? "Set %" : "Set shares"}
                         </span>
-                        <span className="text-[10px] opacity-0 group-hover/share:opacity-100 transition-opacity text-violet-500">✎</span>
+                        <span className="text-[10px] opacity-0 group-hover/share:opacity-100 transition-opacity text-indigo-500">✎</span>
                       </button>
                     )}
                   </div>
@@ -1104,8 +1104,8 @@ function GroupSettingsCard({
   return (
     <div className="glass rounded-2xl p-5 space-y-4">
       <div className="flex items-center gap-3 mb-2">
-        <div className="h-8 w-8 rounded-lg bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center">
-          <Receipt className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+        <div className="h-8 w-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/15 flex items-center justify-center">
+          <Receipt className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
         </div>
         <div>
           <p className="text-sm font-semibold text-foreground">Group settings</p>
@@ -1146,7 +1146,7 @@ function GroupSettingsCard({
               className={cn(
                 "rounded-lg border px-2 py-2 text-xs font-medium transition-colors text-center",
                 splitType === opt.value
-                  ? "border-violet-500 bg-violet-50 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300"
+                  ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300"
                   : "border-border bg-background text-muted-foreground hover:bg-accent"
               )}
             >
@@ -1178,7 +1178,7 @@ function GroupSettingsCard({
       )}
 
       <div className="flex justify-end">
-        <Button size="sm" className="bg-violet-600 hover:bg-violet-700" onClick={handleSave} disabled={saving}>
+        <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700" onClick={handleSave} disabled={saving}>
           {saving ? "Saving…" : "Save changes"}
         </Button>
       </div>
@@ -1247,7 +1247,7 @@ function DefaultSplitSettings({
         {!editing && (
           <button
             onClick={() => setEditing(true)}
-            className="text-xs text-violet-600 dark:text-violet-400 hover:underline font-medium"
+            className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
           >
             Edit
           </button>
@@ -1256,7 +1256,7 @@ function DefaultSplitSettings({
 
       {!editing ? (
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-foreground bg-violet-50 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300 px-2.5 py-1 rounded-lg">
+          <span className="text-sm font-medium text-foreground bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-lg">
             {currentLabel}
           </span>
           {group.defaultSplitType === "SHARES" && group.defaultSplitShares && (
@@ -1276,7 +1276,7 @@ function DefaultSplitSettings({
                 className={cn(
                   "rounded-lg border px-2 py-2 text-xs font-medium transition-colors text-center",
                   splitType === opt.value
-                    ? "border-violet-500 bg-violet-50 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300"
+                    ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300"
                     : "border-border bg-background text-muted-foreground hover:bg-accent"
                 )}
               >
@@ -1312,7 +1312,7 @@ function DefaultSplitSettings({
             <Button variant="outline" size="sm" onClick={() => { setEditing(false); setSplitType(group.defaultSplitType || "EQUAL") }}>
               Cancel
             </Button>
-            <Button size="sm" className="bg-violet-600 hover:bg-violet-700" onClick={save} disabled={saving}>
+            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700" onClick={save} disabled={saving}>
               {saving ? "Saving…" : "Save default"}
             </Button>
           </div>

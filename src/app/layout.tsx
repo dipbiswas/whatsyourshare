@@ -1,11 +1,11 @@
 import type { Metadata } from "next"
-import { Geist } from "next/font/google"
+import { Plus_Jakarta_Sans } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
 import { AuthSessionProvider } from "@/components/providers/SessionProvider"
 import { ThemeProvider } from "@/components/providers/ThemeProvider"
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-geist" })
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-sans", weight: ["400", "500", "600", "700", "800"] })
 
 export const metadata: Metadata = {
   title: "WhatsYourShare — Split expenses effortlessly",
@@ -18,13 +18,13 @@ export const metadata: Metadata = {
   },
   other: {
     "mobile-web-app-capable": "yes",
-    "msapplication-TileColor": "#7c3aed",
+    "msapplication-TileColor": "#4338ca",
   },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geist.variable} h-full`}>
+    <html lang="en" className={`${jakarta.variable} h-full`}>
       <body className="h-full font-sans antialiased">
         <AuthSessionProvider>
           <ThemeProvider>

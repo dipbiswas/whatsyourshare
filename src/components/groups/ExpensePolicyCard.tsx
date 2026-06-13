@@ -72,7 +72,7 @@ export function ExpensePolicyCard({ groupId }: Props) {
     <Card className="border-0 shadow-sm">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Shield className="h-4 w-4 text-violet-600" />
+          <Shield className="h-4 w-4 text-indigo-600" />
           <CardTitle className="text-base">Expense Policy</CardTitle>
         </div>
         <CardDescription>
@@ -113,7 +113,7 @@ export function ExpensePolicyCard({ groupId }: Props) {
               <Badge
                 key={cat}
                 variant={selectedCats.includes(cat) ? "default" : "outline"}
-                className={`cursor-pointer select-none ${selectedCats.includes(cat) ? "bg-violet-600 hover:bg-violet-700" : "hover:bg-gray-100"}`}
+                className={`cursor-pointer select-none ${selectedCats.includes(cat) ? "bg-indigo-600 hover:bg-indigo-700" : "hover:bg-gray-100"}`}
                 onClick={() => toggleCat(cat)}
               >
                 {cat}
@@ -122,7 +122,7 @@ export function ExpensePolicyCard({ groupId }: Props) {
           </div>
         </div>
 
-        <Button onClick={save} disabled={saving} size="sm" className="bg-violet-600 hover:bg-violet-700">
+        <Button onClick={save} disabled={saving} size="sm" className="bg-indigo-600 hover:bg-indigo-700">
           <Save className="h-3.5 w-3.5 mr-1.5" />
           {saving ? "Saving…" : "Save Policy"}
         </Button>

@@ -10,7 +10,7 @@ import { CreateGroupDialog } from "@/components/groups/CreateGroupDialog"
 import { formatDistanceToNow } from "date-fns"
 
 const GROUP_ACCENTS = [
-  "from-violet-400 to-violet-600",
+  "from-indigo-400 to-indigo-600",
   "from-blue-400 to-blue-600",
   "from-emerald-400 to-emerald-600",
   "from-orange-400 to-orange-600",
@@ -90,8 +90,8 @@ export default function GroupsPage() {
 
       {!loading && groups.length === 0 && (
         <div className="text-center py-24">
-          <div className="mx-auto h-16 w-16 rounded-2xl bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center mb-4">
-            <Users className="h-8 w-8 text-violet-600 dark:text-violet-400" />
+          <div className="mx-auto h-16 w-16 rounded-2xl bg-indigo-50 dark:bg-indigo-500/15 flex items-center justify-center mb-4">
+            <Users className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
           </div>
           <h3 className="text-lg font-semibold text-foreground/80">No groups yet</h3>
           <p className="text-muted-foreground mt-1 text-sm">Create your first group to start splitting expenses.</p>
@@ -101,7 +101,7 @@ export default function GroupsPage() {
       {!loading && groups.length > 0 && filtered.length === 0 && (
         <div className="text-center py-16">
           <p className="text-sm text-muted-foreground">No groups match &ldquo;{search}&rdquo;</p>
-          <button onClick={() => setSearch("")} className="mt-2 text-xs text-violet-600 dark:text-violet-400 hover:underline">Clear search</button>
+          <button onClick={() => setSearch("")} className="mt-2 text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Clear search</button>
         </div>
       )}
 
@@ -175,7 +175,7 @@ export default function GroupsPage() {
           <CreateGroupDialog
             onCreated={(g) => setGroups((prev) => [g as Group, ...prev])}
             trigger={
-              <div className="glass rounded-2xl border-2 border-dashed border-border hover:border-violet-400/50 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-all duration-200 h-full min-h-[176px] flex flex-col items-center justify-center gap-2 cursor-pointer">
+              <div className="glass rounded-2xl border-2 border-dashed border-border hover:border-indigo-400/50 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all duration-200 h-full min-h-[176px] flex flex-col items-center justify-center gap-2 cursor-pointer">
                 <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center">
                   <Plus className="h-5 w-5 text-muted-foreground" />
                 </div>

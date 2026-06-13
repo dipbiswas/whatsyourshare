@@ -50,7 +50,7 @@ function initials(name: string) {
 
 function avatarColor(id: string) {
   const colors = [
-    "bg-violet-500", "bg-blue-500", "bg-emerald-500", "bg-rose-500",
+    "bg-indigo-500", "bg-blue-500", "bg-emerald-500", "bg-rose-500",
     "bg-amber-500", "bg-pink-500", "bg-teal-500", "bg-indigo-500",
   ]
   let hash = 0
@@ -233,7 +233,7 @@ export function AddMemberDialog({
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-violet-500" />
+                  <Users className="h-4 w-4 text-indigo-500" />
                   Add a member
                 </DialogTitle>
                 <DialogDescription>
@@ -246,7 +246,7 @@ export function AddMemberDialog({
               {/* ── Selected friend confirmation panel ── */}
               {selectedFriend && needsSplitValue ? (
                 <div className="space-y-4 mt-1">
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20">
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20">
                     <div className={cn("h-9 w-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0", avatarColor(selectedFriend.id))}>
                       {initials(selectedFriend.name)}
                     </div>
@@ -280,7 +280,7 @@ export function AddMemberDialog({
                   <DialogFooter>
                     <Button variant="outline" type="button" onClick={() => setSelectedFriend(null)}>Back</Button>
                     <Button
-                      className="bg-violet-600 hover:bg-violet-700"
+                      className="bg-indigo-600 hover:bg-indigo-700"
                       disabled={loading}
                       onClick={() => addFriend(selectedFriend)}
                     >
@@ -329,7 +329,7 @@ export function AddMemberDialog({
                             </div>
                             {needsSplitValue
                               ? <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                              : <span className="text-xs text-violet-600 dark:text-violet-400 font-medium shrink-0">Add</span>
+                              : <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium shrink-0">Add</span>
                             }
                           </button>
                         ))}
@@ -389,7 +389,7 @@ export function AddMemberDialog({
 
                     <DialogFooter>
                       <Button variant="outline" type="button" onClick={() => setOpen(false)}>Cancel</Button>
-                      <Button type="submit" className="bg-violet-600 hover:bg-violet-700" disabled={loading || !email.trim()}>
+                      <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={loading || !email.trim()}>
                         {loading ? "Adding…" : "Add by email"}
                       </Button>
                     </DialogFooter>
@@ -404,7 +404,7 @@ export function AddMemberDialog({
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-violet-500" />
+                  <Mail className="h-4 w-4 text-indigo-500" />
                   Invite sent!
                 </DialogTitle>
                 <DialogDescription>
@@ -425,7 +425,7 @@ export function AddMemberDialog({
 
               <DialogFooter className="mt-2">
                 <Button variant="outline" onClick={reset}>Invite another</Button>
-                <Button className="bg-violet-600 hover:bg-violet-700" onClick={() => { setOpen(false); reset() }}>Done</Button>
+                <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={() => { setOpen(false); reset() }}>Done</Button>
               </DialogFooter>
             </>
           )}

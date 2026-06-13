@@ -153,7 +153,7 @@ export function EditGroupDialog({ group, onUpdated }: Props) {
                     className={cn(
                       "rounded-lg border px-2 py-2 text-xs font-medium transition-colors text-center",
                       splitType === opt.value
-                        ? "border-violet-500 bg-violet-50 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300"
+                        ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300"
                         : "border-border bg-background text-muted-foreground hover:bg-accent"
                     )}
                   >
@@ -196,7 +196,7 @@ export function EditGroupDialog({ group, onUpdated }: Props) {
 
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => { setOpen(false); reset() }}>Cancel</Button>
-            <Button className="bg-violet-600 hover:bg-violet-700" onClick={handleSave} disabled={saving}>
+            <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={handleSave} disabled={saving}>
               {saving ? "Saving…" : "Save changes"}
             </Button>
           </DialogFooter>

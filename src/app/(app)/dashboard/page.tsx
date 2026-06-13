@@ -155,7 +155,7 @@ export default async function DashboardPage() {
         <Card className="border-0 shadow-none glass">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-semibold text-foreground/70">Recent Expenses</CardTitle>
-            <Link href="/expenses" className="text-xs text-violet-400 hover:underline flex items-center gap-0.5">
+            <Link href="/expenses" className="text-xs text-indigo-400 hover:underline flex items-center gap-0.5">
               All <ArrowUpRight className="h-3 w-3" />
             </Link>
           </CardHeader>
@@ -167,7 +167,7 @@ export default async function DashboardPage() {
               <Link key={e.id} href={`/groups/${e.group.id}`} className="flex items-center gap-3 group">
                 <div className={`h-2 w-2 rounded-full shrink-0 ${CATEGORY_COLORS[e.category] ?? "bg-gray-400"}`} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate group-hover:text-violet-500 transition-colors">{e.description}</p>
+                  <p className="text-sm font-medium text-foreground truncate group-hover:text-indigo-500 transition-colors">{e.description}</p>
                   <p className="text-xs text-muted-foreground truncate">{e.group.name} · {format(new Date(e.createdAt), "MMM d")}</p>
                 </div>
                 <p className="text-sm font-semibold text-foreground tabular-nums shrink-0">{formatCurrency(e.amount)}</p>

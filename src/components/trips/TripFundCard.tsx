@@ -165,13 +165,13 @@ export function TripFundCard({
                   onChange={(e) => setSetupForm((f) => ({ ...f, description: e.target.value }))}
                 />
               </div>
-              <div className="rounded-lg bg-violet-50 border border-violet-100 p-3 text-xs text-violet-700">
+              <div className="rounded-lg bg-indigo-50 border border-indigo-100 p-3 text-xs text-indigo-700">
                 <p className="font-medium mb-1">💳 How payments work</p>
                 <p>Members pay via Stripe. A 1.5% platform fee applies to each contribution. Funds are tracked here and you disburse them when ready.</p>
               </div>
               <DialogFooter>
                 <Button variant="outline" type="button" onClick={() => setSetupOpen(false)}>Cancel</Button>
-                <Button type="submit" className="bg-violet-600 hover:bg-violet-700" disabled={loading}>
+                <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={loading}>
                   {loading ? "Saving…" : "Set up fund"}
                 </Button>
               </DialogFooter>
@@ -339,7 +339,7 @@ export function TripFundCard({
               </div>
               <DialogFooter>
                 <Button variant="outline" type="button" onClick={() => setSetupOpen(false)}>Cancel</Button>
-                <Button type="submit" className="bg-violet-600 hover:bg-violet-700" disabled={loading}>
+                <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={loading}>
                   {loading ? "Saving…" : "Update fund"}
                 </Button>
               </DialogFooter>

@@ -215,7 +215,7 @@ export default function ExpensesPage() {
                 className={cn(
                   "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all whitespace-nowrap",
                   activeGroup
-                    ? "bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 border-transparent"
+                    ? "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-transparent"
                     : "bg-transparent border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                 )}
               >
@@ -326,7 +326,7 @@ export default function ExpensesPage() {
           </div>
           <p className="text-sm font-medium text-foreground/70">No matching expenses</p>
           <p className="text-xs text-muted-foreground mt-1">Try adjusting your search or filters</p>
-          <button onClick={clearFilters} className="mt-3 text-xs text-violet-600 dark:text-violet-400 hover:underline">
+          <button onClick={clearFilters} className="mt-3 text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
             Clear all filters
           </button>
         </div>

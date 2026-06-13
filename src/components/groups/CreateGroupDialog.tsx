@@ -87,7 +87,7 @@ export function CreateGroupDialog({ onCreated, trigger }: Props) {
       {trigger ? (
         <div onClick={() => setOpen(true)}>{trigger}</div>
       ) : (
-        <Button className="bg-violet-600 hover:bg-violet-700 gap-2" onClick={() => setOpen(true)}>
+        <Button className="bg-indigo-600 hover:bg-indigo-700 gap-2" onClick={() => setOpen(true)}>
           <Plus className="h-4 w-4" />
           New Group
         </Button>
@@ -141,7 +141,7 @@ export function CreateGroupDialog({ onCreated, trigger }: Props) {
                     className={cn(
                       "rounded-lg border px-2 py-2 text-xs font-medium transition-colors text-center",
                       splitType === opt.value
-                        ? "border-violet-500 bg-violet-50 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300"
+                        ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300"
                         : "border-border bg-background text-muted-foreground hover:bg-accent"
                     )}
                   >
@@ -163,7 +163,7 @@ export function CreateGroupDialog({ onCreated, trigger }: Props) {
               <Button variant="outline" type="button" onClick={() => { setOpen(false); reset() }}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-violet-600 hover:bg-violet-700" disabled={loading}>
+              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={loading}>
                 {loading ? "Creating…" : "Create group"}
               </Button>
             </DialogFooter>

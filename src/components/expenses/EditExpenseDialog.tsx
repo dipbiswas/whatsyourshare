@@ -265,7 +265,7 @@ export function EditExpenseDialog({ expense, members, currency: groupCurrency, o
                           <button type="button" onClick={() => toggleMember(m.userId)}
                             className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent/50 transition-colors text-left">
                             <div className={cn("h-5 w-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors",
-                              checked ? "bg-violet-600 border-violet-600" : "border-border")}>
+                              checked ? "bg-indigo-600 border-indigo-600" : "border-border")}>
                               {checked && <Check className="h-3 w-3 text-white" />}
                             </div>
                             <span className={cn("flex-1 text-sm", checked ? "text-foreground" : "text-muted-foreground")}>{m.user.name}</span>
@@ -338,7 +338,7 @@ export function EditExpenseDialog({ expense, members, currency: groupCurrency, o
                   </div>
                   <div className="space-y-1 px-1">
                     <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                      <div className={cn("h-full rounded-full transition-all", totalPct > 100 ? "bg-rose-500" : totalPct === 100 ? "bg-emerald-500" : "bg-violet-500")}
+                      <div className={cn("h-full rounded-full transition-all", totalPct > 100 ? "bg-rose-500" : totalPct === 100 ? "bg-emerald-500" : "bg-indigo-500")}
                         style={{ width: `${Math.min(totalPct, 100)}%` }} />
                     </div>
                     <div className="flex justify-between text-xs">
@@ -372,7 +372,7 @@ export function EditExpenseDialog({ expense, members, currency: groupCurrency, o
                   <div className="space-y-1 px-1">
                     <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                       <div className={cn("h-full rounded-full transition-all",
-                        amount > 0 && totalExact > amount ? "bg-rose-500" : amount > 0 && Math.abs(totalExact - amount) < 0.02 ? "bg-emerald-500" : "bg-violet-500")}
+                        amount > 0 && totalExact > amount ? "bg-rose-500" : amount > 0 && Math.abs(totalExact - amount) < 0.02 ? "bg-emerald-500" : "bg-indigo-500")}
                         style={{ width: amount > 0 ? `${Math.min((totalExact / amount) * 100, 100)}%` : "0%" }} />
                     </div>
                     <div className="flex justify-between text-xs">
@@ -391,7 +391,7 @@ export function EditExpenseDialog({ expense, members, currency: groupCurrency, o
 
             <DialogFooter>
               <Button variant="outline" type="button" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button type="submit" className="bg-violet-600 hover:bg-violet-700" disabled={loading}>
+              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={loading}>
                 {loading ? "Saving…" : "Save changes"}
               </Button>
             </DialogFooter>

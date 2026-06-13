@@ -77,7 +77,7 @@ export function BudgetProgressCard({ groupId, currency }: Props) {
     ? "bg-red-500"
     : budget.isOverAlert
     ? "bg-amber-400"
-    : "bg-violet-500"
+    : "bg-indigo-500"
 
   return (
     <Card
@@ -174,7 +174,7 @@ export function BudgetProgressCard({ groupId, currency }: Props) {
                   </div>
                   <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${over ? "bg-red-400" : "bg-violet-400"}`}
+                      className={`h-full rounded-full ${over ? "bg-red-400" : "bg-indigo-400"}`}
                       style={{ width: `${catPct}%` }}
                     />
                   </div>

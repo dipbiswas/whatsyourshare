@@ -267,7 +267,7 @@ export function AddRecurringExpenseDialog({ groupId, currency, members = [], onC
                       className={cn(
                         "rounded-lg border px-2 py-2 text-xs font-medium transition-colors",
                         form.splitType === st.value
-                          ? "border-violet-500 bg-violet-50 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300"
+                          ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300"
                           : "border-border bg-background text-muted-foreground hover:bg-accent"
                       )}
                     >
@@ -293,7 +293,7 @@ export function AddRecurringExpenseDialog({ groupId, currency, members = [], onC
                       type="checkbox"
                       checked={selectedMembers.has(m.userId)}
                       onChange={() => toggleMember(m.userId)}
-                      className="accent-violet-600"
+                      className="accent-indigo-600"
                     />
                     <span className="text-sm text-foreground flex-1">{m.user.name}</span>
                     {selectedMembers.has(m.userId) && totalAmount > 0 && (
@@ -373,7 +373,7 @@ export function AddRecurringExpenseDialog({ groupId, currency, members = [], onC
               <Button variant="outline" type="button" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-violet-600 hover:bg-violet-700" disabled={loading}>
+              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={loading}>
                 {loading ? "Creating…" : "Create recurring"}
               </Button>
             </DialogFooter>

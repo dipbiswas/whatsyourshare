@@ -33,7 +33,7 @@ function initials(name: string) {
 
 function avatarColor(id: string) {
   const colors = [
-    "bg-violet-500", "bg-blue-500", "bg-emerald-500", "bg-rose-500",
+    "bg-indigo-500", "bg-blue-500", "bg-emerald-500", "bg-rose-500",
     "bg-amber-500", "bg-pink-500", "bg-teal-500", "bg-indigo-500",
   ]
   let hash = 0
@@ -123,7 +123,7 @@ export default function FriendsPage() {
           <p className="text-sm text-muted-foreground mt-1">
             Add members to a group to see them here.
           </p>
-          <Link href="/groups" className="inline-block mt-4 text-sm text-violet-600 dark:text-violet-400 hover:underline">
+          <Link href="/groups" className="inline-block mt-4 text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
             Go to Groups →
           </Link>
         </div>
@@ -201,7 +201,7 @@ function FriendRow({ friend: f }: { friend: MergedFriend }) {
               <Link
                 key={g.id}
                 href={`/groups/${g.id}`}
-                className="text-xs text-muted-foreground hover:text-violet-500 dark:hover:text-violet-400 transition-colors"
+                className="text-xs text-muted-foreground hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors"
               >
                 {g.name}
               </Link>

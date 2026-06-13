@@ -43,7 +43,7 @@ function emailWrap(body: string) {
   return `
     <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#ffffff;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:28px;">
-        <div style="width:32px;height:32px;background:#7c3aed;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+        <div style="width:32px;height:32px;background:#4f46e5;border-radius:8px;display:flex;align-items:center;justify-content:center;">
           <span style="color:white;font-size:18px;font-weight:bold;">$</span>
         </div>
         <span style="font-weight:700;font-size:18px;color:#111827;">WhatsYourShare</span>
@@ -59,7 +59,7 @@ function emailWrap(body: string) {
 }
 
 function ctaButton(href: string, label: string) {
-  return `<a href="${href}" style="display:inline-block;background:#7c3aed;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">${label} →</a>`
+  return `<a href="${href}" style="display:inline-block;background:#4f46e5;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">${label} →</a>`
 }
 
 // ── Added to a group ──────────────────────────────────────────────────────────
@@ -121,7 +121,7 @@ export async function sendRecurringDueEmail({
       <h1 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 12px;">Recurring expense added</h1>
       <div style="background:#f5f3ff;border-radius:12px;padding:14px 16px;margin-bottom:20px;">
         <p style="margin:0;font-weight:700;font-size:18px;color:#111827;">${description}</p>
-        <p style="margin:4px 0 0;font-size:13px;color:#7c3aed;">${currency} ${amount.toFixed(2)} · ${groupName}</p>
+        <p style="margin:4px 0 0;font-size:13px;color:#4f46e5;">${currency} ${amount.toFixed(2)} · ${groupName}</p>
       </div>
       <p style="color:#374151;margin:0 0 4px;font-size:14px;">The splits have been recorded and your balance updated.</p>
       <p style="color:#9ca3af;font-size:13px;margin:0 0 20px;">Next occurrence: <strong>${nextDate}</strong></p>
@@ -170,7 +170,7 @@ export async function sendInviteEmail({
     html: `
       <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:24px;">
-          <div style="width:32px;height:32px;background:#7c3aed;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+          <div style="width:32px;height:32px;background:#4f46e5;border-radius:8px;display:flex;align-items:center;justify-content:center;">
             <span style="color:white;font-size:18px;font-weight:bold;">$</span>
           </div>
           <span style="font-weight:700;font-size:18px;color:#111827;">WhatsYourShare</span>
@@ -185,7 +185,7 @@ export async function sendInviteEmail({
         </p>
 
         <a href="${inviteUrl}"
-           style="display:inline-block;background:#7c3aed;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">
+           style="display:inline-block;background:#4f46e5;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">
           Accept Invitation →
         </a>
 
@@ -252,7 +252,7 @@ export async function sendMonthlySummaryEmail({
 
         <!-- Logo -->
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:32px;">
-          <div style="width:32px;height:32px;background:#7c3aed;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+          <div style="width:32px;height:32px;background:#4f46e5;border-radius:8px;display:flex;align-items:center;justify-content:center;">
             <span style="color:white;font-size:18px;font-weight:bold;">$</span>
           </div>
           <span style="font-weight:700;font-size:18px;color:#111827;">WhatsYourShare</span>
@@ -264,7 +264,7 @@ export async function sendMonthlySummaryEmail({
 
         <!-- Total -->
         <div style="background:#f5f3ff;border-radius:16px;padding:20px 24px;margin-bottom:24px;text-align:center;">
-          <p style="margin:0 0 4px;color:#7c3aed;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Total spent across all groups</p>
+          <p style="margin:0 0 4px;color:#4f46e5;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Total spent across all groups</p>
           <div>${totalsHtml}</div>
         </div>
 
@@ -292,7 +292,7 @@ export async function sendMonthlySummaryEmail({
         ` : ""}
 
         <a href="${dashboardUrl}"
-           style="display:inline-block;background:#7c3aed;color:white;padding:13px 28px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:32px;">
+           style="display:inline-block;background:#4f46e5;color:white;padding:13px 28px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:32px;">
           View Dashboard →
         </a>
 
@@ -340,7 +340,7 @@ export async function sendExpenseNotificationEmail({
           <p style="margin:4px 0 0;color:#6b7280;">${currency} ${amount.toFixed(2)}</p>
         </div>
         <a href="${dashboardUrl}"
-           style="display:inline-block;background:#7c3aed;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">
+           style="display:inline-block;background:#4f46e5;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">
           View in App →
         </a>
       </div>

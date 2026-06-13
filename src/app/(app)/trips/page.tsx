@@ -92,7 +92,7 @@ export default function TripsPage() {
             ))}
           </div>
 
-          <Link href="/groups" className="inline-block mt-6 text-sm text-violet-600 dark:text-violet-400 hover:underline">
+          <Link href="/groups" className="inline-block mt-6 text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
             Go to a group to create an event →
           </Link>
         </div>
@@ -128,7 +128,7 @@ export default function TripsPage() {
                           status === "active"
                             ? "border-emerald-300 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10"
                             : status === "upcoming"
-                            ? "border-violet-300 text-violet-700 dark:text-violet-400 bg-violet-50 dark:bg-violet-500/10"
+                            ? "border-indigo-300 text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10"
                             : "border-border text-muted-foreground"
                         }`}
                       >

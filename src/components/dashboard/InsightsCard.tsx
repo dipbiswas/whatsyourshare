@@ -33,16 +33,16 @@ export function InsightsCard({ groupId, groupName }: Props) {
   if (!loaded && !loading) return null
 
   return (
-    <Card className="border-0 shadow-sm bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-100">
+    <Card className="border-0 shadow-sm bg-gradient-to-br from-indigo-50 to-indigo-50 border border-indigo-100">
       <CardHeader className="pb-2 flex flex-row items-center justify-between">
-        <CardTitle className="text-sm font-semibold text-violet-800 flex items-center gap-2">
+        <CardTitle className="text-sm font-semibold text-indigo-800 flex items-center gap-2">
           <Sparkles className="h-4 w-4" />
           AI Insights · {groupName}
         </CardTitle>
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 text-violet-400 hover:text-violet-600"
+          className="h-7 w-7 text-indigo-400 hover:text-indigo-600"
           onClick={load}
           disabled={loading}
         >
@@ -51,15 +51,15 @@ export function InsightsCard({ groupId, groupName }: Props) {
       </CardHeader>
       <CardContent>
         {loading && insights.length === 0 ? (
-          <div className="flex items-center gap-2 text-sm text-violet-500 py-2">
+          <div className="flex items-center gap-2 text-sm text-indigo-500 py-2">
             <Loader2 className="h-4 w-4 animate-spin" />
             Analysing spending patterns…
           </div>
         ) : (
           <ul className="space-y-2">
             {insights.map((insight, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-violet-900">
-                <span className="mt-1 h-1.5 w-1.5 rounded-full bg-violet-400 shrink-0" />
+              <li key={i} className="flex items-start gap-2 text-sm text-indigo-900">
+                <span className="mt-1 h-1.5 w-1.5 rounded-full bg-indigo-400 shrink-0" />
                 {insight}
               </li>
             ))}

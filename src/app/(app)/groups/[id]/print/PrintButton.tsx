@@ -5,7 +5,7 @@ export function PrintButton() {
     <button
       onClick={() => window.print()}
       style={{
-        background: "#7c3aed", color: "white", border: "none",
+        background: "#4f46e5", color: "white", border: "none",
         borderRadius: 8, padding: "10px 20px", fontWeight: 600,
         fontSize: 14, cursor: "pointer",
       }}

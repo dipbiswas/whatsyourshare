@@ -3,7 +3,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     <div className="min-h-full flex flex-col items-center justify-center px-4 py-12">
       {/* Brand */}
       <div className="text-center mb-8">
-        <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-600 shadow-lg shadow-violet-900/50 mb-4">
+        <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-900/50 mb-4">
           <span className="text-white font-bold text-xl">W</span>
         </div>
         <h1 className="text-2xl font-bold text-foreground">WhatsYourShare</h1>

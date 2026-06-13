@@ -26,7 +26,7 @@ interface ActivityItem {
 }
 
 const TYPE_META: Record<ActivityType, { icon: React.ElementType; color: string; label: string }> = {
-  expense:     { icon: Receipt,    color: "bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400", label: "Expense" },
+  expense:     { icon: Receipt,    color: "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400", label: "Expense" },
   settlement:  { icon: DollarSign, color: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400", label: "Settlement" },
   member_join: { icon: UserPlus,   color: "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400", label: "Member" },
 }
@@ -146,7 +146,7 @@ export default function ActivityPage() {
                 className={cn(
                   "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all whitespace-nowrap",
                   activeGroup
-                    ? "bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 border-transparent"
+                    ? "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-transparent"
                     : "bg-transparent border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                 )}
               >
@@ -220,7 +220,7 @@ export default function ActivityPage() {
           <p className="text-sm font-medium text-foreground/70">No matching activity</p>
           <button
             onClick={() => { setSearch(""); setActiveType(null); setActiveGroup(null) }}
-            className="mt-2 text-xs text-violet-600 dark:text-violet-400 hover:underline"
+            className="mt-2 text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
           >
             Clear filters
           </button>
@@ -252,7 +252,7 @@ export default function ActivityPage() {
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">
-                        <span className={item.actorName === "You" ? "text-violet-600 dark:text-violet-400" : ""}>
+                        <span className={item.actorName === "You" ? "text-indigo-600 dark:text-indigo-400" : ""}>
                           {item.actorName}
                         </span>
                         {" "}

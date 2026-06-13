@@ -17,7 +17,7 @@ export function SpendingChart({ data }: Props) {
           contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
           formatter={(value) => [`$${Number(value).toFixed(2)}`, "Spent"]}
         />
-        <Bar dataKey="amount" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="amount" fill="#4f46e5" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )

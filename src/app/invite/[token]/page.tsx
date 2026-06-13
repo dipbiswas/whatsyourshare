@@ -37,7 +37,7 @@ export default async function InvitePage({ params }: Props) {
         <h1 className="text-xl font-bold text-gray-900">Invalid invite</h1>
         <p className="text-gray-500 mt-2">This invite link is invalid or has already been used.</p>
         <Link href="/dashboard">
-          <Button className="mt-6 bg-violet-600 hover:bg-violet-700">Go to Dashboard</Button>
+          <Button className="mt-6 bg-indigo-600 hover:bg-indigo-700">Go to Dashboard</Button>
         </Link>
       </InviteLayout>
     )
@@ -65,7 +65,7 @@ export default async function InvitePage({ params }: Props) {
 
     return (
       <InviteLayout>
-        <Users className="h-12 w-12 text-violet-400 mx-auto mb-4" />
+        <Users className="h-12 w-12 text-indigo-400 mx-auto mb-4" />
         <h1 className="text-xl font-bold text-gray-900">
           Join &ldquo;{invite.group.name}&rdquo;
         </h1>
@@ -79,11 +79,11 @@ export default async function InvitePage({ params }: Props) {
         <div className="flex gap-3 mt-6 justify-center">
           {existingUser ? (
             <Link href={`/login?callbackUrl=/invite/${token}`}>
-              <Button className="bg-violet-600 hover:bg-violet-700">Sign in</Button>
+              <Button className="bg-indigo-600 hover:bg-indigo-700">Sign in</Button>
             </Link>
           ) : (
             <Link href={`/register?callbackUrl=/invite/${token}&email=${encodeURIComponent(invite.email)}`}>
-              <Button className="bg-violet-600 hover:bg-violet-700">Create account</Button>
+              <Button className="bg-indigo-600 hover:bg-indigo-700">Create account</Button>
             </Link>
           )}
         </div>
@@ -140,7 +140,7 @@ function InviteLayout({ children }: { children: React.ReactNode }) {
       <Card className="w-full max-w-sm border-0 shadow-lg text-center">
         <CardHeader>
           <div className="flex items-center justify-center gap-2 mb-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
               <span className="text-white font-bold text-sm">$</span>
             </div>
             <span className="font-semibold text-gray-900">WhatsYourShare</span>

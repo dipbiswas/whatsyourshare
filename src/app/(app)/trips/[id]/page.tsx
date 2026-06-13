@@ -198,7 +198,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
   if (!trip) return (
     <div className="p-8 text-center">
       <p className="text-gray-500">Trip not found or failed to load.</p>
-      <a href="/trips" className="text-violet-600 hover:underline text-sm mt-2 inline-block">← Back to trips</a>
+      <a href="/trips" className="text-indigo-600 hover:underline text-sm mt-2 inline-block">← Back to trips</a>
     </div>
   )
 
@@ -296,7 +296,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-violet-500" />
+              <Sparkles className="h-4 w-4 text-indigo-500" />
               Per-person breakdown
             </CardTitle>
           </CardHeader>
@@ -307,7 +307,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                 return (
                   <div key={m.userId} className="flex items-center gap-2.5 p-2.5 rounded-lg bg-gray-50">
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-violet-100 text-violet-700 text-xs font-semibold">
+                      <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs font-semibold">
                         {m.user.name.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
@@ -364,7 +364,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                   return (
                     <div key={m.userId} className="flex items-center gap-3">
                       <Avatar className="h-7 w-7 shrink-0">
-                        <AvatarFallback className="bg-violet-100 text-violet-700 text-xs font-semibold">
+                        <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs font-semibold">
                           {m.user.name.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
@@ -415,7 +415,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                         onCreated={refreshTrip}
                         compact
                         trigger={
-                          <button className="text-xs font-medium text-violet-600 hover:text-violet-800 bg-violet-50 hover:bg-violet-100 dark:bg-violet-500/10 dark:text-violet-400 px-2.5 py-1.5 rounded-lg transition-colors shrink-0">
+                          <button className="text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 px-2.5 py-1.5 rounded-lg transition-colors shrink-0">
                             Settle up
                           </button>
                         }
@@ -473,7 +473,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                     }
                     className="w-full flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors"
                   >
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-100 text-violet-700 font-bold text-sm shrink-0">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 font-bold text-sm shrink-0">
                       {dayIdx + 1}
                     </div>
                     <div className="flex-1 text-left">
@@ -506,7 +506,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                       tripDayId={day.id}
                       onCreated={refreshTrip}
                       trigger={
-                        <button className="flex items-center gap-1 text-xs font-medium text-violet-600 hover:text-violet-800 bg-violet-50 hover:bg-violet-100 dark:bg-violet-500/10 dark:hover:bg-violet-500/20 dark:text-violet-400 px-2.5 py-1.5 rounded-lg transition-colors">
+                        <button className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 dark:text-indigo-400 px-2.5 py-1.5 rounded-lg transition-colors">
                           <Plus className="h-3.5 w-3.5" /> Add
                         </button>
                       }
@@ -527,7 +527,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                             tripDayId={day.id}
                             onCreated={refreshTrip}
                             trigger={
-                              <button className="flex items-center gap-1 text-xs font-medium text-violet-600 hover:text-violet-800 bg-violet-50 hover:bg-violet-100 dark:bg-violet-500/10 dark:text-violet-400 px-2.5 py-1.5 rounded-lg transition-colors">
+                              <button className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 px-2.5 py-1.5 rounded-lg transition-colors">
                                 <Plus className="h-3.5 w-3.5" /> Add expense
                               </button>
                             }

@@ -195,7 +195,7 @@ export function SetGroupBudgetDialog({ groupId, currency, existingBudget, onSave
               />
               <div className="flex justify-between text-xs text-gray-400">
                 <span>50%</span>
-                <span className="text-violet-600 font-medium">{form.alertAt}%</span>
+                <span className="text-indigo-600 font-medium">{form.alertAt}%</span>
                 <span>95%</span>
               </div>
             </div>
@@ -266,7 +266,7 @@ export function SetGroupBudgetDialog({ groupId, currency, existingBudget, onSave
 
             <DialogFooter>
               <Button variant="outline" type="button" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button type="submit" className="bg-violet-600 hover:bg-violet-700" disabled={loading}>
+              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={loading}>
                 {loading ? "Saving…" : existingBudget ? "Update budget" : "Set budget"}
               </Button>
             </DialogFooter>

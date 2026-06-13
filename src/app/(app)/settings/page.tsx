@@ -52,7 +52,7 @@ const PLANS = [
       "Stripe settlements",
     ],
     cta: "Upgrade to Pro",
-    accent: "border-violet-500",
+    accent: "border-indigo-500",
     highlight: true,
   },
   {
@@ -75,7 +75,7 @@ const PLANS = [
 
 const PLAN_COLORS: Record<string, { bg: string; text: string; badge: string }> = {
   FREE: { bg: "bg-gray-100 dark:bg-white/10", text: "text-foreground", badge: "bg-gray-100 dark:bg-white/15 text-foreground" },
-  PRO: { bg: "bg-violet-600/80 dark:bg-violet-600/60", text: "text-white", badge: "bg-violet-100 dark:bg-violet-500/30 text-violet-700 dark:text-violet-300" },
+  PRO: { bg: "bg-indigo-600/80 dark:bg-indigo-600/60", text: "text-white", badge: "bg-indigo-100 dark:bg-indigo-500/30 text-indigo-700 dark:text-indigo-300" },
   FAMILY: { bg: "bg-amber-500/80 dark:bg-amber-500/60", text: "text-white", badge: "bg-amber-100 dark:bg-amber-500/30 text-amber-700 dark:text-amber-300" },
 }
 
@@ -297,7 +297,7 @@ export default function SettingsPage() {
             >
               <Avatar className="h-16 w-16 ring-4 ring-white/20 shadow-md">
                 {avatar && <AvatarImage src={avatar} alt="Avatar" className="object-cover" />}
-                <AvatarFallback className="text-2xl font-bold bg-white text-violet-600">
+                <AvatarFallback className="text-2xl font-bold bg-white text-indigo-600">
                   {session?.user.name?.charAt(0).toUpperCase() ?? "U"}
                 </AvatarFallback>
               </Avatar>
@@ -328,8 +328,8 @@ export default function SettingsPage() {
       <div className="glass rounded-2xl overflow-hidden">
         {/* Section header */}
         <div className="flex items-center gap-3 p-5 pb-4">
-          <div className="h-10 w-10 rounded-xl bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center shrink-0">
-            <User className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+          <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/15 flex items-center justify-center shrink-0">
+            <User className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div>
             <p className="font-semibold text-foreground">Account</p>
@@ -400,7 +400,7 @@ export default function SettingsPage() {
           <div className="flex justify-end">
             <Button
               size="sm"
-              className="bg-violet-600 hover:bg-violet-700"
+              className="bg-indigo-600 hover:bg-indigo-700"
               onClick={handleSaveProfile}
               disabled={savingProfile}
             >
@@ -470,8 +470,8 @@ export default function SettingsPage() {
       {/* Payment Account (Stripe Connect) */}
       <div className="glass rounded-2xl p-5">
         <div className="flex items-center gap-3 mb-4">
-          <div className="h-10 w-10 rounded-xl bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center shrink-0">
-            <Link2 className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+          <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/15 flex items-center justify-center shrink-0">
+            <Link2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div>
             <p className="font-semibold text-foreground">Payment Account</p>
@@ -506,7 +506,7 @@ export default function SettingsPage() {
               size="sm"
               onClick={handleConnect}
               disabled={loadingConnect}
-              className="bg-violet-600 hover:bg-violet-700 gap-1.5"
+              className="bg-indigo-600 hover:bg-indigo-700 gap-1.5"
             >
               {loadingConnect ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
               {connect.connected ? "Complete Verification" : "Connect with Stripe"}
@@ -519,8 +519,8 @@ export default function SettingsPage() {
       <div className="glass rounded-2xl p-5">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center shrink-0">
-              <CreditCard className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+            <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/15 flex items-center justify-center shrink-0">
+              <CreditCard className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
             </div>
             <div>
               <p className="font-semibold text-foreground">Plan & Billing</p>
@@ -544,19 +544,19 @@ export default function SettingsPage() {
                 className={`relative rounded-xl border-2 p-4 transition-all ${
                   isCurrent
                     ? plan.key === "PRO"
-                      ? "border-violet-500 bg-gradient-to-b from-violet-500/20 to-transparent"
+                      ? "border-indigo-500 bg-gradient-to-b from-indigo-500/20 to-transparent"
                       : plan.key === "FAMILY"
                       ? "border-amber-400 bg-gradient-to-b from-amber-500/20 to-transparent"
                       : "border-border bg-muted"
                     : plan.highlight
-                    ? "border-violet-500/30 hover:border-violet-400"
+                    ? "border-indigo-500/30 hover:border-indigo-400"
                     : "border-border hover:border-foreground/20"
                 }`}
               >
                 {isCurrent && (
                   <div className="absolute -top-3 left-3">
                     <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
-                      plan.key === "PRO" ? "bg-violet-600 text-white" :
+                      plan.key === "PRO" ? "bg-indigo-600 text-white" :
                       plan.key === "FAMILY" ? "bg-amber-500 text-white" :
                       "bg-gray-500 text-white"
                     }`}>Current</span>
@@ -564,7 +564,7 @@ export default function SettingsPage() {
                 )}
                 {plan.highlight && !isCurrent && (
                   <div className="absolute -top-3 left-3">
-                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-violet-100 text-violet-700">Popular</span>
+                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700">Popular</span>
                   </div>
                 )}
 
@@ -581,7 +581,7 @@ export default function SettingsPage() {
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-start gap-1.5 text-xs text-foreground/70">
                       <Check className={`h-3 w-3 mt-0.5 shrink-0 ${
-                        plan.key === "PRO" ? "text-violet-500" :
+                        plan.key === "PRO" ? "text-indigo-500" :
                         plan.key === "FAMILY" ? "text-amber-500" :
                         "text-gray-400"
                       }`} />
@@ -595,7 +595,7 @@ export default function SettingsPage() {
                     size="sm"
                     className={`w-full text-xs font-semibold ${
                       plan.key === "PRO"
-                        ? "bg-violet-600 hover:bg-violet-700 text-white"
+                        ? "bg-indigo-600 hover:bg-indigo-700 text-white"
                         : "bg-amber-500 hover:bg-amber-600 text-white"
                     }`}
                     onClick={() => handleUpgrade(plan.key)}
@@ -611,7 +611,7 @@ export default function SettingsPage() {
                 )}
                 {isCurrent && (
                   <div className={`w-full text-center text-xs font-medium py-1.5 rounded-lg ${
-                    plan.key === "PRO" ? "bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300" :
+                    plan.key === "PRO" ? "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300" :
                     plan.key === "FAMILY" ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300" :
                     "bg-muted text-muted-foreground"
                   }`}>
@@ -762,7 +762,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
       onClick={() => onChange(!on)}
       className={cn(
         "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none",
-        on ? "bg-violet-600" : "bg-muted-foreground/25"
+        on ? "bg-indigo-600" : "bg-muted-foreground/25"
       )}
     >
       <span className={cn(
@@ -862,8 +862,8 @@ function NotificationsSection() {
     <div className="glass rounded-2xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 p-5 pb-4">
-        <div className="h-10 w-10 rounded-xl bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center shrink-0">
-          <Bell className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+        <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/15 flex items-center justify-center shrink-0">
+          <Bell className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
         </div>
         <div>
           <h2 className="font-semibold text-foreground text-sm">Notifications</h2>
@@ -873,11 +873,11 @@ function NotificationsSection() {
 
       {/* Push enable banner (if not yet subscribed) */}
       {permission !== "denied" && !subscribed && (
-        <div className="mx-5 mb-4 flex items-center justify-between gap-3 rounded-xl bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20 px-4 py-3">
-          <p className="text-xs text-violet-700 dark:text-violet-300">
+        <div className="mx-5 mb-4 flex items-center justify-between gap-3 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 px-4 py-3">
+          <p className="text-xs text-indigo-700 dark:text-indigo-300">
             Enable push notifications to receive alerts in your browser.
           </p>
-          <Button size="sm" className="bg-violet-600 hover:bg-violet-700 shrink-0 gap-1.5" onClick={enableNotifications} disabled={subscribing}>
+          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 shrink-0 gap-1.5" onClick={enableNotifications} disabled={subscribing}>
             {subscribing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bell className="h-3 w-3" />}
             Enable push
           </Button>
@@ -918,7 +918,7 @@ function NotificationsSection() {
         <div className="flex justify-end pt-1">
           <Button
             size="sm"
-            className="bg-violet-600 hover:bg-violet-700 gap-1.5"
+            className="bg-indigo-600 hover:bg-indigo-700 gap-1.5"
             onClick={savePrefs}
             disabled={saving}
           >

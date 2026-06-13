@@ -95,7 +95,7 @@ export default async function GroupPrintPage({ params }: Props) {
           tr:last-child td { border-bottom: none; }
           .section { margin-bottom: 32px; }
           .section-title { font-size: 15px; font-weight: 700; color: #111; margin: 0 0 12px;
-                           padding-bottom: 6px; border-bottom: 2px solid #7c3aed; display: inline-block; }
+                           padding-bottom: 6px; border-bottom: 2px solid #4f46e5; display: inline-block; }
           .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 32px; }
           .stat-box { border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; }
           .stat-label { font-size: 11px; color: #6b7280; font-weight: 500; margin-bottom: 4px; }
@@ -110,7 +110,7 @@ export default async function GroupPrintPage({ params }: Props) {
           .header-left h1 { font-size: 26px; font-weight: 800; margin: 0 0 4px; color: #111; }
           .header-left p { font-size: 12px; color: #6b7280; margin: 0; }
           .header-right { text-align: right; font-size: 11px; color: #9ca3af; }
-          .logo { font-size: 13px; font-weight: 700; color: #7c3aed; }
+          .logo { font-size: 13px; font-weight: 700; color: #4f46e5; }
           .suggested-row { background: #fefce8; }
           .no-data { font-size: 12px; color: #9ca3af; padding: 12px 0; }
         `}</style>

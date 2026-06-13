@@ -40,7 +40,7 @@ export function Sidebar({ user }: SidebarProps) {
 
   const planBadge: Record<string, { label: string; className: string } | null> = {
     FREE: null,
-    PRO: { label: "Pro", className: "bg-violet-100 text-violet-700 border-0 text-[10px]" },
+    PRO: { label: "Pro", className: "bg-indigo-100 text-indigo-700 border-0 text-[10px]" },
     FAMILY: { label: "Family", className: "bg-amber-100 text-amber-700 border-0 text-[10px]" },
   }
   const badge = planBadge[plan] ?? null
@@ -54,7 +54,7 @@ export function Sidebar({ user }: SidebarProps) {
       <aside className="hidden md:flex h-full w-60 flex-col border-r border-border bg-muted/30 dark:bg-white/5 dark:backdrop-blur-xl">
         {/* Brand */}
         <div className="flex h-16 items-center gap-2.5 px-5 border-b border-border">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-600 shadow-sm shadow-violet-200">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-600 shadow-sm shadow-indigo-200">
             <DollarSign className="h-4 w-4 text-white" />
           </div>
           <span className="font-bold text-foreground tracking-tight">WhatsYourShare</span>
@@ -69,7 +69,7 @@ export function Sidebar({ user }: SidebarProps) {
               className={cn(
                 "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
                 isActive(href)
-                  ? "bg-violet-600 text-white shadow-sm shadow-violet-200"
+                  ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200"
                   : "text-muted-foreground hover:bg-accent hover:text-foreground"
               )}
             >
@@ -84,7 +84,7 @@ export function Sidebar({ user }: SidebarProps) {
           <div className="flex items-center gap-3 px-2 py-2 mb-1">
             <Avatar className="h-8 w-8 shrink-0">
               {avatar && <AvatarImage src={avatar} alt="Avatar" className="object-cover" />}
-              <AvatarFallback className="bg-violet-100 text-violet-700 text-xs font-bold">
+              <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs font-bold">
                 {user.name?.charAt(0).toUpperCase() ?? "U"}
               </AvatarFallback>
             </Avatar>
@@ -130,7 +130,7 @@ export function Sidebar({ user }: SidebarProps) {
               href={href}
               className={cn(
                 "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all",
-                isActive(href) ? "text-violet-600 dark:text-violet-400" : "text-muted-foreground"
+                isActive(href) ? "text-indigo-600 dark:text-indigo-400" : "text-muted-foreground"
               )}
             >
               <Icon className={cn("h-5 w-5", isActive(href) && "stroke-[2.5px]")} />

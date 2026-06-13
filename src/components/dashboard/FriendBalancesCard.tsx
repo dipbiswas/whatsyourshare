@@ -45,7 +45,7 @@ export function FriendBalancesCard() {
     <Card className="border-0 shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <Globe className="h-4 w-4 text-violet-600" />
+          <Globe className="h-4 w-4 text-indigo-600" />
           <CardTitle className="text-base font-semibold">Across All Groups</CardTitle>
         </div>
         <p className="text-xs text-gray-400 mt-0.5">Your net balances with each person</p>

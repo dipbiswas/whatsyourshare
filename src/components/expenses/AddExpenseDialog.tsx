@@ -274,7 +274,7 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
       {trigger ? (
         <div onClick={() => setOpen(true)}>{trigger}</div>
       ) : (
-        <Button className="bg-violet-600 hover:bg-violet-700 gap-2" onClick={() => setOpen(true)}>
+        <Button className="bg-indigo-600 hover:bg-indigo-700 gap-2" onClick={() => setOpen(true)}>
           <Plus className="h-4 w-4" />
           Add Expense
         </Button>
@@ -290,8 +290,8 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
           <label className={cn(
             "flex items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed px-4 py-3 text-sm cursor-pointer transition-colors",
             scanning
-              ? "border-violet-300 bg-violet-50 dark:bg-violet-500/10 text-violet-500"
-              : "border-border hover:border-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10 text-muted-foreground hover:text-violet-600"
+              ? "border-indigo-300 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500"
+              : "border-border hover:border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 text-muted-foreground hover:text-indigo-600"
           )}>
             {scanning
               ? <><Loader2 className="h-4 w-4 animate-spin" /> Scanning receipt…</>
@@ -356,7 +356,7 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
                   </SelectContent>
                 </Select>
               )}
-              <button type="button" onClick={() => setIsGuestPayee(v => !v)} className="text-xs text-muted-foreground hover:text-violet-500 transition-colors">
+              <button type="button" onClick={() => setIsGuestPayee(v => !v)} className="text-xs text-muted-foreground hover:text-indigo-500 transition-colors">
                 {isGuestPayee ? "← Paid by a group member" : "Someone outside the group paid →"}
               </button>
             </div>
@@ -420,7 +420,7 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
                             <div className={cn(
                               "h-5 w-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors",
                               checked
-                                ? "bg-violet-600 border-violet-600"
+                                ? "bg-indigo-600 border-indigo-600"
                                 : "border-border"
                             )}>
                               {checked && <Check className="h-3 w-3 text-white" />}
@@ -489,7 +489,7 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
                       {totalShares} total shares · {currency} {(amount / totalShares).toFixed(2)} per share
                     </p>
                   )}
-                  <div className="rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800/40 p-2.5 text-xs text-violet-700 dark:text-violet-300">
+                  <div className="rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/40 p-2.5 text-xs text-indigo-700 dark:text-indigo-300">
                     <strong>Example:</strong> Enter 4 for your family and 2 for your friend — the bill splits 4:2 (67% / 33%) automatically.
                   </div>
                 </div>
@@ -539,7 +539,7 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
                       <div
                         className={cn(
                           "h-full rounded-full transition-all",
-                          totalPct > 100 ? "bg-rose-500" : totalPct === 100 ? "bg-emerald-500" : "bg-violet-500"
+                          totalPct > 100 ? "bg-rose-500" : totalPct === 100 ? "bg-emerald-500" : "bg-indigo-500"
                         )}
                         style={{ width: `${Math.min(totalPct, 100)}%` }}
                       />
@@ -566,7 +566,7 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
                   <button
                     type="button"
                     onClick={distributeEquallyPct}
-                    className="text-xs text-violet-600 dark:text-violet-400 hover:underline"
+                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
                   >
                     Distribute equally
                   </button>
@@ -609,7 +609,7 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
                           "h-full rounded-full transition-all",
                           amount > 0 && totalExact > amount ? "bg-rose-500"
                           : amount > 0 && Math.abs(totalExact - amount) < 0.02 ? "bg-emerald-500"
-                          : "bg-violet-500"
+                          : "bg-indigo-500"
                         )}
                         style={{ width: amount > 0 ? `${Math.min((totalExact / amount) * 100, 100)}%` : "0%" }}
                       />
@@ -670,7 +670,7 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
               <Button variant="outline" type="button" onClick={() => { setOpen(false); resetForm() }}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-violet-600 hover:bg-violet-700" disabled={loading}>
+              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={loading}>
                 {loading ? "Adding…" : "Add expense"}
               </Button>
             </DialogFooter>

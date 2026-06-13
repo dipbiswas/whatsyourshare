@@ -41,7 +41,12 @@
       "Bash(npx tsc *)",
       "Bash(./node_modules/.bin/tsc --noEmit)",
       "Bash(node_modules/.bin/tsc --noEmit)",
-      "WebFetch(domain:balancebuddy.ca)"
+      "WebFetch(domain:balancebuddy.ca)",
+      "WebFetch(domain:bronnhq.com)",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__browser_batch",
+      "Bash(xargs sed -i '' 's/violet-/indigo-/g')",
+      "Bash(xargs sed -i '' 's/#7c3aed/#4f46e5/g; s/#6d28d9/#4338ca/g; s/#5b21b6/#3730a3/g')"
     ]
   }
 }

@@ -35,7 +35,7 @@ interface Props {
 
 export function OnboardingCard({ userName }: Props) {
   return (
-    <Card className="border-0 shadow-sm bg-gradient-to-br from-violet-50 to-white overflow-hidden">
+    <Card className="border-0 shadow-sm bg-gradient-to-br from-indigo-50 to-white overflow-hidden">
       <CardContent className="p-6">
         <div className="mb-6">
           <h2 className="text-xl font-bold text-gray-900">
@@ -50,14 +50,14 @@ export function OnboardingCard({ userName }: Props) {
           {STEPS.map((step, i) => (
             <div
               key={step.title}
-              className="flex items-center gap-4 bg-white rounded-xl p-4 border border-gray-100 hover:border-violet-200 hover:shadow-sm transition-all group"
+              className="flex items-center gap-4 bg-white rounded-xl p-4 border border-gray-100 hover:border-indigo-200 hover:shadow-sm transition-all group"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-100 shrink-0">
-                <step.icon className="h-5 w-5 text-violet-600" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 shrink-0">
+                <step.icon className="h-5 w-5 text-indigo-600" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-violet-400">Step {i + 1}</span>
+                  <span className="text-xs font-medium text-indigo-400">Step {i + 1}</span>
                 </div>
                 <p className="text-sm font-semibold text-gray-900">{step.title}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{step.desc}</p>
@@ -66,7 +66,7 @@ export function OnboardingCard({ userName }: Props) {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="shrink-0 group-hover:bg-violet-600 group-hover:text-white group-hover:border-violet-600 transition-colors text-xs"
+                  className="shrink-0 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-colors text-xs"
                 >
                   {step.cta}
                   <ArrowRight className="h-3 w-3 ml-1" />
@@ -77,7 +77,7 @@ export function OnboardingCard({ userName }: Props) {
         </div>
 
         <div className="mt-4 flex items-center gap-2 text-xs text-gray-400">
-          <Check className="h-3.5 w-3.5 text-violet-400" />
+          <Check className="h-3.5 w-3.5 text-indigo-400" />
           Account created — you&apos;re ready to go
         </div>
       </CardContent>
