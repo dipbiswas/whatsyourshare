@@ -35,7 +35,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         orderBy: { createdAt: "desc" },
       },
       recurringExpenses: {
-        where: { isActive: true },
         include: { createdBy: { select: { id: true, name: true } } },
         orderBy: { nextDueDate: "asc" },
       },
