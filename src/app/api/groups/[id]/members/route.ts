@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
+import { notifyUser, sendAddedToGroupEmail } from "@/lib/email"
 import { z } from "zod"
 
 const addMemberSchema = z.object({ email: z.string().email() })
@@ -30,6 +31,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     data: { groupId: id, userId: user.id },
     include: { user: { select: { id: true, name: true, email: true, avatar: true } } },
   })
+
+  // Notify the added user — fire and forget
+  const group = await prisma.group.findUnique({ where: { id }, select: { name: true } })
+  const adder = await prisma.user.findUnique({ where: { id: session.user.id }, select: { name: true } })
+  notifyUser(user.id, "addedToGroup", (to, name) =>
+    sendAddedToGroupEmail({
+      to, name,
+      inviterName: adder?.name ?? "Someone",
+      groupName: group?.name ?? "a group",
+      groupId: id,
+    })
+  ).catch(() => {})
 
   return NextResponse.json(member, { status: 201 })
 }

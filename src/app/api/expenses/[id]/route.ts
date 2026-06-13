@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
+import { notifyUser, sendExpenseEditedEmail } from "@/lib/email"
 import { z } from "zod"
 
 const splitEntrySchema = z.object({
@@ -83,6 +84,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       splits: { include: { user: { select: { id: true, name: true } } } },
     },
   })
+  // Notify other group members — fire and forget
+  const otherMembers = expense.group.members.filter((m: { userId: string }) => m.userId !== session.user.id)
+  for (const m of otherMembers) {
+    notifyUser(m.userId, "expenseEdited", (to, name) =>
+      sendExpenseEditedEmail({
+        to, name,
+        action: "edited",
+        description: expense.description,
+        groupName: expense.group.name,
+        groupId: expense.group.id,
+      })
+    ).catch(() => {})
+  }
+
   return NextResponse.json(updated)
 }
 
@@ -102,5 +117,20 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (!isMember) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   await prisma.expense.delete({ where: { id } })
+
+  // Notify other group members — fire and forget
+  const otherMembers = expense.group.members.filter((m: { userId: string }) => m.userId !== session.user.id)
+  for (const m of otherMembers) {
+    notifyUser(m.userId, "expenseEdited", (to, name) =>
+      sendExpenseEditedEmail({
+        to, name,
+        action: "deleted",
+        description: expense.description,
+        groupName: expense.group.name,
+        groupId: expense.group.id,
+      })
+    ).catch(() => {})
+  }
+
   return NextResponse.json({ success: true })
 }

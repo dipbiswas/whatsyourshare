@@ -3,6 +3,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { stripe } from "@/lib/stripe"
 import { sendPushToUser } from "@/lib/push"
+import { notifyUser, sendSettlementEmail } from "@/lib/email"
 import { z } from "zod"
 
 const INSTANT_FEE_USD = 0.25   // flat fee charged to payer for instant ACH
@@ -123,6 +124,17 @@ export async function POST(req: Request) {
     url: `/groups/${rest.groupId}`,
     tag: `settlement-${settlement.id}`,
   }).catch(() => {})
+
+  notifyUser(rest.toUserId, "settledWithMe", (to, name) =>
+    sendSettlementEmail({
+      to, name,
+      fromName: settlement.fromUser.name,
+      amount: rest.amount,
+      currency: group?.currency ?? "USD",
+      groupName: group?.name ?? "your group",
+      groupId: rest.groupId,
+    })
+  ).catch(() => {})
 
   return NextResponse.json(settlement, { status: 201 })
 }

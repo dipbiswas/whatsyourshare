@@ -12,7 +12,8 @@
 
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { addWeeks, addMonths, addQuarters } from "date-fns"
+import { notifyUser, sendRecurringDueEmail } from "@/lib/email"
+import { addWeeks, addMonths, addQuarters, format } from "date-fns"
 
 function advance(date: Date, freq: "WEEKLY" | "MONTHLY" | "QUARTERLY"): Date {
   if (freq === "WEEKLY") return addWeeks(date, 1)
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
     where: { nextDueDate: { lte: now } },
     include: {
       group: {
-        include: { members: { select: { userId: true } } },
+        select: { id: true, name: true, members: { select: { userId: true } } },
       },
     },
   })
@@ -79,6 +80,22 @@ export async function POST(req: Request) {
         }),
       ])
       results.push({ id: template.id, description: template.description, status: "created" })
+
+      // Notify all group members — fire and forget
+      const nextDate = format(advance(template.nextDueDate, template.frequency), "MMM d, yyyy")
+      for (const memberId of memberIds) {
+        notifyUser(memberId, "recurringDue", (to, name) =>
+          sendRecurringDueEmail({
+            to, name,
+            description: template.description,
+            amount: template.lastAmount,
+            currency: template.currency,
+            groupName: template.group.name,
+            groupId: template.groupId,
+            nextDate,
+          })
+        ).catch(() => {})
+      }
     } catch {
       results.push({ id: template.id, description: template.description, status: "error" })
     }

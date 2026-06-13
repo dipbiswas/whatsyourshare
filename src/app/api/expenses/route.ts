@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { sendPushToGroup } from "@/lib/push"
+import { notifyUser, sendExpenseNotificationEmail } from "@/lib/email"
 import { z } from "zod"
 
 const splitSchema = z.object({
@@ -72,14 +73,33 @@ export async function POST(req: Request) {
 
   await prisma.group.update({ where: { id: rest.groupId }, data: { updatedAt: new Date() } })
 
-  // Push notifications — fire-and-forget
-  const group = await prisma.group.findUnique({ where: { id: rest.groupId }, select: { name: true } })
+  // Push + email notifications — fire-and-forget
+  const group = await prisma.group.findUnique({
+    where: { id: rest.groupId },
+    select: { name: true, members: { select: { userId: true } } },
+  })
   sendPushToGroup(rest.groupId, session.user.id, {
     title: `New expense in ${group?.name ?? "your group"}`,
     body: `${expense.paidBy.name} added "${expense.description}" · $${expense.amount.toFixed(2)}`,
     url: `/groups/${rest.groupId}`,
     tag: `expense-${expense.id}`,
-  }).catch(() => {}) // non-blocking
+  }).catch(() => {})
+
+  // Email every group member except the one who added it
+  const otherMembers = (group?.members ?? []).filter((m) => m.userId !== session.user.id)
+  for (const m of otherMembers) {
+    notifyUser(m.userId, "expenseAdded", (to, name) =>
+      sendExpenseNotificationEmail({
+        to, name,
+        description: expense.description,
+        amount: expense.amount,
+        currency: expense.currency,
+        groupName: group?.name ?? "your group",
+        paidByName: expense.paidBy.name,
+        dashboardUrl: `${process.env.NEXTAUTH_URL ?? ""}/groups/${rest.groupId}`,
+      })
+    ).catch(() => {})
+  }
 
   return NextResponse.json(expense, { status: 201 })
 }

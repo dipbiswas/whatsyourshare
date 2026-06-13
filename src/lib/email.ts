@@ -4,9 +4,153 @@
  * Set RESEND_FROM_EMAIL to your verified sender (e.g. "WhatsYourShare <noreply@whatsyourshare.app>")
  */
 import { Resend } from "resend"
+import { prisma } from "@/lib/prisma"
+
+const APP_URL = process.env.NEXTAUTH_URL ?? "https://whatsyourshare.app"
+
+/**
+ * Check a user's notification preference and send an email if enabled.
+ * prefKey matches the keys in NotifPrefs (e.g. "expenseAdded").
+ * Fire-and-forget: always call with .catch(() => {}) at the call site.
+ */
+export async function notifyUser(
+  userId: string,
+  prefKey: string,
+  send: (to: string, name: string) => Promise<unknown>
+) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const user = await (prisma.user.findUnique as any)({
+      where: { id: userId },
+      select: { email: true, name: true, notificationPrefs: true },
+    })
+    if (!user) return
+    const prefs = (user.notificationPrefs ?? {}) as Record<string, boolean>
+    // Default is true for all prefs unless explicitly set to false
+    if (prefs[prefKey] === false) return
+    await send(user.email, user.name)
+  } catch (err) {
+    console.error(`notifyUser(${prefKey}) failed:`, err)
+  }
+}
 
 const resend = new Resend(process.env.RESEND_API_KEY ?? "re_placeholder")
 const FROM = process.env.RESEND_FROM_EMAIL ?? "WhatsYourShare <noreply@whatsyourshare.app>"
+
+// ── Shared HTML wrapper ───────────────────────────────────────────────────────
+
+function emailWrap(body: string) {
+  return `
+    <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#ffffff;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:28px;">
+        <div style="width:32px;height:32px;background:#7c3aed;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+          <span style="color:white;font-size:18px;font-weight:bold;">$</span>
+        </div>
+        <span style="font-weight:700;font-size:18px;color:#111827;">WhatsYourShare</span>
+      </div>
+      ${body}
+      <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0 16px;" />
+      <p style="color:#d1d5db;font-size:12px;margin:0;">
+        Manage notification preferences in your
+        <a href="${APP_URL}/settings" style="color:#a78bfa;text-decoration:none;">account settings</a>.
+      </p>
+    </div>
+  `
+}
+
+function ctaButton(href: string, label: string) {
+  return `<a href="${href}" style="display:inline-block;background:#7c3aed;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">${label} →</a>`
+}
+
+// ── Added to a group ──────────────────────────────────────────────────────────
+
+export async function sendAddedToGroupEmail({
+  to, name, inviterName, groupName, groupId,
+}: { to: string; name: string; inviterName: string; groupName: string; groupId: string }) {
+  return resend.emails.send({
+    from: FROM,
+    to,
+    subject: `You've been added to "${groupName}" on WhatsYourShare`,
+    html: emailWrap(`
+      <p style="color:#6b7280;margin:0 0 4px;">Hi ${name.split(" ")[0]},</p>
+      <h1 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 12px;">You're in a new group!</h1>
+      <p style="color:#374151;margin:0 0 20px;">
+        <strong>${inviterName}</strong> added you to <strong>"${groupName}"</strong>.
+        You can now split expenses and settle up with the group.
+      </p>
+      ${ctaButton(`${APP_URL}/groups/${groupId}`, "View Group")}
+    `),
+  })
+}
+
+// ── Expense edited / deleted ──────────────────────────────────────────────────
+
+export async function sendExpenseEditedEmail({
+  to, name, action, description, groupName, groupId,
+}: { to: string; name: string; action: "edited" | "deleted"; description: string; groupName: string; groupId: string }) {
+  return resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Expense "${description}" was ${action} in ${groupName}`,
+    html: emailWrap(`
+      <p style="color:#6b7280;margin:0 0 4px;">Hi ${name.split(" ")[0]},</p>
+      <h1 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 12px;">Expense ${action}</h1>
+      <div style="background:#f9fafb;border-radius:12px;padding:14px 16px;margin-bottom:20px;">
+        <p style="margin:0;font-weight:600;color:#111827;">${description}</p>
+        <p style="margin:4px 0 0;font-size:13px;color:#6b7280;">in <strong>${groupName}</strong></p>
+      </div>
+      <p style="color:#374151;margin:0 0 20px;font-size:14px;">
+        ${action === "deleted" ? "This expense has been removed from the group." : "This expense has been updated — your balance may have changed."}
+      </p>
+      ${ctaButton(`${APP_URL}/groups/${groupId}`, "View Group")}
+    `),
+  })
+}
+
+// ── Recurring expense due ─────────────────────────────────────────────────────
+
+export async function sendRecurringDueEmail({
+  to, name, description, amount, currency, groupName, groupId, nextDate,
+}: { to: string; name: string; description: string; amount: number; currency: string; groupName: string; groupId: string; nextDate: string }) {
+  return resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Recurring expense "${description}" was added to ${groupName}`,
+    html: emailWrap(`
+      <p style="color:#6b7280;margin:0 0 4px;">Hi ${name.split(" ")[0]},</p>
+      <h1 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 12px;">Recurring expense added</h1>
+      <div style="background:#f5f3ff;border-radius:12px;padding:14px 16px;margin-bottom:20px;">
+        <p style="margin:0;font-weight:700;font-size:18px;color:#111827;">${description}</p>
+        <p style="margin:4px 0 0;font-size:13px;color:#7c3aed;">${currency} ${amount.toFixed(2)} · ${groupName}</p>
+      </div>
+      <p style="color:#374151;margin:0 0 4px;font-size:14px;">The splits have been recorded and your balance updated.</p>
+      <p style="color:#9ca3af;font-size:13px;margin:0 0 20px;">Next occurrence: <strong>${nextDate}</strong></p>
+      ${ctaButton(`${APP_URL}/groups/${groupId}`, "View Group")}
+    `),
+  })
+}
+
+// ── Settlement received ───────────────────────────────────────────────────────
+
+export async function sendSettlementEmail({
+  to, name, fromName, amount, currency, groupName, groupId,
+}: { to: string; name: string; fromName: string; amount: number; currency: string; groupName: string; groupId: string }) {
+  return resend.emails.send({
+    from: FROM,
+    to,
+    subject: `${fromName} paid you ${currency} ${amount.toFixed(2)} in ${groupName}`,
+    html: emailWrap(`
+      <p style="color:#6b7280;margin:0 0 4px;">Hi ${name.split(" ")[0]},</p>
+      <h1 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 12px;">You received a payment 🎉</h1>
+      <div style="background:#f0fdf4;border-radius:12px;padding:14px 16px;margin-bottom:20px;border:1px solid #bbf7d0;">
+        <p style="margin:0;font-size:26px;font-weight:800;color:#16a34a;">${currency} ${amount.toFixed(2)}</p>
+        <p style="margin:4px 0 0;font-size:13px;color:#15803d;">from <strong>${fromName}</strong> · ${groupName}</p>
+      </div>
+      <p style="color:#374151;margin:0 0 20px;font-size:14px;">Your balance in this group has been updated.</p>
+      ${ctaButton(`${APP_URL}/groups/${groupId}`, "View Group")}
+    `),
+  })
+}
 
 export async function sendInviteEmail({
   to,
