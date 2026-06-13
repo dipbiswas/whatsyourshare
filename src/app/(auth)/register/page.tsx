@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
 import { signIn } from "next-auth/react"
@@ -12,6 +12,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 
 export default function RegisterPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard"
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({ name: "", email: "", password: "" })
 
@@ -53,7 +55,7 @@ export default function RegisterPage() {
         password: form.password,
         redirect: false,
       })
-      router.push("/dashboard")
+      router.push(callbackUrl)
       router.refresh()
     } finally {
       setLoading(false)
