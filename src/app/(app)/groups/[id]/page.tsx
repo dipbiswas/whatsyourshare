@@ -410,7 +410,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
       <Tabs defaultValue="expenses">
         <TabsList>
           <TabsTrigger value="expenses">Expenses ({group.expenses.length})</TabsTrigger>
-          <TabsTrigger value="settlements">Payments ({group.settlements.length})</TabsTrigger>
+          <TabsTrigger value="settlements">Settlements ({group.settlements.length})</TabsTrigger>
           <TabsTrigger value="recurring">
             <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
             Recurring ({group.recurringExpenses.length})
