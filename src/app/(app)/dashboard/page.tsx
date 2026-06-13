@@ -46,6 +46,7 @@ async function getDashboardData(userId: string) {
     include: {
       group: { select: { id: true, name: true } },
       paidBy: { select: { id: true, name: true } },
+      tripDay: { select: { trip: { select: { id: true, name: true, coverEmoji: true } } } },
     },
     orderBy: { createdAt: "desc" },
     take: 6,
@@ -168,7 +169,13 @@ export default async function DashboardPage() {
                 <div className={`h-2 w-2 rounded-full shrink-0 ${CATEGORY_COLORS[e.category] ?? "bg-gray-400"}`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate group-hover:text-indigo-500 transition-colors">{e.description}</p>
-                  <p className="text-xs text-muted-foreground truncate">{e.group.name} · {format(new Date(e.createdAt), "MMM d")}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {e.group.name}
+                    {e.tripDay?.trip && (
+                      <span className="text-indigo-500 dark:text-indigo-400"> · {e.tripDay.trip.coverEmoji ?? ""} {e.tripDay.trip.name}</span>
+                    )}
+                    {" · "}{format(new Date(e.createdAt), "MMM d")}
+                  </p>
                 </div>
                 <p className="text-sm font-semibold text-foreground tabular-nums shrink-0">{formatCurrency(e.amount)}</p>
               </Link>
