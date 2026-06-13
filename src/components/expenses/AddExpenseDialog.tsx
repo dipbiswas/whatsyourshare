@@ -59,7 +59,8 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, on
       })
 
       if (!res.ok) {
-        toast.error("Could not read receipt — fill in manually")
+        const err = await res.json().catch(() => ({}))
+        toast.error(err?.error ?? "Could not read receipt — fill in manually")
         return
       }
       const data = await res.json()
