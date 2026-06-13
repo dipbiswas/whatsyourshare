@@ -4,7 +4,7 @@ import { calculateGroupBalances, formatCurrency } from "@/lib/balance"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { SpendingChart } from "@/components/dashboard/SpendingChart"
 import { InsightsCard } from "@/components/dashboard/InsightsCard"
-import { FriendBalancesCard } from "@/components/dashboard/FriendBalancesCard"
+import { OwesReportCard } from "@/components/dashboard/OwesReportCard"
 import { OnboardingCard } from "@/components/dashboard/OnboardingCard"
 import { format } from "date-fns"
 import Link from "next/link"
@@ -177,17 +177,13 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      {/* Friend balances + Insights */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <div className="lg:col-span-1">
-          <FriendBalancesCard />
-        </div>
-        {data.insightsGroup && (
-          <div className="lg:col-span-2">
-            <InsightsCard groupId={data.insightsGroup.id} groupName={data.insightsGroup.name} />
-          </div>
-        )}
-      </div>
+      {/* Who owes who report */}
+      {data.groupCount > 0 && <OwesReportCard />}
+
+      {/* Insights */}
+      {data.insightsGroup && (
+        <InsightsCard groupId={data.insightsGroup.id} groupName={data.insightsGroup.name} />
+      )}
     </div>
   )
 }
