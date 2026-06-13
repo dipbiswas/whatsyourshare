@@ -125,8 +125,11 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
 
   useEffect(() => {
     fetch(`/api/trips/${id}`)
-      .then((r) => {
-        if (!r.ok) throw new Error("Not found")
+      .then(async (r) => {
+        if (!r.ok) {
+          const text = await r.text()
+          throw new Error(`${r.status}: ${text}`)
+        }
         return r.json()
       })
       .then((data) => {
@@ -134,7 +137,10 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
         // Auto-expand all days on load
         setExpandedDays(new Set(data.days.map((d: TripDay) => d.id)))
       })
-      .catch(() => router.push("/trips"))
+      .catch((err) => {
+        console.error("Trip fetch error:", err)
+        toast.error("Failed to load trip: " + (err?.message ?? "unknown error"))
+      })
       .finally(() => setLoading(false))
   }, [id, router])
 
@@ -182,7 +188,12 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
       </div>
     )
   }
-  if (!trip) return null
+  if (!trip) return (
+    <div className="p-8 text-center">
+      <p className="text-gray-500">Trip not found or failed to load.</p>
+      <a href="/trips" className="text-violet-600 hover:underline text-sm mt-2 inline-block">← Back to trips</a>
+    </div>
+  )
 
   const totalDays = differenceInDays(new Date(trip.endDate), new Date(trip.startDate)) + 1
   const totalSpent = trip.days
