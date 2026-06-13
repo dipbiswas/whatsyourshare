@@ -99,12 +99,12 @@ export function AddSettlementDialog({
         }
         onClick={() => setOpen(true)}
       >
-        {compact ? "Settle Up" : <><CheckCircle className="h-4 w-4" />Record Payment</>}
+        {compact ? "Settle Up" : <><CheckCircle className="h-4 w-4" />Settle Up</>}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Record a payment</DialogTitle>
+            <DialogTitle>Settle Up</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
             <div className="space-y-1.5">
@@ -166,7 +166,7 @@ export function AddSettlementDialog({
                 Cancel
               </Button>
               <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700" disabled={loading}>
-                {loading ? "Saving…" : "Record payment"}
+                {loading ? "Saving…" : "Settle Up"}
               </Button>
             </DialogFooter>
           </form>
