@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
+import { calculateGroupBalances } from "@/lib/balance"
 import { z } from "zod"
 
 const createSchema = z.object({
@@ -15,16 +16,34 @@ export async function GET() {
   const session = await auth()
   if (!session?.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
+  const userId = session.user.id
+
   const groups = await prisma.group.findMany({
-    where: { members: { some: { userId: session.user.id } } },
+    where: { members: { some: { userId } } },
     include: {
       members: { include: { user: { select: { id: true, name: true, email: true, avatar: true } } } },
       _count: { select: { expenses: true } },
+      expenses: {
+        select: { paidById: true, amount: true, splits: { select: { userId: true, amount: true } } },
+      },
+      settlements: {
+        select: { fromUserId: true, toUserId: true, amount: true },
+      },
     },
     orderBy: { updatedAt: "desc" },
   })
 
-  return NextResponse.json(groups)
+  const result = groups.map(({ expenses, settlements, ...g }) => {
+    const balanceMap = calculateGroupBalances(
+      g.members.map((m) => ({ userId: m.userId })),
+      expenses,
+      settlements,
+    )
+    const myBalance = Math.round((balanceMap[userId] ?? 0) * 100) / 100
+    return { ...g, myBalance }
+  })
+
+  return NextResponse.json(result)
 }
 
 export async function POST(req: Request) {

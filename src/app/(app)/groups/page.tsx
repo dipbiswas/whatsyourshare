@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react"
 import Link from "next/link"
-import { Users, Receipt, Plus, Search, X } from "lucide-react"
+import { Users, Receipt, Plus, Search, X, CheckCircle2 } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
@@ -33,6 +33,7 @@ interface Group {
   _count: { expenses: number }
   members: Member[]
   updatedAt: string
+  myBalance: number
 }
 
 export default function GroupsPage() {
@@ -122,9 +123,17 @@ export default function GroupsPage() {
                           <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{group.description}</p>
                         )}
                       </div>
-                      <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-1 rounded-lg shrink-0">
-                        {group.currency}
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {group._count.expenses > 0 && Math.abs(group.myBalance) < 0.01 && (
+                          <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Settled
+                          </span>
+                        )}
+                        <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-1 rounded-lg">
+                          {group.currency}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
