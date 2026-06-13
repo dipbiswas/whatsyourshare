@@ -66,6 +66,7 @@ interface Expense {
   approvalStatus: "NA" | "PENDING_APPROVAL" | "APPROVED" | "REJECTED"
   paidById: string
   paidBy: { id: string; name: string; avatar: string | null }
+  guestPayeeName?: string | null
   splits: Split[]
 }
 
@@ -121,6 +122,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
   const [group, setGroup] = useState<GroupDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [expandedDebts, setExpandedDebts] = useState<Set<number>>(new Set())
+  const [expandedExpenses, setExpandedExpenses] = useState<Set<string>>(new Set())
   const [approvingId, setApprovingId] = useState<string | null>(null)
   const [showMoreActions, setShowMoreActions] = useState(false)
   const [openDialog, setOpenDialog] = useState<"addMember" | "addRecurring" | "createTrip" | null>(null)
@@ -479,26 +481,33 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                 <div key={expense.id}>
                   {idx > 0 && <div className="h-px bg-border/60 mx-4" />}
                   <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-accent/40 group transition-colors">
-                    <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${CATEGORY_COLORS[expense.category] ?? "bg-gray-400"}`} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="font-semibold text-foreground text-sm truncate">{expense.description}</p>
-                        {expense.visibility === "PAYERS_ONLY" && <EyeOff className="h-3 w-3 text-amber-500 shrink-0" />}
-                        {expense.approvalStatus === "PENDING_APPROVAL" && (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-orange-600 bg-orange-100 dark:bg-orange-500/15 dark:text-orange-400 px-1.5 py-0.5 rounded-full shrink-0">
-                            <Clock className="h-2.5 w-2.5" />Pending
-                          </span>
-                        )}
-                        {expense.approvalStatus === "REJECTED" && (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-red-600 bg-red-100 dark:bg-red-500/15 dark:text-red-400 px-1.5 py-0.5 rounded-full shrink-0">
-                            <XCircle className="h-2.5 w-2.5" />Rejected
-                          </span>
-                        )}
+                    <button
+                      className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                      onClick={() => setExpandedExpenses((prev) => {
+                        const next = new Set(prev); next.has(expense.id) ? next.delete(expense.id) : next.add(expense.id); return next
+                      })}
+                    >
+                      <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${CATEGORY_COLORS[expense.category] ?? "bg-gray-400"}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="font-semibold text-foreground text-sm truncate">{expense.description}</p>
+                          {expense.visibility === "PAYERS_ONLY" && <EyeOff className="h-3 w-3 text-amber-500 shrink-0" />}
+                          {expense.approvalStatus === "PENDING_APPROVAL" && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-orange-600 bg-orange-100 dark:bg-orange-500/15 dark:text-orange-400 px-1.5 py-0.5 rounded-full shrink-0">
+                              <Clock className="h-2.5 w-2.5" />Pending
+                            </span>
+                          )}
+                          {expense.approvalStatus === "REJECTED" && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-red-600 bg-red-100 dark:bg-red-500/15 dark:text-red-400 px-1.5 py-0.5 rounded-full shrink-0">
+                              <XCircle className="h-2.5 w-2.5" />Rejected
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {expense.guestPayeeName ? `${expense.guestPayeeName} (external)` : expense.paidBy.name} · {format(new Date(expense.date), "MMM d")} · {expense.category}
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {expense.paidBy.name} · {format(new Date(expense.date), "MMM d")} · {expense.category}
-                      </p>
-                    </div>
+                    </button>
                     <div className="text-right shrink-0">
                       <p className="font-bold text-foreground text-sm tabular-nums">{formatCurrency(expense.amount, expense.currency)}</p>
                       <div className="flex items-center justify-end gap-0.5 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -519,6 +528,18 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                       </div>
                     </div>
                   </div>
+                  {expandedExpenses.has(expense.id) && expense.splits.length > 0 && (
+                    <div className="px-4 pb-3">
+                      <div className="rounded-xl bg-muted/40 border border-border/60 overflow-hidden">
+                        {expense.splits.map((s, i) => (
+                          <div key={s.userId} className={cn("flex items-center justify-between px-3 py-2 text-xs", i > 0 && "border-t border-border/40")}>
+                            <span className="text-muted-foreground">{s.user.name}{s.userId === userId ? " (you)" : ""}</span>
+                            <span className="font-semibold text-foreground tabular-nums">{formatCurrency(s.amount, group.currency)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -810,6 +831,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
       <AddRecurringExpenseDialog
         groupId={group.id}
         currency={group.currency}
+        members={group.members}
         open={openDialog === "addRecurring"}
         onOpenChange={(v) => !v && setOpenDialog(null)}
         onCreated={(r) => {

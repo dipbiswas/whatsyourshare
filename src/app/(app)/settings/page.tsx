@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Check, CreditCard, Link2, Loader2, Zap, Crown, DollarSign, Shield, User, Lock, KeyRound } from "lucide-react"
+import { Check, CreditCard, Link2, Loader2, Zap, Crown, DollarSign, Shield, User, Lock, KeyRound, Bell } from "lucide-react"
 
 interface BillingStatus {
   plan: "FREE" | "PRO" | "FAMILY"
@@ -238,6 +238,9 @@ export default function SettingsPage() {
           <p className="text-xs text-muted-foreground/50 font-mono mt-1">{session?.user.id}</p>
         </div>
       </div>
+
+      {/* Notifications */}
+      <NotificationsSection />
 
       {/* Account Management */}
       <div className="glass rounded-2xl overflow-hidden">
@@ -518,6 +521,88 @@ export default function SettingsPage() {
           <DollarSign className="h-3.5 w-3.5" />
           Built with Next.js · Prisma · Stripe
         </div>
+      </div>
+    </div>
+  )
+}
+
+function NotificationsSection() {
+  const [permission, setPermission] = useState<NotificationPermission | "unknown">("unknown")
+  const [subscribed, setSubscribed] = useState(false)
+  const [subscribing, setSubscribing] = useState(false)
+
+  useEffect(() => {
+    if (typeof Notification === "undefined") return
+    setPermission(Notification.permission)
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.ready
+        .then((reg) => reg.pushManager.getSubscription())
+        .then((sub) => { if (sub) setSubscribed(true) })
+        .catch(() => {})
+    }
+  }, [])
+
+  async function enableNotifications() {
+    setSubscribing(true)
+    try {
+      const perm = await Notification.requestPermission()
+      setPermission(perm)
+      if (perm !== "granted") { toast.error("Notification permission denied"); return }
+
+      const reg = await navigator.serviceWorker.register("/sw.js")
+      const vapidRes = await fetch("/api/push/vapid-key")
+      const { publicKey } = await vapidRes.json()
+
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: publicKey,
+      })
+
+      await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscription: sub.toJSON() }),
+      })
+
+      setSubscribed(true)
+      toast.success("Notifications enabled!")
+    } catch {
+      toast.error("Failed to enable notifications")
+    } finally {
+      setSubscribing(false)
+    }
+  }
+
+  if (permission === "unknown") return null
+
+  return (
+    <div className="glass rounded-2xl p-5 space-y-4">
+      <div className="flex items-center gap-2">
+        <div className="h-10 w-10 rounded-xl bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center shrink-0">
+          <Bell className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+        </div>
+        <div>
+          <h2 className="font-semibold text-foreground text-sm">Notifications</h2>
+          <p className="text-xs text-muted-foreground">Get notified when group members add expenses</p>
+        </div>
+      </div>
+      <div className="flex items-center justify-between pt-1">
+        <div>
+          <p className="text-sm font-medium text-foreground">Expense alerts</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Push notification when someone logs a new expense</p>
+        </div>
+        {permission === "denied" ? (
+          <span className="text-xs text-rose-500 font-medium">Blocked — enable in browser settings</span>
+        ) : subscribed ? (
+          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+            <Check className="h-3 w-3" /> Enabled
+          </span>
+        ) : (
+          <Button size="sm" variant="outline" onClick={enableNotifications} disabled={subscribing} className="gap-1.5">
+            {subscribing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bell className="h-3 w-3" />}
+            Enable
+          </Button>
+        )}
       </div>
     </div>
   )

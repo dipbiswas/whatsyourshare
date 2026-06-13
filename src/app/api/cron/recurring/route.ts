@@ -43,7 +43,15 @@ export async function POST(req: Request) {
     const memberIds = template.group.members.map((m) => m.userId)
     if (memberIds.length === 0) continue
 
-    const perPerson = Math.round((template.lastAmount / memberIds.length) * 100) / 100
+    // Use saved splitData if available (SELECTED/PERCENTAGE/EXACT), else equal split
+    let splitRows: { userId: string; amount: number }[]
+    const savedSplits = template.splitData as { userId: string; amount: number }[] | null
+    if (savedSplits && Array.isArray(savedSplits) && savedSplits.length > 0) {
+      splitRows = savedSplits
+    } else {
+      const perPerson = Math.round((template.lastAmount / memberIds.length) * 100) / 100
+      splitRows = memberIds.map((userId) => ({ userId, amount: perPerson }))
+    }
 
     try {
       await prisma.$transaction([
@@ -60,7 +68,7 @@ export async function POST(req: Request) {
             date: now,
             splits: {
               createMany: {
-                data: memberIds.map((userId) => ({ userId, amount: perPerson })),
+                data: splitRows,
               },
             },
           },

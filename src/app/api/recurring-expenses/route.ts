@@ -4,13 +4,19 @@ import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { addWeeks, addMonths, addQuarters } from "date-fns"
 
+const splitEntrySchema = z.object({
+  userId: z.string(),
+  amount: z.number().nonnegative(),
+})
+
 const schema = z.object({
   groupId: z.string(),
   description: z.string().min(1).max(200),
   lastAmount: z.number().positive(),
   currency: z.string().default("USD"),
   category: z.string().default("General"),
-  splitType: z.enum(["EQUAL", "EXACT", "PERCENTAGE"]).default("EQUAL"),
+  splitType: z.enum(["EQUAL", "EXACT", "PERCENTAGE", "SELECTED"]).default("EQUAL"),
+  splitData: z.array(splitEntrySchema).optional(),
   frequency: z.enum(["WEEKLY", "MONTHLY", "QUARTERLY"]).default("MONTHLY"),
   nextDueDate: z.string(), // ISO date string
 })
@@ -46,7 +52,7 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
 
-  const { nextDueDate, ...rest } = parsed.data
+  const { nextDueDate, splitData, ...rest } = parsed.data
 
   const isMember = await prisma.groupMember.findFirst({
     where: { groupId: rest.groupId, userId: session.user.id },
@@ -58,6 +64,7 @@ export async function POST(req: Request) {
       ...rest,
       nextDueDate: new Date(nextDueDate),
       createdById: session.user.id,
+      ...(splitData ? { splitData } : {}),
     },
     include: { createdBy: { select: { id: true, name: true } } },
   })
