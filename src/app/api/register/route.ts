@@ -7,6 +7,8 @@ const schema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(6),
+  timezone: z.string().max(60).optional(),
+  defaultCurrency: z.string().length(3).optional(),
 })
 
 export async function POST(req: Request) {
@@ -17,7 +19,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { name, email, password } = parsed.data
+  const { name, email, password, timezone, defaultCurrency } = parsed.data
 
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
@@ -25,8 +27,13 @@ export async function POST(req: Request) {
   }
 
   const hashed = await bcrypt.hash(password, 12)
-  const user = await prisma.user.create({
-    data: { name, email, password: hashed },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const user = await (prisma.user.create as any)({
+    data: {
+      name, email, password: hashed,
+      ...(timezone ? { timezone } : {}),
+      ...(defaultCurrency ? { defaultCurrency } : {}),
+    },
     select: { id: true, name: true, email: true },
   })
 

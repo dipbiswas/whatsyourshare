@@ -15,6 +15,20 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({ name: "", email: "", password: "" })
 
+  function detectLocale() {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC"
+    // Derive a sensible default currency from the browser locale
+    const locale = navigator.language ?? "en-US"
+    const currencyMap: Record<string, string> = {
+      US: "USD", CA: "CAD", GB: "GBP", AU: "AUD", NZ: "NZD",
+      IN: "INR", SG: "SGD", AE: "AED", CH: "CHF", JP: "JPY",
+      EU: "EUR", DE: "EUR", FR: "EUR", IT: "EUR", ES: "EUR",
+    }
+    const region = locale.split("-")[1]?.toUpperCase() ?? ""
+    const defaultCurrency = currencyMap[region] ?? "USD"
+    return { timezone, defaultCurrency }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (form.password.length < 6) {
@@ -26,7 +40,7 @@ export default function RegisterPage() {
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, ...detectLocale() }),
       })
       if (!res.ok) {
         const data = await res.json()
