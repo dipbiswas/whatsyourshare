@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
-import { LayoutDashboard, Users, Receipt, Settings, LogOut, DollarSign, Plane, Crown, Sun, Moon } from "lucide-react"
+import { LayoutDashboard, Users, Receipt, Settings, LogOut, DollarSign, Plane, Crown, Sun, Moon, UserCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -12,11 +12,12 @@ import { useFeatureGate } from "@/lib/useFeatureGate"
 import { useTheme } from "@/components/providers/ThemeProvider"
 
 const nav = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/groups", label: "Groups", icon: Users },
-  { href: "/trips", label: "Trips", icon: Plane },
-  { href: "/expenses", label: "Expenses", icon: Receipt },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, mobile: true },
+  { href: "/groups", label: "Groups", icon: Users, mobile: true },
+  { href: "/friends", label: "Friends", icon: UserCheck, mobile: true },
+  { href: "/trips", label: "Trips", icon: Plane, mobile: false },
+  { href: "/expenses", label: "Expenses", icon: Receipt, mobile: true },
+  { href: "/settings", label: "Settings", icon: Settings, mobile: false },
 ]
 
 interface SidebarProps {
@@ -113,7 +114,7 @@ export function Sidebar({ user }: SidebarProps) {
       {/* Mobile bottom tab bar */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/90 dark:bg-black/40 backdrop-blur-xl border-t border-border pb-safe">
         <div className="flex items-center justify-around px-2 pt-2 pb-1">
-          {nav.map(({ href, label, icon: Icon }) => (
+          {nav.filter((n) => n.mobile).map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
               href={href}
