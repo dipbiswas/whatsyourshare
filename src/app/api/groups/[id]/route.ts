@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { calculateGroupBalances, simplifyDebts, annotateTransfers } from "@/lib/balance"
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session?.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
@@ -69,6 +70,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const annotatedSettlements = annotateTransfers(suggestedSettlements, expensesForAnnotation, nameMap)
 
   return NextResponse.json({ ...group, balanceMap, suggestedSettlements: annotatedSettlements })
+  } catch (err) {
+    console.error("[GET /api/groups/[id]] error:", err)
+    return NextResponse.json({ error: String(err) }, { status: 500 })
+  }
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
