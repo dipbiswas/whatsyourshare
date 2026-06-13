@@ -57,6 +57,111 @@ export async function sendInviteEmail({
   })
 }
 
+export async function sendMonthlySummaryEmail({
+  to,
+  name,
+  month,
+  year,
+  totalSpent,
+  groups,
+  topCategories,
+  dashboardUrl,
+}: {
+  to: string
+  name: string
+  month: string       // e.g. "May"
+  year: number
+  totalSpent: { currency: string; amount: number }[]
+  groups: { name: string; currency: string; spent: number; youOwe: number }[]
+  topCategories: { category: string; amount: number; currency: string }[]
+  dashboardUrl: string
+}) {
+  const firstName = name.split(" ")[0]
+
+  const totalsHtml = totalSpent.length
+    ? totalSpent.map((t) => `<span style="font-size:28px;font-weight:800;color:#111827;">${t.currency} ${t.amount.toFixed(2)}</span>`).join(" &nbsp;+&nbsp; ")
+    : `<span style="font-size:28px;font-weight:800;color:#111827;">$0.00</span>`
+
+  const groupRows = groups.map((g) => `
+    <tr>
+      <td style="padding:10px 12px;font-weight:600;color:#111827;">${g.name}</td>
+      <td style="padding:10px 12px;color:#6b7280;text-align:right;">${g.currency} ${g.spent.toFixed(2)}</td>
+      <td style="padding:10px 12px;text-align:right;font-weight:600;color:${g.youOwe > 0.01 ? "#ef4444" : g.youOwe < -0.01 ? "#10b981" : "#9ca3af"};">
+        ${g.youOwe > 0.01 ? `You owe ${g.currency} ${g.youOwe.toFixed(2)}` : g.youOwe < -0.01 ? `Owed ${g.currency} ${Math.abs(g.youOwe).toFixed(2)}` : "Settled ✓"}
+      </td>
+    </tr>
+  `).join("")
+
+  const categoryRows = topCategories.slice(0, 5).map((c) => `
+    <tr>
+      <td style="padding:8px 12px;color:#374151;">${c.category}</td>
+      <td style="padding:8px 12px;text-align:right;font-weight:600;color:#111827;">${c.currency} ${c.amount.toFixed(2)}</td>
+    </tr>
+  `).join("")
+
+  return resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Your ${month} spending summary — WhatsYourShare`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; background:#ffffff;">
+
+        <!-- Logo -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:32px;">
+          <div style="width:32px;height:32px;background:#7c3aed;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+            <span style="color:white;font-size:18px;font-weight:bold;">$</span>
+          </div>
+          <span style="font-weight:700;font-size:18px;color:#111827;">WhatsYourShare</span>
+        </div>
+
+        <p style="color:#6b7280;margin:0 0 4px;font-size:14px;">Hi ${firstName},</p>
+        <h1 style="font-size:22px;font-weight:700;color:#111827;margin:0 0 4px;">Your ${month} ${year} summary</h1>
+        <p style="color:#9ca3af;font-size:13px;margin:0 0 28px;">Here's a recap of your shared expenses last month.</p>
+
+        <!-- Total -->
+        <div style="background:#f5f3ff;border-radius:16px;padding:20px 24px;margin-bottom:24px;text-align:center;">
+          <p style="margin:0 0 4px;color:#7c3aed;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Total spent across all groups</p>
+          <div>${totalsHtml}</div>
+        </div>
+
+        ${groups.length > 0 ? `
+        <!-- Groups breakdown -->
+        <h2 style="font-size:15px;font-weight:700;color:#111827;margin:0 0 10px;">By group</h2>
+        <table style="width:100%;border-collapse:collapse;border-radius:12px;overflow:hidden;margin-bottom:24px;">
+          <thead>
+            <tr style="background:#f9fafb;">
+              <th style="padding:8px 12px;text-align:left;font-size:12px;color:#9ca3af;font-weight:600;">Group</th>
+              <th style="padding:8px 12px;text-align:right;font-size:12px;color:#9ca3af;font-weight:600;">Spent</th>
+              <th style="padding:8px 12px;text-align:right;font-size:12px;color:#9ca3af;font-weight:600;">Balance</th>
+            </tr>
+          </thead>
+          <tbody>${groupRows}</tbody>
+        </table>
+        ` : ""}
+
+        ${topCategories.length > 0 ? `
+        <!-- Top categories -->
+        <h2 style="font-size:15px;font-weight:700;color:#111827;margin:0 0 10px;">Top categories</h2>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:28px;">
+          <tbody>${categoryRows}</tbody>
+        </table>
+        ` : ""}
+
+        <a href="${dashboardUrl}"
+           style="display:inline-block;background:#7c3aed;color:white;padding:13px 28px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:32px;">
+          View Dashboard →
+        </a>
+
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 16px;" />
+        <p style="color:#d1d5db;font-size:12px;margin:0;">
+          You're receiving this because monthly summaries are enabled in your
+          <a href="${dashboardUrl}/settings" style="color:#a78bfa;text-decoration:none;">account settings</a>.
+        </p>
+      </div>
+    `,
+  })
+}
+
 export async function sendExpenseNotificationEmail({
   to,
   name,
