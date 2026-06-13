@@ -433,27 +433,35 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
       {/* Tabs */}
       <Tabs defaultValue="expenses">
-        <TabsList className="w-full overflow-x-auto flex h-auto p-1 gap-0.5 bg-muted/60 rounded-xl">
-          {[
-            { value: "expenses", label: "Expenses", count: group.expenses.length },
-            { value: "settlements", label: "Settlements", count: group.settlements.length },
-            { value: "recurring", label: "Recurring", count: group.recurringExpenses.length },
-            { value: "members", label: "Members", count: group.members.length },
-            { value: "balances", label: "Balances", count: null },
-            { value: "settings", label: "Settings", count: null },
-          ].map(({ value, label, count }) => (
-            <TabsTrigger
-              key={value}
-              value={value}
-              className="flex-1 text-xs rounded-lg py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap"
-            >
-              {label}
-              {count !== null && count > 0 && (
-                <span className="ml-1 text-muted-foreground">({count})</span>
-              )}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="border-b border-border overflow-x-auto">
+          <TabsList className="flex h-auto p-0 gap-0 bg-transparent w-max min-w-full">
+            {[
+              { value: "expenses", label: "Expenses", count: group.expenses.length },
+              { value: "settlements", label: "Settlements", count: group.settlements.length },
+              { value: "recurring", label: "Recurring", count: group.recurringExpenses.length },
+              { value: "members", label: "Members", count: group.members.length },
+              { value: "balances", label: "Balances", count: null },
+              { value: "settings", label: "Settings", count: null },
+            ].map(({ value, label, count }) => (
+              <TabsTrigger
+                key={value}
+                value={value}
+                className="relative px-4 py-2.5 text-sm font-medium rounded-none bg-transparent text-muted-foreground whitespace-nowrap
+                  data-[state=active]:text-foreground data-[state=active]:shadow-none
+                  after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-full after:bg-transparent
+                  data-[state=active]:after:bg-violet-600 dark:data-[state=active]:after:bg-violet-400
+                  hover:text-foreground transition-colors"
+              >
+                {label}
+                {count !== null && count > 0 && (
+                  <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground data-[state=active]:bg-violet-100 data-[state=active]:text-violet-700 dark:data-[state=active]:bg-violet-500/20 dark:data-[state=active]:text-violet-300">
+                    {count}
+                  </span>
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         {/* Expenses */}
         <TabsContent value="expenses" className="mt-4">
