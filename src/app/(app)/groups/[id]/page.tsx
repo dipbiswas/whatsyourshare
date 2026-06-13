@@ -20,6 +20,7 @@ import {
   Plus,
   Users,
   Receipt,
+  Printer,
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -250,14 +251,25 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
 
-        <a
-          href={`/api/groups/${group.id}/export?format=csv`}
-          download
-          className="hidden md:inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-2 hover:bg-accent transition-colors shrink-0"
-        >
-          <Download className="h-3.5 w-3.5" />
-          Export
-        </a>
+        <div className="hidden md:flex items-center gap-2 shrink-0">
+          <a
+            href={`/groups/${group.id}/print`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-2 hover:bg-accent transition-colors"
+          >
+            <Printer className="h-3.5 w-3.5" />
+            Print
+          </a>
+          <a
+            href={`/api/groups/${group.id}/export?format=csv`}
+            download
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-2 hover:bg-accent transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export
+          </a>
+        </div>
       </div>
 
       {/* Stats — same card style as dashboard balance cards */}
