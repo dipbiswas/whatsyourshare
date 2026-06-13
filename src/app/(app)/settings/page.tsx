@@ -580,10 +580,83 @@ export default function SettingsPage() {
   )
 }
 
+// ── Notification preference types ────────────────────────────────────────────
+
+interface NotifPrefs {
+  addedToGroup: boolean
+  expenseAdded: boolean
+  expenseEdited: boolean
+  recurringDue: boolean
+  settledWithMe: boolean
+  monthlySummary: boolean
+}
+
+const DEFAULT_PREFS: NotifPrefs = {
+  addedToGroup: true,
+  expenseAdded: true,
+  expenseEdited: false,
+  recurringDue: true,
+  settledWithMe: true,
+  monthlySummary: true,
+}
+
+const PREFS_KEY = "wys_notif_prefs"
+
+const NOTIF_GROUPS: { label: string; items: { key: keyof NotifPrefs; label: string; desc: string }[] }[] = [
+  {
+    label: "Groups",
+    items: [
+      { key: "addedToGroup", label: "Added to a group", desc: "When someone invites you to a new group" },
+    ],
+  },
+  {
+    label: "Expenses",
+    items: [
+      { key: "expenseAdded",  label: "New expense",          desc: "When a member logs an expense in your group" },
+      { key: "expenseEdited", label: "Expense edited/deleted", desc: "When an existing expense is changed or removed" },
+      { key: "recurringDue",  label: "Recurring expense due", desc: "Reminder when a scheduled expense is about to run" },
+    ],
+  },
+  {
+    label: "Settlements",
+    items: [
+      { key: "settledWithMe", label: "Someone pays you", desc: "When a group member records a payment to you" },
+    ],
+  },
+  {
+    label: "Summaries",
+    items: [
+      { key: "monthlySummary", label: "Monthly spending summary", desc: "A digest of your activity across all groups" },
+    ],
+  },
+]
+
+function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={() => onChange(!on)}
+      className={cn(
+        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none",
+        on ? "bg-violet-600" : "bg-muted-foreground/25"
+      )}
+    >
+      <span className={cn(
+        "pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-lg ring-0 transition-transform",
+        on ? "translate-x-4" : "translate-x-0"
+      )} />
+    </button>
+  )
+}
+
 function NotificationsSection() {
   const [permission, setPermission] = useState<NotificationPermission | "unknown">("unknown")
   const [subscribed, setSubscribed] = useState(false)
   const [subscribing, setSubscribing] = useState(false)
+  const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT_PREFS)
+  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     if (typeof Notification === "undefined") return
@@ -594,6 +667,11 @@ function NotificationsSection() {
         .then((sub) => { if (sub) setSubscribed(true) })
         .catch(() => {})
     }
+    // Load saved prefs
+    try {
+      const stored = localStorage.getItem(PREFS_KEY)
+      if (stored) setPrefs({ ...DEFAULT_PREFS, ...JSON.parse(stored) })
+    } catch { /* ignore */ }
   }, [])
 
   async function enableNotifications() {
@@ -619,7 +697,7 @@ function NotificationsSection() {
       })
 
       setSubscribed(true)
-      toast.success("Notifications enabled!")
+      toast.success("Push notifications enabled!")
     } catch {
       toast.error("Failed to enable notifications")
     } finally {
@@ -627,36 +705,91 @@ function NotificationsSection() {
     }
   }
 
+  function setPref(key: keyof NotifPrefs, value: boolean) {
+    setPrefs((p) => ({ ...p, [key]: value }))
+    setSaved(false)
+  }
+
+  function savePrefs() {
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify(prefs))
+      setSaved(true)
+      toast.success("Notification preferences saved")
+      setTimeout(() => setSaved(false), 3000)
+    } catch {
+      toast.error("Failed to save preferences")
+    }
+  }
+
   if (permission === "unknown") return null
 
   return (
-    <div className="glass rounded-2xl p-5 space-y-4">
-      <div className="flex items-center gap-2">
+    <div className="glass rounded-2xl overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-3 p-5 pb-4">
         <div className="h-10 w-10 rounded-xl bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center shrink-0">
           <Bell className="h-5 w-5 text-violet-600 dark:text-violet-400" />
         </div>
         <div>
           <h2 className="font-semibold text-foreground text-sm">Notifications</h2>
-          <p className="text-xs text-muted-foreground">Get notified when group members add expenses</p>
+          <p className="text-xs text-muted-foreground">Choose what you want to be notified about</p>
         </div>
       </div>
-      <div className="flex items-center justify-between pt-1">
-        <div>
-          <p className="text-sm font-medium text-foreground">Expense alerts</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Push notification when someone logs a new expense</p>
-        </div>
-        {permission === "denied" ? (
-          <span className="text-xs text-rose-500 font-medium">Blocked — enable in browser settings</span>
-        ) : subscribed ? (
-          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
-            <Check className="h-3 w-3" /> Enabled
-          </span>
-        ) : (
-          <Button size="sm" variant="outline" onClick={enableNotifications} disabled={subscribing} className="gap-1.5">
+
+      {/* Push enable banner (if not yet subscribed) */}
+      {permission !== "denied" && !subscribed && (
+        <div className="mx-5 mb-4 flex items-center justify-between gap-3 rounded-xl bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20 px-4 py-3">
+          <p className="text-xs text-violet-700 dark:text-violet-300">
+            Enable push notifications to receive alerts in your browser.
+          </p>
+          <Button size="sm" className="bg-violet-600 hover:bg-violet-700 shrink-0 gap-1.5" onClick={enableNotifications} disabled={subscribing}>
             {subscribing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bell className="h-3 w-3" />}
-            Enable
+            Enable push
           </Button>
-        )}
+        </div>
+      )}
+      {permission === "denied" && (
+        <div className="mx-5 mb-4 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 px-4 py-3">
+          <p className="text-xs text-rose-600 dark:text-rose-400">Push notifications are blocked in your browser settings. You can still save preferences for when they're enabled.</p>
+        </div>
+      )}
+      {subscribed && (
+        <div className="mx-5 mb-4 flex items-center gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 px-4 py-2.5">
+          <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <p className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">Push notifications are enabled</p>
+        </div>
+      )}
+
+      {/* Preference groups */}
+      <div className="px-5 pb-5 space-y-5">
+        {NOTIF_GROUPS.map((group, gi) => (
+          <div key={group.label}>
+            {gi > 0 && <Separator className="opacity-40 mb-5" />}
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-3">{group.label}</p>
+            <div className="space-y-3">
+              {group.items.map((item) => (
+                <div key={item.key} className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground">{item.label}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+                  </div>
+                  <Toggle on={prefs[item.key]} onChange={(v) => setPref(item.key, v)} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        <div className="flex justify-end pt-1">
+          <Button
+            size="sm"
+            className="bg-violet-600 hover:bg-violet-700 gap-1.5"
+            onClick={savePrefs}
+          >
+            {saved ? <Check className="h-3.5 w-3.5" /> : null}
+            {saved ? "Saved" : "Save preferences"}
+          </Button>
+        </div>
       </div>
     </div>
   )
