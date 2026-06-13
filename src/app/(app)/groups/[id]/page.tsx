@@ -608,6 +608,9 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           <div className="glass rounded-2xl overflow-hidden">
             {group.members.map((m, idx) => {
               const balance = group.balanceMap[m.userId] ?? 0
+              const hasBalance = Math.abs(balance) > 0.01
+              const canRemove = isAdmin ? m.userId !== userId : m.userId === userId
+              const isSelf = m.userId === userId
               return (
                 <div key={m.userId}>
                   {idx > 0 && <div className="h-px bg-border/60 mx-4" />}
@@ -626,18 +629,54 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <p className="font-semibold text-foreground text-sm">{m.user.name}</p>
-                        {m.userId === userId && <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">you</span>}
+                        {isSelf && <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">you</span>}
                         {m.role === "ADMIN" && <span className="text-[10px] text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-500/15 px-1.5 py-0.5 rounded-full font-medium">Admin</span>}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">{m.user.email}</p>
                     </div>
-                    <p className={cn("text-sm font-bold tabular-nums shrink-0",
-                      balance > 0.01 ? "text-emerald-600 dark:text-emerald-400"
-                      : balance < -0.01 ? "text-rose-500 dark:text-rose-400"
-                      : "text-muted-foreground/50"
-                    )}>
-                      {balance > 0.01 ? "+" : ""}{formatCurrency(balance, group.currency)}
-                    </p>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <p className={cn("text-sm font-bold tabular-nums",
+                        balance > 0.01 ? "text-emerald-600 dark:text-emerald-400"
+                        : balance < -0.01 ? "text-rose-500 dark:text-rose-400"
+                        : "text-muted-foreground/50"
+                      )}>
+                        {balance > 0.01 ? "+" : ""}{formatCurrency(balance, group.currency)}
+                      </p>
+                      {canRemove && (
+                        hasBalance ? (
+                          <span className="text-[10px] text-muted-foreground/50" title="Settle up before removing">
+                            Unsettled
+                          </span>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10"
+                            onClick={async () => {
+                              if (!confirm(isSelf ? "Leave this group?" : `Remove ${m.user.name} from this group?`)) return
+                              const res = await fetch(`/api/groups/${group.id}/members`, {
+                                method: "DELETE",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ userId: m.userId }),
+                              })
+                              if (res.ok) {
+                                if (isSelf) {
+                                  router.push("/groups")
+                                } else {
+                                  setGroup((g) => g ? { ...g, members: g.members.filter((mem) => mem.userId !== m.userId) } : g)
+                                  toast.success(`${m.user.name} removed from group`)
+                                }
+                              } else {
+                                const data = await res.json()
+                                toast.error(data.error ?? "Failed to remove member")
+                              }
+                            }}
+                          >
+                            {isSelf ? "Leave" : "Remove"}
+                          </Button>
+                        )
+                      )}
+                    </div>
                   </div>
                 </div>
               )
