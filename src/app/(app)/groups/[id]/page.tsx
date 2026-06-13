@@ -411,7 +411,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               <div className="fixed inset-0 z-10" onClick={() => setShowMoreActions(false)} />
               <div className="absolute left-0 top-full mt-1 z-20 w-56 glass-strong rounded-xl shadow-2xl py-1 overflow-hidden">
                 {[
-                  { label: "Add member", node: <AddMemberDialog groupId={group.id} onAdded={(member) => setGroup((g) => g ? { ...g, members: [...g.members, member as Member] } : g)} /> },
+                  { label: "Add member", node: <AddMemberDialog groupId={group.id} existingMemberIds={group.members.map((m) => m.userId)} onAdded={(member) => setGroup((g) => g ? { ...g, members: [...g.members, member as Member] } : g)} /> },
                   { label: "Add recurring", node: <AddRecurringExpenseDialog groupId={group.id} currency={group.currency} onCreated={(r) => setGroup((g) => g ? { ...g, recurringExpenses: [...g.recurringExpenses, r as RecurringExpense] } : g)} /> },
                   { label: "Create trip", node: <CreateTripDialog groupId={group.id} /> },
                 ].map(({ label, node }) => (
