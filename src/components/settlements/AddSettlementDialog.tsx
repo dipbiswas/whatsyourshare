@@ -97,7 +97,9 @@ export function AddSettlementDialog({
               <Label>Paying to</Label>
               <Select value={form.toUserId} onValueChange={(v) => setForm((f) => ({ ...f, toUserId: v ?? f.toUserId }))}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select member…" />
+                  <span className="flex flex-1 text-left text-sm">
+                    {others.find((m) => m.userId === form.toUserId)?.user.name ?? "Select member…"}
+                  </span>
                 </SelectTrigger>
                 <SelectContent>
                   {others.map((m) => (
