@@ -1,11 +1,14 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { format } from "date-fns"
+import { useEffect, useState, useMemo } from "react"
+import { format, isThisMonth, isThisWeek } from "date-fns"
 import Link from "next/link"
-import { Receipt } from "lucide-react"
+import { Receipt, Search, X, SlidersHorizontal, ArrowUpDown, ChevronDown } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/balance"
+import { cn } from "@/lib/utils"
 
 interface Expense {
   id: string
@@ -19,17 +22,24 @@ interface Expense {
   paidBy: { id: string; name: string }
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  Food: "bg-orange-400",
-  Transport: "bg-blue-400",
-  Accommodation: "bg-purple-400",
-  Entertainment: "bg-pink-400",
-  Utilities: "bg-yellow-400",
-  General: "bg-gray-300",
-  Other: "bg-teal-400",
+const CATEGORY_META: Record<string, { color: string; dot: string }> = {
+  Food:          { color: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-400", dot: "bg-orange-400" },
+  Transport:     { color: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",         dot: "bg-blue-400" },
+  Accommodation: { color: "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-400", dot: "bg-purple-400" },
+  Entertainment: { color: "bg-pink-100 text-pink-700 dark:bg-pink-500/15 dark:text-pink-400",         dot: "bg-pink-400" },
+  Utilities:     { color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400", dot: "bg-yellow-400" },
+  General:       { color: "bg-gray-100 text-gray-600 dark:bg-white/8 dark:text-muted-foreground",     dot: "bg-gray-400" },
+  Other:         { color: "bg-teal-100 text-teal-700 dark:bg-teal-500/15 dark:text-teal-400",         dot: "bg-teal-400" },
 }
 
-// Group expenses by date
+type SortKey = "date-desc" | "date-asc" | "amount-desc" | "amount-asc"
+const SORT_LABELS: Record<SortKey, string> = {
+  "date-desc":   "Newest first",
+  "date-asc":    "Oldest first",
+  "amount-desc": "Highest amount",
+  "amount-asc":  "Lowest amount",
+}
+
 function groupByDate(expenses: Expense[]) {
   const groups: Record<string, Expense[]> = {}
   for (const e of expenses) {
@@ -43,6 +53,12 @@ function groupByDate(expenses: Expense[]) {
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState("")
+  const [activeCategory, setActiveCategory] = useState<string | null>(null)
+  const [activeGroup, setActiveGroup] = useState<string | null>(null)
+  const [sort, setSort] = useState<SortKey>("date-desc")
+  const [showSortMenu, setShowSortMenu] = useState(false)
+  const [showGroupMenu, setShowGroupMenu] = useState(false)
 
   useEffect(() => {
     fetch("/api/expenses")
@@ -51,21 +67,241 @@ export default function ExpensesPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const grouped = groupByDate(expenses)
+  // Derived data
+  const categories = useMemo(() => {
+    const seen = new Set<string>()
+    expenses.forEach((e) => seen.add(e.category))
+    return Array.from(seen).sort()
+  }, [expenses])
+
+  const groups = useMemo(() => {
+    const map = new Map<string, string>()
+    expenses.forEach((e) => map.set(e.group.id, e.group.name))
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
+  }, [expenses])
+
+  // Summary stats
+  const totalSpent = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses])
+  const thisMonthSpent = useMemo(() =>
+    expenses.filter((e) => isThisMonth(new Date(e.date))).reduce((s, e) => s + e.amount, 0),
+  [expenses])
+  const thisWeekSpent = useMemo(() =>
+    expenses.filter((e) => isThisWeek(new Date(e.date), { weekStartsOn: 1 })).reduce((s, e) => s + e.amount, 0),
+  [expenses])
+
+  // Filtered + sorted
+  const filtered = useMemo(() => {
+    let list = [...expenses]
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      list = list.filter((e) =>
+        e.description.toLowerCase().includes(q) ||
+        e.group.name.toLowerCase().includes(q) ||
+        e.paidBy.name.toLowerCase().includes(q)
+      )
+    }
+    if (activeCategory) list = list.filter((e) => e.category === activeCategory)
+    if (activeGroup)    list = list.filter((e) => e.group.id === activeGroup)
+    list.sort((a, b) => {
+      if (sort === "date-desc")   return new Date(b.date).getTime() - new Date(a.date).getTime()
+      if (sort === "date-asc")    return new Date(a.date).getTime() - new Date(b.date).getTime()
+      if (sort === "amount-desc") return b.amount - a.amount
+      if (sort === "amount-asc")  return a.amount - b.amount
+      return 0
+    })
+    return list
+  }, [expenses, search, activeCategory, activeGroup, sort])
+
+  const grouped = useMemo(() =>
+    sort === "date-desc" || sort === "date-asc" ? groupByDate(filtered) : null,
+  [filtered, sort])
+
+  const hasFilters = search || activeCategory || activeGroup
+  const activeGroupName = groups.find((g) => g.id === activeGroup)?.name
+
+  const clearFilters = () => {
+    setSearch("")
+    setActiveCategory(null)
+    setActiveGroup(null)
+  }
 
   return (
-    <div className="p-5 md:p-8 space-y-6 max-w-2xl mx-auto">
+    <div className="p-5 md:p-8 space-y-5 max-w-3xl mx-auto">
+
+      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">Expenses</h1>
         <p className="text-sm text-muted-foreground mt-0.5">All expenses across your groups</p>
       </div>
 
+      {/* Summary stats */}
+      {!loading && expenses.length > 0 && (
+        <div className="grid grid-cols-3 gap-3">
+          <div className="glass rounded-2xl p-4">
+            <p className="text-xs text-muted-foreground font-medium mb-1">All time</p>
+            <p className="text-lg font-bold text-foreground tabular-nums">{formatCurrency(totalSpent)}</p>
+          </div>
+          <div className="glass rounded-2xl p-4">
+            <p className="text-xs text-muted-foreground font-medium mb-1">This month</p>
+            <p className="text-lg font-bold text-foreground tabular-nums">{formatCurrency(thisMonthSpent)}</p>
+          </div>
+          <div className="glass rounded-2xl p-4">
+            <p className="text-xs text-muted-foreground font-medium mb-1">This week</p>
+            <p className="text-lg font-bold text-foreground tabular-nums">{formatCurrency(thisWeekSpent)}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Search + controls */}
+      {!loading && expenses.length > 0 && (
+        <div className="space-y-3">
+          {/* Search bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder="Search expenses, groups, people…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-9 bg-background/50"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Filter chips row */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-none">
+
+            {/* Category chips */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {categories.map((cat) => {
+                const meta = CATEGORY_META[cat]
+                const active = activeCategory === cat
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveCategory(active ? null : cat)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap border",
+                      active
+                        ? `${meta?.color ?? "bg-muted text-foreground"} border-transparent shadow-sm`
+                        : "bg-transparent border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                    )}
+                  >
+                    <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", meta?.dot ?? "bg-gray-400")} />
+                    {cat}
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="h-4 w-px bg-border shrink-0" />
+
+            {/* Group filter */}
+            <div className="relative shrink-0">
+              <button
+                onClick={() => { setShowGroupMenu((v) => !v); setShowSortMenu(false) }}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all whitespace-nowrap",
+                  activeGroup
+                    ? "bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 border-transparent"
+                    : "bg-transparent border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                )}
+              >
+                <SlidersHorizontal className="h-3 w-3" />
+                {activeGroupName ?? "All groups"}
+                <ChevronDown className="h-3 w-3" />
+              </button>
+              {showGroupMenu && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowGroupMenu(false)} />
+                  <div className="absolute left-0 top-full mt-1 z-20 w-48 glass-strong rounded-xl shadow-xl py-1 overflow-hidden">
+                    <button
+                      onClick={() => { setActiveGroup(null); setShowGroupMenu(false) }}
+                      className={cn("w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors", !activeGroup && "font-semibold text-foreground")}
+                    >
+                      All groups
+                    </button>
+                    {groups.map((g) => (
+                      <button
+                        key={g.id}
+                        onClick={() => { setActiveGroup(g.id); setShowGroupMenu(false) }}
+                        className={cn("w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors truncate", activeGroup === g.id && "font-semibold text-foreground")}
+                      >
+                        {g.name}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Sort */}
+            <div className="relative shrink-0">
+              <button
+                onClick={() => { setShowSortMenu((v) => !v); setShowGroupMenu(false) }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-all whitespace-nowrap"
+              >
+                <ArrowUpDown className="h-3 w-3" />
+                {SORT_LABELS[sort]}
+              </button>
+              {showSortMenu && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowSortMenu(false)} />
+                  <div className="absolute right-0 top-full mt-1 z-20 w-44 glass-strong rounded-xl shadow-xl py-1 overflow-hidden">
+                    {(Object.entries(SORT_LABELS) as [SortKey, string][]).map(([key, label]) => (
+                      <button
+                        key={key}
+                        onClick={() => { setSort(key); setShowSortMenu(false) }}
+                        className={cn("w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors", sort === key && "font-semibold text-foreground")}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Clear all */}
+            {hasFilters && (
+              <button
+                onClick={clearFilters}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0"
+              >
+                <X className="h-3 w-3" />
+                Clear
+              </button>
+            )}
+          </div>
+
+          {/* Result count when filtering */}
+          {hasFilters && (
+            <p className="text-xs text-muted-foreground">
+              {filtered.length} result{filtered.length !== 1 ? "s" : ""}
+              {filtered.length > 0 && (
+                <span className="ml-1">
+                  · {formatCurrency(filtered.reduce((s, e) => s + e.amount, 0))} total
+                </span>
+              )}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Loading */}
       {loading && (
         <div className="space-y-3">
           {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
         </div>
       )}
 
+      {/* Empty state */}
       {!loading && expenses.length === 0 && (
         <div className="text-center py-24">
           <div className="mx-auto h-16 w-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
@@ -76,33 +312,68 @@ export default function ExpensesPage() {
         </div>
       )}
 
-      {!loading && grouped.map(([dateKey, items]) => (
+      {/* No results after filter */}
+      {!loading && expenses.length > 0 && filtered.length === 0 && (
+        <div className="text-center py-16">
+          <div className="mx-auto h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mb-3">
+            <Search className="h-6 w-6 text-muted-foreground/40" />
+          </div>
+          <p className="text-sm font-medium text-foreground/70">No matching expenses</p>
+          <p className="text-xs text-muted-foreground mt-1">Try adjusting your search or filters</p>
+          <button onClick={clearFilters} className="mt-3 text-xs text-violet-600 dark:text-violet-400 hover:underline">
+            Clear all filters
+          </button>
+        </div>
+      )}
+
+      {/* Grouped by date (default sort) */}
+      {!loading && grouped && grouped.map(([dateKey, items]) => (
         <div key={dateKey}>
           <p className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider mb-2">
             {format(new Date(dateKey), "EEEE, MMMM d")}
           </p>
           <div className="glass rounded-2xl overflow-hidden">
             {items.map((e, idx) => (
-              <div key={e.id}>
-                {idx > 0 && <div className="h-px bg-border mx-4" />}
-                <Link href={`/groups/${e.group.id}`} className="flex items-center gap-3 px-4 py-3.5 hover:bg-accent/50 transition-colors">
-                  <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${CATEGORY_COLORS[e.category] ?? "bg-gray-300"}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{e.description}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                      {e.group.name} · paid by {e.paidBy.name}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-foreground tabular-nums">{formatCurrency(e.amount, e.currency)}</p>
-                    <p className="text-xs text-muted-foreground">{e.category}</p>
-                  </div>
-                </Link>
-              </div>
+              <ExpenseRow key={e.id} expense={e} showDivider={idx > 0} />
             ))}
           </div>
         </div>
       ))}
+
+      {/* Flat list (amount sort) */}
+      {!loading && !grouped && filtered.length > 0 && (
+        <div className="glass rounded-2xl overflow-hidden">
+          {filtered.map((e, idx) => (
+            <ExpenseRow key={e.id} expense={e} showDivider={idx > 0} showDate />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ExpenseRow({ expense: e, showDivider, showDate }: { expense: Expense; showDivider: boolean; showDate?: boolean }) {
+  const meta = CATEGORY_META[e.category]
+  return (
+    <div>
+      {showDivider && <div className="h-px bg-border/60 mx-4" />}
+      <Link
+        href={`/groups/${e.group.id}`}
+        className="flex items-center gap-3 px-4 py-3.5 hover:bg-accent/40 transition-colors"
+      >
+        <div className={cn("h-2.5 w-2.5 rounded-full shrink-0", meta?.dot ?? "bg-gray-400")} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-foreground truncate">{e.description}</p>
+          <p className="text-xs text-muted-foreground mt-0.5 truncate">
+            {e.group.name} · {e.paidBy.name}
+            {showDate && ` · ${format(new Date(e.date), "MMM d")}`}
+          </p>
+        </div>
+        <div className="text-right shrink-0">
+          <p className="text-sm font-bold text-foreground tabular-nums">{formatCurrency(e.amount, e.currency)}</p>
+          <p className="text-xs text-muted-foreground">{e.category}</p>
+        </div>
+      </Link>
     </div>
   )
 }

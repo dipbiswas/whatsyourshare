@@ -37,7 +37,6 @@ import { BudgetProgressCard } from "@/components/budget/BudgetProgressCard"
 import { CreateTripDialog } from "@/components/trips/CreateTripDialog"
 import { ExpensePolicyCard } from "@/components/groups/ExpensePolicyCard"
 import { GroupCardCard } from "@/components/cards/GroupCardCard"
-import { InviteMemberDialog } from "@/components/groups/InviteMemberDialog"
 import { InteracHelperDialog } from "@/components/settlements/InteracHelperDialog"
 import { formatCurrency } from "@/lib/balance"
 import { cn } from "@/lib/utils"
@@ -415,7 +414,6 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                   { label: "Add member", node: <AddMemberDialog groupId={group.id} onAdded={(member) => setGroup((g) => g ? { ...g, members: [...g.members, member as Member] } : g)} /> },
                   { label: "Add recurring", node: <AddRecurringExpenseDialog groupId={group.id} currency={group.currency} onCreated={(r) => setGroup((g) => g ? { ...g, recurringExpenses: [...g.recurringExpenses, r as RecurringExpense] } : g)} /> },
                   { label: "Create trip", node: <CreateTripDialog groupId={group.id} /> },
-                  { label: "Invite by link", node: <InviteMemberDialog groupId={group.id} /> },
                 ].map(({ label, node }) => (
                   <div
                     key={label}
