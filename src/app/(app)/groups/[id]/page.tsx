@@ -811,7 +811,8 @@ function MembersTab({
   onLeave: () => void
 }) {
   const isShares = group.defaultSplitType === "SHARES"
-  // editingSharesFor = userId whose share is being edited
+  const isPercentage = group.defaultSplitType === "PERCENTAGE"
+  const hasInlineEditor = isShares || isPercentage
   const [editingSharesFor, setEditingSharesFor] = useState<string | null>(null)
   const [shareInput, setShareInput] = useState("")
   const [savingShares, setSavingShares] = useState(false)
@@ -819,6 +820,7 @@ function MembersTab({
   async function saveShare(memberId: string) {
     const val = parseFloat(shareInput)
     if (isNaN(val) || val < 0) { toast.error("Enter a valid number"); return }
+    if (isPercentage && val > 100) { toast.error("Percentage cannot exceed 100"); return }
     setSavingShares(true)
     try {
       const newShares = { ...(group.defaultSplitShares ?? {}), [memberId]: val }
@@ -827,14 +829,19 @@ function MembersTab({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ defaultSplitShares: newShares }),
       })
-      if (!res.ok) { toast.error("Failed to save share"); return }
+      if (!res.ok) { toast.error("Failed to save"); return }
       onGroupChange((g) => g ? { ...g, defaultSplitShares: newShares } : g)
       setEditingSharesFor(null)
-      toast.success("Share updated")
+      toast.success(isPercentage ? "Percentage updated" : "Share updated")
     } finally {
       setSavingShares(false)
     }
   }
+
+  // For percentage: show total so user knows if they've hit 100%
+  const percentageTotal = isPercentage
+    ? group.members.reduce((sum, m) => sum + (group.defaultSplitShares?.[m.userId] ?? 0), 0)
+    : 0
 
   return (
     <div className="glass rounded-2xl overflow-hidden">
@@ -869,15 +876,16 @@ function MembersTab({
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">{m.user.email}</p>
 
-                {/* Shares editor */}
-                {isShares && (
+                {/* Shares / Percentage inline editor */}
+                {hasInlineEditor && (
                   <div className="mt-1.5">
                     {isEditing ? (
                       <div className="flex items-center gap-1.5">
                         <Input
                           type="number"
                           min="0"
-                          step="1"
+                          step={isPercentage ? "0.1" : "1"}
+                          max={isPercentage ? "100" : undefined}
                           placeholder="0"
                           value={shareInput}
                           onChange={(e) => setShareInput(e.target.value)}
@@ -888,7 +896,7 @@ function MembersTab({
                             if (e.key === "Escape") setEditingSharesFor(null)
                           }}
                         />
-                        <span className="text-xs text-muted-foreground">shares</span>
+                        <span className="text-xs text-muted-foreground">{isPercentage ? "%" : "shares"}</span>
                         <button
                           onClick={() => saveShare(m.userId)}
                           disabled={savingShares}
@@ -906,13 +914,15 @@ function MembersTab({
                     ) : (
                       <button
                         onClick={() => { setEditingSharesFor(m.userId); setShareInput(String(currentShare ?? "")) }}
-                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-violet-600 dark:hover:text-violet-400 transition-colors group/share"
+                        className="inline-flex items-center gap-1 text-xs hover:text-violet-600 dark:hover:text-violet-400 transition-colors group/share"
                       >
                         <span className={cn(
                           "font-medium",
                           currentShare != null ? "text-foreground" : "text-muted-foreground/50 italic"
                         )}>
-                          {currentShare != null ? `${currentShare} shares` : "Set shares"}
+                          {currentShare != null
+                            ? isPercentage ? `${currentShare}%` : `${currentShare} shares`
+                            : isPercentage ? "Set %" : "Set shares"}
                         </span>
                         <span className="text-[10px] opacity-0 group-hover/share:opacity-100 transition-opacity text-violet-500">✎</span>
                       </button>
@@ -967,6 +977,17 @@ function MembersTab({
           </div>
         )
       })}
+      {isPercentage && (
+        <div className={cn(
+          "px-4 py-2.5 border-t border-border/60 text-xs flex items-center justify-between",
+          Math.abs(percentageTotal - 100) < 0.01
+            ? "text-emerald-600 dark:text-emerald-400"
+            : "text-amber-600 dark:text-amber-400"
+        )}>
+          <span>Total assigned</span>
+          <span className="font-semibold tabular-nums">{percentageTotal.toFixed(1)}% / 100%</span>
+        </div>
+      )}
     </div>
   )
 }
