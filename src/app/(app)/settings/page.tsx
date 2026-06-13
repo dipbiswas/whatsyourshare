@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Check, CreditCard, Link2, Loader2, Zap, Crown, DollarSign, Shield, User, Lock, KeyRound, Bell } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface BillingStatus {
   plan: "FREE" | "PRO" | "FAMILY"
