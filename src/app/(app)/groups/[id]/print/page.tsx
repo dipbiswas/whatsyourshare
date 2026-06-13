@@ -148,6 +148,11 @@ export default async function GroupPrintPage({ params }: Props) {
         <div className="section">
           <div className="section-title">Member Balances</div>
           <table>
+            <colgroup>
+              <col style={{ width: "40%" }} />
+              <col style={{ width: "40%" }} />
+              <col style={{ width: "20%" }} />
+            </colgroup>
             <thead>
               <tr>
                 <th>Member</th>
@@ -163,10 +168,12 @@ export default async function GroupPrintPage({ params }: Props) {
                     <td style={{ fontWeight: 600 }}>{m.user.name}</td>
                     <td style={{ color: "#6b7280" }}>{m.user.email}</td>
                     <td style={{ textAlign: "right" }}>
-                      <span className={b > 0.01 ? "balance-positive" : b < -0.01 ? "balance-negative" : ""}>
-                        {b > 0.01 ? "+" : ""}{formatCurrency(b, group.currency)}
-                      </span>
-                      {Math.abs(b) < 0.01 && <span style={{ color: "#9ca3af", fontSize: 12 }}>Settled</span>}
+                      {Math.abs(b) < 0.01
+                        ? <span style={{ color: "#9ca3af" }}>Settled</span>
+                        : <span className={b > 0 ? "balance-positive" : "balance-negative"}>
+                            {b > 0 ? "+" : ""}{formatCurrency(b, group.currency)}
+                          </span>
+                      }
                     </td>
                   </tr>
                 )
@@ -180,6 +187,11 @@ export default async function GroupPrintPage({ params }: Props) {
           <div className="section">
             <div className="section-title">Suggested Settlements</div>
             <table>
+              <colgroup>
+                <col style={{ width: "40%" }} />
+                <col style={{ width: "40%" }} />
+                <col style={{ width: "20%" }} />
+              </colgroup>
               <thead>
                 <tr>
                   <th>From</th>
@@ -207,6 +219,11 @@ export default async function GroupPrintPage({ params }: Props) {
           <div className="section">
             <div className="section-title">Spending by Category</div>
             <table>
+              <colgroup>
+                <col style={{ width: "55%" }} />
+                <col style={{ width: "30%" }} />
+                <col style={{ width: "15%" }} />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Category</th>
@@ -239,6 +256,13 @@ export default async function GroupPrintPage({ params }: Props) {
             <p className="no-data">No expenses recorded.</p>
           ) : (
             <table>
+              <colgroup>
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "36%" }} />
+                <col style={{ width: "18%" }} />
+                <col style={{ width: "18%" }} />
+                <col style={{ width: "14%" }} />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Date</th>
@@ -253,11 +277,9 @@ export default async function GroupPrintPage({ params }: Props) {
                   <tr key={e.id}>
                     <td style={{ color: "#6b7280", whiteSpace: "nowrap" }}>{format(new Date(e.date), "MMM d, yyyy")}</td>
                     <td style={{ fontWeight: 500 }}>{e.description}</td>
-                    <td>
-                      <span className="badge">{e.category}</span>
-                    </td>
+                    <td><span className="badge">{e.category}</span></td>
                     <td style={{ color: "#6b7280" }}>{e.paidBy.name}</td>
-                    <td style={{ textAlign: "right", fontWeight: 600 }}>
+                    <td style={{ textAlign: "right", fontWeight: 600, whiteSpace: "nowrap" }}>
                       {formatCurrency(e.amount, group.currency)}
                     </td>
                   </tr>
@@ -274,6 +296,13 @@ export default async function GroupPrintPage({ params }: Props) {
             <p className="no-data">No settlements recorded.</p>
           ) : (
             <table>
+              <colgroup>
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "24%" }} />
+                <col style={{ width: "24%" }} />
+                <col style={{ width: "24%" }} />
+                <col style={{ width: "14%" }} />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Date</th>
@@ -290,7 +319,7 @@ export default async function GroupPrintPage({ params }: Props) {
                     <td style={{ fontWeight: 600 }}>{s.fromUser.name}</td>
                     <td>{s.toUser.name}</td>
                     <td style={{ color: "#6b7280" }}>{s.note ?? "—"}</td>
-                    <td style={{ textAlign: "right", fontWeight: 600, color: "#059669" }}>
+                    <td style={{ textAlign: "right", fontWeight: 600, color: "#059669", whiteSpace: "nowrap" }}>
                       {formatCurrency(s.amount, group.currency)}
                     </td>
                   </tr>
