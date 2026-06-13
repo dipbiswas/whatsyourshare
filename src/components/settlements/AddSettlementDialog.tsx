@@ -29,6 +29,7 @@ interface Props {
   suggestedAmount?: number
   onCreated: () => void
   compact?: boolean
+  trigger?: React.ReactNode
 }
 
 export function AddSettlementDialog({
@@ -40,6 +41,7 @@ export function AddSettlementDialog({
   suggestedAmount,
   onCreated,
   compact,
+  trigger,
 }: Props) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -91,17 +93,21 @@ export function AddSettlementDialog({
 
   return (
     <>
-      <Button
-        variant="outline"
-        size="sm"
-        className={compact
-          ? "h-7 text-xs px-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-          : "gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-        }
-        onClick={() => setOpen(true)}
-      >
-        {compact ? "Settle Up" : <><CheckCircle className="h-4 w-4" />Settle Up</>}
-      </Button>
+      {trigger ? (
+        <div onClick={() => setOpen(true)}>{trigger}</div>
+      ) : (
+        <Button
+          variant="outline"
+          size="sm"
+          className={compact
+            ? "h-7 text-xs px-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+            : "gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+          }
+          onClick={() => setOpen(true)}
+        >
+          {compact ? "Settle Up" : <><CheckCircle className="h-4 w-4" />Settle Up</>}
+        </Button>
+      )}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>

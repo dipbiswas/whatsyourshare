@@ -208,11 +208,11 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
   const mySettlements = group.suggestedSettlements.filter((s) => s.from === userId)
 
   return (
-    <div className="p-5 md:p-8 space-y-5 max-w-5xl mx-auto">
+    <div className="p-4 md:p-6 max-w-6xl mx-auto">
 
-      {/* Page header — matches all other pages */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3 min-w-0">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 mb-5">
+        <div className="flex items-start gap-2 min-w-0">
           <Link href="/groups">
             <Button variant="ghost" size="icon" className="h-8 w-8 mt-0.5 shrink-0 text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-4 w-4" />
@@ -220,27 +220,20 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           </Link>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-bold text-foreground">{group.name}</h1>
+              <h1 className="text-xl font-bold text-foreground leading-tight">{group.name}</h1>
               {group.workspaceType === "TEAM" && (
                 <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border-0 text-xs">Team</Badge>
               )}
               <Badge variant="outline" className="text-xs font-semibold">{group.currency}</Badge>
             </div>
             {group.description && (
-              <p className="text-sm text-muted-foreground mt-0.5">{group.description}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{group.description}</p>
             )}
-            {/* Member avatars inline with header */}
-            <div className="flex items-center gap-2 mt-2">
-              <div className="flex -space-x-2">
+            <div className="flex items-center gap-2 mt-1.5">
+              <div className="flex -space-x-1.5">
                 {group.members.slice(0, 6).map((m, i) => (
-                  <Avatar key={m.userId} className="h-6 w-6 ring-2 ring-background" style={{ zIndex: 6 - i }}>
-                    <AvatarFallback
-                      className="text-[9px] font-bold"
-                      style={{
-                        background: `hsl(${(m.userId.charCodeAt(0) * 37) % 360}, 70%, 85%)`,
-                        color: `hsl(${(m.userId.charCodeAt(0) * 37) % 360}, 60%, 30%)`,
-                      }}
-                    >
+                  <Avatar key={m.userId} className="h-5 w-5 ring-2 ring-background" style={{ zIndex: 6 - i }}>
+                    <AvatarFallback className="text-[8px] font-bold" style={{ background: `hsl(${(m.userId.charCodeAt(0) * 37) % 360}, 70%, 85%)`, color: `hsl(${(m.userId.charCodeAt(0) * 37) % 360}, 60%, 30%)` }}>
                       {m.user.name.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
@@ -250,185 +243,201 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
             </div>
           </div>
         </div>
-
-        <div className="hidden md:flex items-center gap-2 shrink-0">
-          <a
-            href={`/groups/${group.id}/print`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-2 hover:bg-accent transition-colors"
-          >
-            <Printer className="h-3.5 w-3.5" />
-            Print
+        <div className="hidden md:flex items-center gap-1.5 shrink-0">
+          <a href={`/groups/${group.id}/print`} target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg px-2.5 py-1.5 hover:bg-accent transition-colors">
+            <Printer className="h-3.5 w-3.5" />Print
           </a>
-          <a
-            href={`/api/groups/${group.id}/export?format=csv`}
-            download
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-2 hover:bg-accent transition-colors"
-          >
-            <Download className="h-3.5 w-3.5" />
-            Export
+          <a href={`/api/groups/${group.id}/export?format=csv`} download
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg px-2.5 py-1.5 hover:bg-accent transition-colors">
+            <Download className="h-3.5 w-3.5" />Export
           </a>
         </div>
       </div>
 
-      {/* Stats — same card style as dashboard balance cards */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="glass rounded-2xl p-4">
-          <p className="text-xs font-medium text-muted-foreground mb-1">Total spent</p>
-          <p className="text-xl font-bold text-foreground tabular-nums">{formatCurrency(totalExpenses, group.currency)}</p>
-        </div>
-        <div className={cn(
-          "rounded-2xl p-4",
-          myBalance > 0.01
-            ? "bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/20"
-            : myBalance < -0.01
-            ? "bg-rose-50 dark:bg-rose-500/15 border border-rose-200 dark:border-rose-500/20"
-            : "glass"
-        )}>
-          <p className={cn("text-xs font-medium mb-1",
-            myBalance > 0.01 ? "text-emerald-600 dark:text-emerald-400"
-            : myBalance < -0.01 ? "text-rose-500 dark:text-rose-400"
-            : "text-muted-foreground"
-          )}>
-            {myBalance > 0.01 ? "Owed to you" : myBalance < -0.01 ? "You owe" : "Settled up"}
-          </p>
-          <p className={cn("text-xl font-bold tabular-nums",
-            myBalance > 0.01 ? "text-emerald-700 dark:text-emerald-300"
-            : myBalance < -0.01 ? "text-rose-600 dark:text-rose-300"
-            : "text-muted-foreground"
-          )}>
-            {formatCurrency(Math.abs(myBalance), group.currency)}
-          </p>
-        </div>
-        <div className="glass rounded-2xl p-4">
-          <p className="text-xs font-medium text-muted-foreground mb-1">Expenses</p>
-          <p className="text-xl font-bold text-foreground">{group.expenses.length}</p>
-        </div>
-      </div>
+      {/* Two-column layout: sidebar (left) + tabs (right) */}
+      <div className="lg:grid lg:grid-cols-[300px_1fr] lg:gap-5 lg:items-start">
 
-      {/* Budget */}
-      <BudgetProgressCard groupId={group.id} currency={group.currency} />
+        {/* ── LEFT SIDEBAR ── */}
+        <div className="space-y-3 mb-5 lg:mb-0 lg:sticky lg:top-6">
 
-      {/* "You owe" settlements */}
-      {mySettlements.length > 0 && (
-        <div className="rounded-2xl border border-amber-200 dark:border-amber-500/25 bg-amber-50 dark:bg-amber-500/10 p-4">
-          <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-3">You owe</p>
-          <div className="space-y-2">
-            {mySettlements.map((s, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="flex-1 flex items-center gap-2 text-sm text-amber-800 dark:text-amber-200">
-                  <span className="font-semibold">{formatCurrency(s.amount, group.currency)}</span>
-                  <ArrowRight className="h-3.5 w-3.5 text-amber-500" />
-                  <span>{s.toName}</span>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <InteracHelperDialog
-                    amount={s.amount}
-                    currency={group.currency}
-                    toName={s.toName}
-                    toEmail={group.members.find((m) => m.userId === s.to)?.user.email ?? ""}
-                    groupName={group.name}
-                    onSent={async () => {
-                      await fetch("/api/settlements", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ groupId: group.id, toUserId: s.to, amount: s.amount, note: "Interac e-Transfer" }),
-                      })
-                      refreshGroup()
-                    }}
-                  />
-                  <AddSettlementDialog
-                    groupId={group.id}
-                    currency={group.currency}
-                    members={group.members}
-                    currentUserId={userId}
-                    suggestedTo={s.to}
-                    suggestedAmount={s.amount}
-                    onCreated={() => refreshGroup()}
-                    compact
-                  />
-                </div>
-              </div>
-            ))}
+          {/* Your balance — prominent */}
+          <div className={cn(
+            "rounded-2xl p-4",
+            myBalance > 0.01
+              ? "bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/20"
+              : myBalance < -0.01
+              ? "bg-rose-50 dark:bg-rose-500/15 border border-rose-200 dark:border-rose-500/20"
+              : "glass"
+          )}>
+            <p className={cn("text-xs font-medium mb-0.5",
+              myBalance > 0.01 ? "text-emerald-600 dark:text-emerald-400"
+              : myBalance < -0.01 ? "text-rose-500 dark:text-rose-400"
+              : "text-muted-foreground"
+            )}>
+              {myBalance > 0.01 ? "Owed to you" : myBalance < -0.01 ? "You owe" : "You're all settled up"}
+            </p>
+            <p className={cn("text-2xl font-bold tabular-nums",
+              myBalance > 0.01 ? "text-emerald-700 dark:text-emerald-300"
+              : myBalance < -0.01 ? "text-rose-600 dark:text-rose-300"
+              : "text-muted-foreground"
+            )}>
+              {formatCurrency(Math.abs(myBalance), group.currency)}
+            </p>
           </div>
-        </div>
-      )}
 
-      {/* Others owe */}
-      {group.suggestedSettlements.filter((s) => s.from !== userId).length > 0 && (
-        <div className="glass rounded-2xl p-4">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Others owe</p>
-          <div className="space-y-1">
-            {group.suggestedSettlements.filter((s) => s.from !== userId).map((s, i) => {
-              const globalIdx = group.suggestedSettlements.indexOf(s)
-              const isExpanded = expandedDebts.has(globalIdx)
-              return (
-                <div key={i}>
-                  <button
-                    onClick={() => setExpandedDebts((prev) => {
-                      const next = new Set(prev)
-                      next.has(globalIdx) ? next.delete(globalIdx) : next.add(globalIdx)
-                      return next
-                    })}
-                    className="w-full flex items-center gap-2 text-sm hover:bg-accent/50 rounded-xl px-2 py-1.5 transition-colors"
-                  >
-                    <span className="font-medium text-foreground/80">{s.fromName}</span>
-                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="font-medium text-foreground/80">{s.toName}</span>
-                    <span className="ml-auto font-semibold text-foreground">{formatCurrency(s.amount, group.currency)}</span>
-                    {isExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
-                  </button>
-                  {isExpanded && s.reasons.length > 0 && (
-                    <div className="ml-4 mt-1 mb-2 pl-3 border-l-2 border-border space-y-1">
-                      {s.reasons.map((r) => (
-                        <div key={r.expenseId} className="flex justify-between text-xs text-muted-foreground">
-                          <span className="truncate max-w-[200px]">{r.description}</span>
-                          <span className="font-medium shrink-0 ml-2">{formatCurrency(r.shareAmount, group.currency)}</span>
+          {/* Stats row */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="glass rounded-xl p-3">
+              <p className="text-[11px] font-medium text-muted-foreground mb-0.5">Total spent</p>
+              <p className="text-base font-bold text-foreground tabular-nums leading-tight">{formatCurrency(totalExpenses, group.currency)}</p>
+            </div>
+            <div className="glass rounded-xl p-3">
+              <p className="text-[11px] font-medium text-muted-foreground mb-0.5">Expenses</p>
+              <p className="text-base font-bold text-foreground leading-tight">{group.expenses.length}</p>
+            </div>
+          </div>
+
+          {/* You owe + Others owe — combined */}
+          {group.suggestedSettlements.length > 0 && (
+            <div className="glass rounded-2xl overflow-hidden">
+              {/* Your debts */}
+              {mySettlements.length > 0 && (
+                <div className="p-3 border-b border-border/60">
+                  <p className="text-[10px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wide mb-2">You owe</p>
+                  <div className="space-y-2">
+                    {mySettlements.map((s, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-foreground truncate">{s.toName}</p>
+                          <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 tabular-nums">{formatCurrency(s.amount, group.currency)}</p>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <InteracHelperDialog
+                            amount={s.amount}
+                            currency={group.currency}
+                            toName={s.toName}
+                            toEmail={group.members.find((m) => m.userId === s.to)?.user.email ?? ""}
+                            groupName={group.name}
+                            onSent={async () => {
+                              await fetch("/api/settlements", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ groupId: group.id, toUserId: s.to, amount: s.amount, note: "Interac e-Transfer" }),
+                              })
+                              refreshGroup()
+                            }}
+                          />
+                          <AddSettlementDialog
+                            groupId={group.id}
+                            currency={group.currency}
+                            members={group.members}
+                            currentUserId={userId}
+                            suggestedTo={s.to}
+                            suggestedAmount={s.amount}
+                            onCreated={() => refreshGroup()}
+                            compact
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              )
-            })}
+              )}
+
+              {/* Others owe */}
+              {group.suggestedSettlements.filter((s) => s.from !== userId).length > 0 && (
+                <div className="p-3">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Others owe</p>
+                  <div className="space-y-0.5">
+                    {group.suggestedSettlements.filter((s) => s.from !== userId).map((s, i) => {
+                      const globalIdx = group.suggestedSettlements.indexOf(s)
+                      const isExpanded = expandedDebts.has(globalIdx)
+                      return (
+                        <div key={i}>
+                          <button
+                            onClick={() => setExpandedDebts((prev) => {
+                              const next = new Set(prev)
+                              next.has(globalIdx) ? next.delete(globalIdx) : next.add(globalIdx)
+                              return next
+                            })}
+                            className="w-full flex items-center gap-1.5 text-xs hover:bg-accent/50 rounded-lg px-1.5 py-1 transition-colors"
+                          >
+                            <span className="font-medium text-foreground/80 truncate">{s.fromName}</span>
+                            <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                            <span className="text-foreground/60 truncate">{s.toName}</span>
+                            <span className="ml-auto font-semibold text-foreground tabular-nums shrink-0">{formatCurrency(s.amount, group.currency)}</span>
+                            {isExpanded ? <ChevronUp className="h-3 w-3 text-muted-foreground shrink-0" /> : <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />}
+                          </button>
+                          {isExpanded && s.reasons.length > 0 && (
+                            <div className="ml-3 mt-1 mb-1 pl-2 border-l-2 border-border space-y-0.5">
+                              {s.reasons.map((r) => (
+                                <div key={r.expenseId} className="flex justify-between text-[11px] text-muted-foreground">
+                                  <span className="truncate max-w-[140px]">{r.description}</span>
+                                  <span className="font-medium shrink-0 ml-2">{formatCurrency(r.shareAmount, group.currency)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="glass rounded-2xl p-3 space-y-1.5">
+            <AddExpenseDialog
+              groupId={group.id}
+              currency={group.currency}
+              members={group.members}
+              currentUserId={userId}
+              defaultSplitType={group.defaultSplitType as "EQUAL" | "SELECTED" | "SHARES" | "PERCENTAGE" | "EXACT"}
+              defaultSplitShares={group.defaultSplitShares ?? undefined}
+              onCreated={() => refreshGroup()}
+              trigger={
+                <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold transition-colors">
+                  <Plus className="h-4 w-4 shrink-0" />
+                  Add Expense
+                </button>
+              }
+            />
+            <AddSettlementDialog
+              groupId={group.id}
+              currency={group.currency}
+              members={group.members}
+              currentUserId={userId}
+              onCreated={() => refreshGroup()}
+              trigger={
+                <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border hover:bg-accent text-sm font-medium text-foreground transition-colors">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                  Settle Up
+                </button>
+              }
+            />
+            <button onClick={() => setOpenDialog("addMember")} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border hover:bg-accent text-sm font-medium text-foreground transition-colors">
+              <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
+              Add Member
+            </button>
+            <button onClick={() => setOpenDialog("addRecurring")} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border hover:bg-accent text-sm font-medium text-foreground transition-colors">
+              <RefreshCw className="h-4 w-4 shrink-0 text-muted-foreground" />
+              Recurring
+            </button>
+            <button onClick={() => setOpenDialog("createTrip")} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border hover:bg-accent text-sm font-medium text-foreground transition-colors">
+              <Receipt className="h-4 w-4 shrink-0 text-muted-foreground" />
+              Create Trip
+            </button>
           </div>
+
+          {/* Budget */}
+          <BudgetProgressCard groupId={group.id} currency={group.currency} />
         </div>
-      )}
 
-      {/* Action buttons */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <AddExpenseDialog
-          groupId={group.id}
-          currency={group.currency}
-          members={group.members}
-          currentUserId={userId}
-          defaultSplitType={group.defaultSplitType as "EQUAL" | "SELECTED" | "SHARES" | "PERCENTAGE" | "EXACT"}
-          defaultSplitShares={group.defaultSplitShares ?? undefined}
-          onCreated={() => refreshGroup()}
-        />
-        <AddSettlementDialog
-          groupId={group.id}
-          currency={group.currency}
-          members={group.members}
-          currentUserId={userId}
-          onCreated={() => refreshGroup()}
-        />
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setOpenDialog("addMember")}>
-          <Users className="h-4 w-4" />
-          Add member
-        </Button>
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setOpenDialog("addRecurring")}>
-          <RefreshCw className="h-4 w-4" />
-          Recurring
-        </Button>
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setOpenDialog("createTrip")}>
-          <Receipt className="h-4 w-4" />
-          Create trip
-        </Button>
-      </div>
-
-      {/* Tabs */}
+        {/* ── RIGHT: TABS ── */}
+        <div className="min-w-0">
       <Tabs defaultValue="expenses">
         <div className="border-b border-border overflow-x-auto">
           <TabsList className="flex h-auto p-0 gap-0 bg-transparent w-max min-w-full">
@@ -462,23 +471,6 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Expenses */}
         <TabsContent value="expenses" className="mt-4 space-y-3">
-          <div className="flex justify-end">
-            <AddExpenseDialog
-              groupId={group.id}
-              currency={group.currency}
-              members={group.members}
-              currentUserId={userId}
-              defaultSplitType={group.defaultSplitType as "EQUAL" | "SELECTED" | "SHARES" | "PERCENTAGE" | "EXACT"}
-              defaultSplitShares={group.defaultSplitShares ?? undefined}
-              onCreated={() => refreshGroup()}
-              trigger={
-                <Button size="sm" variant="outline" className="gap-1.5">
-                  <Plus className="h-3.5 w-3.5" />
-                  Add expense
-                </Button>
-              }
-            />
-          </div>
           {group.expenses.length === 0 ? (
             <div className="text-center py-16">
               <div className="mx-auto h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mb-3">
@@ -639,17 +631,6 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Members */}
         <TabsContent value="members" className="mt-4 space-y-3">
-          <div className="flex justify-end">
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5"
-              onClick={() => setOpenDialog("addMember")}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add member
-            </Button>
-          </div>
           <MembersTab
             group={group}
             userId={userId}
@@ -775,8 +756,10 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           )}
         </TabsContent>
       </Tabs>
+        </div>{/* end right col */}
+      </div>{/* end two-col grid */}
 
-      {/* Dialogs triggered from the More dropdown — rendered outside so they survive dropdown close */}
+      {/* Dialogs */}
       <AddMemberDialog
         groupId={group.id}
         existingMemberIds={group.members.map((m) => m.userId)}
