@@ -56,8 +56,13 @@ export default async function InvitePage({ params }: Props) {
     )
   }
 
-  // Not logged in — show login prompt
+  // Not logged in — check if the invited email has an existing account
   if (!session?.user.id) {
+    const existingUser = await prisma.user.findUnique({
+      where: { email: invite.email },
+      select: { id: true },
+    })
+
     return (
       <InviteLayout>
         <Users className="h-12 w-12 text-violet-400 mx-auto mb-4" />
@@ -68,14 +73,19 @@ export default async function InvitePage({ params }: Props) {
           {invite.createdBy.name} invited you to split expenses in{" "}
           <strong>{invite.group.name}</strong>.
         </p>
-        <p className="text-sm text-gray-400 mt-1">Sign in or create an account to accept.</p>
+        <p className="text-sm text-gray-400 mt-1">
+          {existingUser ? "Sign in to accept this invitation." : "Create a free account to accept this invitation."}
+        </p>
         <div className="flex gap-3 mt-6 justify-center">
-          <Link href={`/login?callbackUrl=/invite/${token}`}>
-            <Button variant="outline">Sign in</Button>
-          </Link>
-          <Link href={`/register?callbackUrl=/invite/${token}&email=${encodeURIComponent(invite.email)}`}>
-            <Button className="bg-violet-600 hover:bg-violet-700">Create account</Button>
-          </Link>
+          {existingUser ? (
+            <Link href={`/login?callbackUrl=/invite/${token}`}>
+              <Button className="bg-violet-600 hover:bg-violet-700">Sign in</Button>
+            </Link>
+          ) : (
+            <Link href={`/register?callbackUrl=/invite/${token}&email=${encodeURIComponent(invite.email)}`}>
+              <Button className="bg-violet-600 hover:bg-violet-700">Create account</Button>
+            </Link>
+          )}
         </div>
       </InviteLayout>
     )
