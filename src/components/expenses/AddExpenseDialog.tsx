@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { toast } from "sonner"
+import { format } from "date-fns"
 import { Plus, Eye, EyeOff, Camera, Loader2, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,11 +31,12 @@ interface Props {
 }
 
 const CATEGORIES = ["General", "Food", "Transport", "Accommodation", "Entertainment", "Utilities", "Other"]
-type SplitType = "EQUAL" | "SELECTED" | "PERCENTAGE" | "EXACT"
+type SplitType = "EQUAL" | "SELECTED" | "SHARES" | "PERCENTAGE" | "EXACT"
 
 const SPLIT_TABS: { value: SplitType; label: string; desc: string }[] = [
   { value: "EQUAL",      label: "Equal",       desc: "Split evenly among everyone" },
   { value: "SELECTED",   label: "By members",  desc: "Equal split among selected people only" },
+  { value: "SHARES",     label: "Shares",      desc: "Enter headcount or portions — e.g. family of 4 vs 2" },
   { value: "PERCENTAGE", label: "Percentage",  desc: "Each person pays a % of the total" },
   { value: "EXACT",      label: "Exact",       desc: "Enter each person's exact amount" },
 ]
@@ -51,7 +53,10 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, on
     category: "General",
     paidById: currentUserId,
     visibility: "GROUP" as "GROUP" | "PAYERS_ONLY",
+    date: format(new Date(), "yyyy-MM-dd"),
   })
+  const [guestPayee, setGuestPayee] = useState("")
+  const [isGuestPayee, setIsGuestPayee] = useState(false)
 
   // SELECTED: track which members are included (default: all)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
@@ -63,6 +68,9 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, on
 
   // EXACT: amount string per userId
   const [exactSplits, setExactSplits] = useState<Record<string, string>>({})
+
+  // SHARES: share count per userId (e.g. 4 and 2 for families)
+  const [shares, setShares] = useState<Record<string, string>>({})
 
   const amount = parseFloat(form.amount) || 0
 
@@ -86,6 +94,8 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, on
 
   const totalExact = members.reduce((s, m) => s + (parseFloat(exactSplits[m.userId] ?? "0") || 0), 0)
   const remainingExact = Math.round((amount - totalExact) * 100) / 100
+
+  const totalShares = members.reduce((s, m) => s + (parseFloat(shares[m.userId] ?? "0") || 0), 0)
 
   // ── Helpers ─────────────────────────────────────────────────────
 
@@ -131,6 +141,14 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, on
       const each = Math.round((amount / selectedMembers.length) * 100) / 100
       splits = selectedMembers.map((m) => ({ userId: m.userId, amount: each }))
 
+    } else if (splitType === "SHARES") {
+      if (totalShares === 0) { toast.error("Enter at least one share"); return }
+      splits = members.map((m) => {
+        const s = parseFloat(shares[m.userId] ?? "0") || 0
+        return { userId: m.userId, amount: Math.round((amount * s / totalShares) * 100) / 100 }
+      }).filter((s) => s.amount > 0)
+      if (splits.length === 0) { toast.error("Enter shares for at least one member"); return }
+
     } else if (splitType === "PERCENTAGE") {
       if (Math.abs(totalPct - 100) > 0.01) {
         toast.error(`Percentages must sum to 100%. Currently: ${totalPct.toFixed(2)}%`)
@@ -158,7 +176,8 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, on
       const res = await fetch("/api/expenses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, amount, groupId, splitType, splits }),
+        // SHARES is sent as PERCENTAGE to the API (already converted to amounts above)
+        body: JSON.stringify({ ...form, amount, groupId, splitType: splitType === "SHARES" ? "PERCENTAGE" : splitType, splits, date: form.date, guestPayeeName: isGuestPayee ? guestPayee : undefined }),
       })
       if (!res.ok) { toast.error("Failed to add expense"); return }
       toast.success("Expense added!")
@@ -171,11 +190,14 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, on
   }
 
   function resetForm() {
-    setForm({ description: "", amount: "", category: "General", paidById: currentUserId, visibility: "GROUP" })
+    setForm({ description: "", amount: "", category: "General", paidById: currentUserId, visibility: "GROUP", date: format(new Date(), "yyyy-MM-dd") })
     setSplitType("EQUAL")
     setSelectedIds(new Set(members.map((m) => m.userId)))
     setPctSplits({})
     setExactSplits({})
+    setShares({})
+    setGuestPayee("")
+    setIsGuestPayee(false)
   }
 
   // ── Receipt scan ─────────────────────────────────────────────────
@@ -273,8 +295,8 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, on
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} required />
             </div>
 
-            {/* Amount + Category */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Amount + Category + Date */}
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label>Amount ({currency})</Label>
                 <Input type="number" min="0.01" step="0.01" placeholder="0.00"
@@ -290,26 +312,37 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, on
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <Label>Date</Label>
+                <Input type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} required />
+              </div>
             </div>
 
             {/* Paid by */}
             <div className="space-y-1.5">
               <Label>Paid by</Label>
-              <Select value={form.paidById} onValueChange={(v) => setForm((f) => ({ ...f, paidById: v ?? f.paidById }))}>
-                <SelectTrigger>
-                  <SelectValue>
-                    {members.find((m) => m.userId === form.paidById)?.user.name ?? "Select member"}
-                    {form.paidById === currentUserId ? " (you)" : ""}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {members.map((m) => (
-                    <SelectItem key={m.userId} value={m.userId}>
-                      {m.user.name}{m.userId === currentUserId ? " (you)" : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isGuestPayee ? (
+                <Input placeholder="e.g. Sarah (partner), Hotel concierge…" value={guestPayee} onChange={e => setGuestPayee(e.target.value)} />
+              ) : (
+                <Select value={form.paidById} onValueChange={(v) => setForm((f) => ({ ...f, paidById: v ?? f.paidById }))}>
+                  <SelectTrigger>
+                    <SelectValue>
+                      {members.find((m) => m.userId === form.paidById)?.user.name ?? "Select member"}
+                      {form.paidById === currentUserId ? " (you)" : ""}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {members.map((m) => (
+                      <SelectItem key={m.userId} value={m.userId}>
+                        {m.user.name}{m.userId === currentUserId ? " (you)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <button type="button" onClick={() => setIsGuestPayee(v => !v)} className="text-xs text-muted-foreground hover:text-violet-500 transition-colors">
+                {isGuestPayee ? "← Paid by a group member" : "Someone outside the group paid →"}
+              </button>
             </div>
 
             {/* ── Split section ── */}
@@ -317,7 +350,7 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, on
               <Label>Split</Label>
 
               {/* Tab pills */}
-              <div className="grid grid-cols-4 gap-1 p-1 rounded-xl bg-muted">
+              <div className="grid grid-cols-5 gap-1 p-1 rounded-xl bg-muted">
                 {SPLIT_TABS.map((tab) => (
                   <button
                     key={tab.value}
@@ -394,6 +427,55 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, on
                       {currency} {amount.toFixed(2)} ÷ {selectedMembers.length} {selectedMembers.length === 1 ? "person" : "people"} = {currency} {selectedEqualAmount.toFixed(2)} each
                     </p>
                   )}
+                </div>
+              )}
+
+              {/* ── SHARES ── */}
+              {splitType === "SHARES" && (
+                <div className="space-y-2">
+                  <div className="glass rounded-xl overflow-hidden">
+                    {members.map((m, idx) => {
+                      const s = parseFloat(shares[m.userId] ?? "0") || 0
+                      const derived = totalShares > 0 && amount > 0
+                        ? Math.round((amount * s / totalShares) * 100) / 100
+                        : 0
+                      return (
+                        <div key={m.userId}>
+                          {idx > 0 && <div className="h-px bg-border/60 mx-3" />}
+                          <div className="flex items-center gap-3 px-3 py-2">
+                            <span className="text-sm text-foreground/80 flex-1 truncate">
+                              {m.user.name}{m.userId === currentUserId ? " (you)" : ""}
+                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <Input
+                                type="number"
+                                min="0"
+                                step="1"
+                                placeholder="0"
+                                className="h-8 w-16 text-right tabular-nums"
+                                value={shares[m.userId] ?? ""}
+                                onChange={(e) => setShares((prev) => ({ ...prev, [m.userId]: e.target.value }))}
+                              />
+                              <span className="text-xs text-muted-foreground w-10">shares</span>
+                            </div>
+                            {s > 0 && amount > 0 && totalShares > 0 && (
+                              <span className="text-sm font-semibold tabular-nums text-foreground w-20 text-right shrink-0">
+                                {currency} {derived.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {totalShares > 0 && amount > 0 && (
+                    <p className="text-xs text-muted-foreground px-1">
+                      {totalShares} total shares · {currency} {(amount / totalShares).toFixed(2)} per share
+                    </p>
+                  )}
+                  <div className="rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800/40 p-2.5 text-xs text-violet-700 dark:text-violet-300">
+                    <strong>Example:</strong> Enter 4 for your family and 2 for your friend — the bill splits 4:2 (67% / 33%) automatically.
+                  </div>
                 </div>
               )}
 
