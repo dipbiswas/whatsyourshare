@@ -80,14 +80,15 @@ export default function ExpensesPage() {
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
   }, [expenses])
 
-  // Summary stats
-  const totalSpent = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses])
-  const thisMonthSpent = useMemo(() =>
-    expenses.filter((e) => isThisMonth(new Date(e.date))).reduce((s, e) => s + e.amount, 0),
-  [expenses])
-  const thisWeekSpent = useMemo(() =>
-    expenses.filter((e) => isThisWeek(new Date(e.date), { weekStartsOn: 1 })).reduce((s, e) => s + e.amount, 0),
-  [expenses])
+  // Summary stats — grouped by currency so mixed groups don't cross-contaminate
+  function sumByCurrency(list: Expense[]) {
+    const map: Record<string, number> = {}
+    for (const e of list) map[e.currency] = (map[e.currency] ?? 0) + e.amount
+    return map
+  }
+  const totalByCurrency    = useMemo(() => sumByCurrency(expenses), [expenses])
+  const thisMonthByCurrency = useMemo(() => sumByCurrency(expenses.filter((e) => isThisMonth(new Date(e.date)))), [expenses])
+  const thisWeekByCurrency  = useMemo(() => sumByCurrency(expenses.filter((e) => isThisWeek(new Date(e.date), { weekStartsOn: 1 }))), [expenses])
 
   // Filtered + sorted
   const filtered = useMemo(() => {
@@ -137,18 +138,24 @@ export default function ExpensesPage() {
       {/* Summary stats */}
       {!loading && expenses.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
-          <div className="glass rounded-2xl p-4">
-            <p className="text-xs text-muted-foreground font-medium mb-1">All time</p>
-            <p className="text-lg font-bold text-foreground tabular-nums">{formatCurrency(totalSpent)}</p>
-          </div>
-          <div className="glass rounded-2xl p-4">
-            <p className="text-xs text-muted-foreground font-medium mb-1">This month</p>
-            <p className="text-lg font-bold text-foreground tabular-nums">{formatCurrency(thisMonthSpent)}</p>
-          </div>
-          <div className="glass rounded-2xl p-4">
-            <p className="text-xs text-muted-foreground font-medium mb-1">This week</p>
-            <p className="text-lg font-bold text-foreground tabular-nums">{formatCurrency(thisWeekSpent)}</p>
-          </div>
+          {[
+            { label: "All time",   map: totalByCurrency },
+            { label: "This month", map: thisMonthByCurrency },
+            { label: "This week",  map: thisWeekByCurrency },
+          ].map(({ label, map }) => (
+            <div key={label} className="glass rounded-2xl p-4">
+              <p className="text-xs text-muted-foreground font-medium mb-1">{label}</p>
+              {Object.keys(map).length === 0 ? (
+                <p className="text-lg font-bold text-foreground tabular-nums">—</p>
+              ) : (
+                Object.entries(map).map(([currency, amount]) => (
+                  <p key={currency} className="text-lg font-bold text-foreground tabular-nums leading-tight">
+                    {formatCurrency(amount, currency)}
+                  </p>
+                ))
+              )}
+            </div>
+          ))}
         </div>
       )}
 
@@ -285,7 +292,7 @@ export default function ExpensesPage() {
               {filtered.length} result{filtered.length !== 1 ? "s" : ""}
               {filtered.length > 0 && (
                 <span className="ml-1">
-                  · {formatCurrency(filtered.reduce((s, e) => s + e.amount, 0))} total
+                  · {Object.entries(sumByCurrency(filtered)).map(([cur, amt]) => formatCurrency(amt, cur)).join(" + ")} total
                 </span>
               )}
             </p>
