@@ -20,6 +20,7 @@ interface Expense {
   createdAt: string
   group: { id: string; name: string }
   paidBy: { id: string; name: string }
+  tripDay: { trip: { id: string; name: string; coverEmoji: string | null } } | null
 }
 
 const CATEGORY_META: Record<string, { color: string; dot: string }> = {
@@ -385,7 +386,13 @@ function ExpenseRow({ expense: e, showDivider, showDate }: { expense: Expense; s
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground truncate">{e.description}</p>
           <p className="text-xs text-muted-foreground mt-0.5 truncate">
-            {e.group.name} · {e.paidBy.name}
+            {e.group.name}
+            {e.tripDay?.trip && (
+              <span className="text-indigo-600 dark:text-indigo-400">
+                {" "}· {e.tripDay.trip.coverEmoji ?? ""} {e.tripDay.trip.name}
+              </span>
+            )}
+            {" "}· {e.paidBy.name}
             {showDate && ` · ${format(new Date(e.date), "MMM d")}`}
           </p>
         </div>

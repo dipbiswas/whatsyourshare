@@ -37,6 +37,7 @@ export async function GET() {
     include: {
       group: { select: { id: true, name: true } },
       paidBy: { select: { id: true, name: true } },
+      tripDay: { select: { trip: { select: { id: true, name: true, coverEmoji: true } } } },
     },
     orderBy: { date: "desc" },
   })
