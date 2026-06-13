@@ -28,6 +28,9 @@ interface Props {
   /** existing member userIds so we can grey them out */
   existingMemberIds?: string[]
   onAdded: (member: object) => void
+  /** controlled open state — omit to use internal state */
+  open?: boolean
+  onOpenChange?: (v: boolean) => void
 }
 
 type Step = "form" | "invited"
@@ -46,8 +49,10 @@ function avatarColor(id: string) {
   return colors[Math.abs(hash) % colors.length]
 }
 
-export function AddMemberDialog({ groupId, existingMemberIds = [], onAdded }: Props) {
-  const [open, setOpen] = useState(false)
+export function AddMemberDialog({ groupId, existingMemberIds = [], onAdded, open: controlledOpen, onOpenChange }: Props) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen
+  const setOpen = (v: boolean) => { setInternalOpen(v); onOpenChange?.(v) }
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState("")
   const [search, setSearch] = useState("")

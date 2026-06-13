@@ -123,6 +123,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
   const [expandedDebts, setExpandedDebts] = useState<Set<number>>(new Set())
   const [approvingId, setApprovingId] = useState<string | null>(null)
   const [showMoreActions, setShowMoreActions] = useState(false)
+  const [openDialog, setOpenDialog] = useState<"addMember" | "addRecurring" | "createTrip" | null>(null)
 
   const userId = session?.user.id ?? ""
 
@@ -411,17 +412,17 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               <div className="fixed inset-0 z-10" onClick={() => setShowMoreActions(false)} />
               <div className="absolute left-0 top-full mt-1 z-20 w-56 glass-strong rounded-xl shadow-2xl py-1 overflow-hidden">
                 {[
-                  { label: "Add member", node: <AddMemberDialog groupId={group.id} existingMemberIds={group.members.map((m) => m.userId)} onAdded={(member) => setGroup((g) => g ? { ...g, members: [...g.members, member as Member] } : g)} /> },
-                  { label: "Add recurring", node: <AddRecurringExpenseDialog groupId={group.id} currency={group.currency} onCreated={(r) => setGroup((g) => g ? { ...g, recurringExpenses: [...g.recurringExpenses, r as RecurringExpense] } : g)} /> },
-                  { label: "Create trip", node: <CreateTripDialog groupId={group.id} /> },
-                ].map(({ label, node }) => (
-                  <div
+                  { label: "Add member",   action: () => setOpenDialog("addMember") },
+                  { label: "Add recurring", action: () => setOpenDialog("addRecurring") },
+                  { label: "Create trip",   action: () => setOpenDialog("createTrip") },
+                ].map(({ label, action }) => (
+                  <button
                     key={label}
-                    className="flex items-center px-3 py-2 text-sm text-foreground/80 hover:bg-accent cursor-pointer [&>*]:w-full [&_button]:justify-start [&_button]:px-0 [&_button]:h-auto [&_button]:py-0 [&_button]:text-foreground/80 [&_button]:bg-transparent [&_button]:shadow-none [&_button]:font-normal [&_button]:text-sm"
-                    onClick={() => setShowMoreActions(false)}
+                    className="w-full text-left px-3 py-2 text-sm text-foreground/80 hover:bg-accent transition-colors"
+                    onClick={() => { setShowMoreActions(false); action() }}
                   >
-                    {node}
-                  </div>
+                    {label}
+                  </button>
                 ))}
               </div>
             </>
@@ -754,6 +755,33 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Dialogs triggered from the More dropdown — rendered outside so they survive dropdown close */}
+      <AddMemberDialog
+        groupId={group.id}
+        existingMemberIds={group.members.map((m) => m.userId)}
+        open={openDialog === "addMember"}
+        onOpenChange={(v) => !v && setOpenDialog(null)}
+        onAdded={(member) => {
+          setGroup((g) => g ? { ...g, members: [...g.members, member as Member] } : g)
+          setOpenDialog(null)
+        }}
+      />
+      <AddRecurringExpenseDialog
+        groupId={group.id}
+        currency={group.currency}
+        open={openDialog === "addRecurring"}
+        onOpenChange={(v) => !v && setOpenDialog(null)}
+        onCreated={(r) => {
+          setGroup((g) => g ? { ...g, recurringExpenses: [...g.recurringExpenses, r as RecurringExpense] } : g)
+          setOpenDialog(null)
+        }}
+      />
+      <CreateTripDialog
+        groupId={group.id}
+        open={openDialog === "createTrip"}
+        onOpenChange={(v) => !v && setOpenDialog(null)}
+      />
     </div>
   )
 }

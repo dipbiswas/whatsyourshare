@@ -20,6 +20,8 @@ interface Props {
   groupId: string
   currency: string
   onCreated: (recurring: object) => void
+  open?: boolean
+  onOpenChange?: (v: boolean) => void
 }
 
 const CATEGORIES = ["General", "Food", "Transport", "Accommodation", "Entertainment", "Utilities", "Other"]
@@ -29,8 +31,10 @@ const FREQUENCIES = [
   { value: "QUARTERLY", label: "Every quarter" },
 ]
 
-export function AddRecurringExpenseDialog({ groupId, currency, onCreated }: Props) {
-  const [open, setOpen] = useState(false)
+export function AddRecurringExpenseDialog({ groupId, currency, onCreated, open: controlledOpen, onOpenChange }: Props) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen
+  const setOpen = (v: boolean) => { setInternalOpen(v); onOpenChange?.(v) }
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
     description: "",

@@ -21,11 +21,15 @@ const COVER_EMOJIS = ["✈️", "🏖️", "🏔️", "🗺️", "🚂", "🏕�
 interface Props {
   groupId: string
   onCreated?: (trip: object) => void
+  open?: boolean
+  onOpenChange?: (v: boolean) => void
 }
 
-export function CreateTripDialog({ groupId, onCreated }: Props) {
+export function CreateTripDialog({ groupId, onCreated, open: controlledOpen, onOpenChange }: Props) {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen
+  const setOpen = (v: boolean) => { setInternalOpen(v); onOpenChange?.(v) }
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
     name: "",
