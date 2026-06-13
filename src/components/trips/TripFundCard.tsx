@@ -32,6 +32,7 @@ interface Fund {
 interface Props {
   tripId: string
   tripName: string
+  eventType?: string
   fund: Fund | null
   currentUserId: string
   isOrganizer: boolean
@@ -39,15 +40,22 @@ interface Props {
   currency: string
 }
 
+const EVENT_LABEL: Record<string, string> = {
+  TRIP: "trip", CELEBRATION: "event", DINING: "event",
+  EVENT: "event", PROJECT: "project", OTHER: "event",
+}
+
 export function TripFundCard({
   tripId,
   tripName,
+  eventType = "TRIP",
   fund: initialFund,
   currentUserId,
   isOrganizer,
   memberCount,
   currency,
 }: Props) {
+  const label = EVENT_LABEL[eventType] ?? "event"
   const [fund, setFund] = useState<Fund | null>(initialFund)
   const [setupOpen, setSetupOpen] = useState(false)
   const [contributeOpen, setContributeOpen] = useState(false)
@@ -86,7 +94,7 @@ export function TripFundCard({
       const updated = await fetch(`/api/trips/${tripId}/fund`).then((r) => r.json())
       setFund(updated)
       setSetupOpen(false)
-      toast.success("Trip fund set up!")
+      toast.success("Fund set up!")
     } finally {
       setLoading(false)
     }
@@ -123,9 +131,9 @@ export function TripFundCard({
         <Card className="border-0 shadow-sm border-dashed border-2 border-gray-200">
           <CardContent className="py-5 flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-700">No trip fund yet</p>
+              <p className="text-sm font-medium text-gray-700">No {label} fund yet</p>
               <p className="text-xs text-gray-400 mt-0.5">
-                Collect contributions from the group before the trip
+                Collect contributions from the group before the {label}
               </p>
             </div>
             <Button variant="outline" className="gap-2" onClick={() => setSetupOpen(true)}>
@@ -137,7 +145,7 @@ export function TripFundCard({
         <Dialog open={setupOpen} onOpenChange={setSetupOpen}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
-              <DialogTitle>Set up trip fund</DialogTitle>
+              <DialogTitle>Set up {label} fund</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSetup} className="space-y-4 mt-2">
               <div className="space-y-1.5">
@@ -182,7 +190,7 @@ export function TripFundCard({
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
             <Wallet className="h-4 w-4" />
-            Trip Fund
+            Fund
             <Badge
               variant="outline"
               className={`text-xs ml-1 ${
@@ -309,7 +317,7 @@ export function TripFundCard({
         <Dialog open={setupOpen} onOpenChange={setSetupOpen}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
-              <DialogTitle>Edit trip fund</DialogTitle>
+              <DialogTitle>Edit {label} fund</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSetup} className="space-y-4 mt-2">
               <div className="space-y-1.5">

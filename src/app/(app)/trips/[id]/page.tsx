@@ -79,6 +79,7 @@ interface TripDetail {
   name: string
   destination: string | null
   coverEmoji: string | null
+  eventType: string
   startDate: string
   endDate: string
   createdById: string
@@ -276,6 +277,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
       <TripFundCard
         tripId={trip.id}
         tripName={trip.name}
+        eventType={(trip as any).eventType}
         fund={trip.fund}
         currentUserId={userId}
         isOrganizer={isOrganizer}
