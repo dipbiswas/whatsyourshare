@@ -15,8 +15,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { cn } from "@/lib/utils"
 
-const CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "INR"]
+const CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "INR", "SGD", "AED", "CHF"]
+
+const SPLIT_TYPES = [
+  { value: "EQUAL",      label: "Equal",      desc: "Split evenly between all members" },
+  { value: "SHARES",     label: "Shares",     desc: "Proportional headcount — e.g. family of 4 vs 2" },
+  { value: "PERCENTAGE", label: "Percentage", desc: "Each member pays a fixed %" },
+  { value: "EXACT",      label: "Exact",      desc: "Enter exact amounts each time" },
+]
 
 interface Props {
   onCreated: (group: object) => void
@@ -28,6 +36,7 @@ export function CreateGroupDialog({ onCreated, trigger }: Props) {
   const [loading, setLoading] = useState(false)
   const [defaultCurrency, setDefaultCurrency] = useState("USD")
   const [form, setForm] = useState({ name: "", description: "", currency: "USD" })
+  const [splitType, setSplitType] = useState("EQUAL")
 
   // Fetch user's default currency once
   useEffect(() => {
@@ -42,6 +51,11 @@ export function CreateGroupDialog({ onCreated, trigger }: Props) {
       .catch(() => {})
   }, [])
 
+  function reset() {
+    setForm({ name: "", description: "", currency: defaultCurrency })
+    setSplitType("EQUAL")
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
@@ -49,7 +63,10 @@ export function CreateGroupDialog({ onCreated, trigger }: Props) {
       const res = await fetch("/api/groups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          defaultSplitType: splitType,
+        }),
       })
       if (!res.ok) {
         toast.error("Failed to create group")
@@ -59,7 +76,7 @@ export function CreateGroupDialog({ onCreated, trigger }: Props) {
       toast.success(`Group "${form.name}" created!`)
       onCreated(group)
       setOpen(false)
-      setForm({ name: "", description: "", currency: defaultCurrency })
+      reset()
     } finally {
       setLoading(false)
     }
@@ -75,47 +92,75 @@ export function CreateGroupDialog({ onCreated, trigger }: Props) {
           New Group
         </Button>
       )}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset() }}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Create a group</DialogTitle>
             <DialogDescription>Invite members and start splitting expenses together.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+
             <div className="space-y-1.5">
               <Label>Group name</Label>
               <Input
-                placeholder="Trip to Paris, Office lunch, etc."
+                placeholder="Swimming, Office lunch, Trip to Bali…"
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 required
               />
             </div>
+
             <div className="space-y-1.5">
-              <Label>Description (optional)</Label>
+              <Label>Description <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <Input
                 placeholder="A short description"
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               />
             </div>
+
             <div className="space-y-1.5">
               <Label>Currency</Label>
-              <Select value={form.currency} onValueChange={(v) => setForm((f) => ({ ...f, currency: v ?? "USD" }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+              <Select value={form.currency} onValueChange={(v) => setForm((f) => ({ ...f, currency: v ?? form.currency }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {CURRENCIES.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
+                  {CURRENCIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Default split type */}
+            <div className="space-y-2">
+              <Label>Default split for expenses</Label>
+              <div className="grid grid-cols-4 gap-1.5">
+                {SPLIT_TYPES.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setSplitType(opt.value)}
+                    className={cn(
+                      "rounded-lg border px-2 py-2 text-xs font-medium transition-colors text-center",
+                      splitType === opt.value
+                        ? "border-violet-500 bg-violet-50 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300"
+                        : "border-border bg-background text-muted-foreground hover:bg-accent"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {SPLIT_TYPES.find((o) => o.value === splitType)?.desc}
+              </p>
+              {splitType === "SHARES" && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  You can set per-member share counts after adding members to the group.
+                </p>
+              )}
+            </div>
+
             <DialogFooter>
-              <Button variant="outline" type="button" onClick={() => setOpen(false)}>
+              <Button variant="outline" type="button" onClick={() => { setOpen(false); reset() }}>
                 Cancel
               </Button>
               <Button type="submit" className="bg-violet-600 hover:bg-violet-700" disabled={loading}>

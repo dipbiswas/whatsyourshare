@@ -7,6 +7,8 @@ const createSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().max(500).optional(),
   currency: z.string().length(3).default("USD"),
+  defaultSplitType: z.string().default("EQUAL"),
+  defaultSplitShares: z.record(z.number()).optional(),
 })
 
 export async function GET() {
@@ -33,7 +35,8 @@ export async function POST(req: Request) {
   const parsed = createSchema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
 
-  const group = await prisma.group.create({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const group = await (prisma.group.create as any)({
     data: {
       ...parsed.data,
       createdById: session.user.id,
