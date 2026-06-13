@@ -30,7 +30,7 @@ export async function GET(req: Request) {
   if (!isMember) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const recurring = await prisma.recurringExpense.findMany({
-    where: { groupId, isActive: true },
+    where: { groupId },
     include: { createdBy: { select: { id: true, name: true } } },
     orderBy: { nextDueDate: "asc" },
   })

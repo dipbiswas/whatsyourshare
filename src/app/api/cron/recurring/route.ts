@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   const now = new Date()
 
   const due = await prisma.recurringExpense.findMany({
-    where: { isActive: true, nextDueDate: { lte: now } },
+    where: { nextDueDate: { lte: now } },
     include: {
       group: {
         include: { members: { select: { userId: true } } },

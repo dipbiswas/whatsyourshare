@@ -8,7 +8,6 @@ const patchSchema = z.object({
   lastAmount: z.number().positive().optional(),
   frequency: z.enum(["WEEKLY", "MONTHLY", "QUARTERLY"]).optional(),
   nextDueDate: z.string().optional(),
-  isActive: z.boolean().optional(),
 })
 
 export async function PATCH(
@@ -64,8 +63,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  // Soft-delete: mark inactive rather than destroying the template
-  await prisma.recurringExpense.update({ where: { id }, data: { isActive: false } })
+  await prisma.recurringExpense.delete({ where: { id } })
 
   return NextResponse.json({ success: true })
 }
