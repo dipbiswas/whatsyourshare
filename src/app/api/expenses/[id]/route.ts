@@ -3,6 +3,11 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 
+const splitEntrySchema = z.object({
+  userId: z.string(),
+  amount: z.number().nonnegative(),
+})
+
 const patchSchema = z.object({
   description: z.string().min(1).max(200).optional(),
   amount: z.number().positive().optional(),
@@ -10,6 +15,8 @@ const patchSchema = z.object({
   paidById: z.string().optional(),
   date: z.string().optional(),
   tripDayId: z.string().nullable().optional(),
+  splitType: z.enum(["EQUAL", "EXACT", "PERCENTAGE", "SELECTED"]).optional(),
+  splits: z.array(splitEntrySchema).min(1).optional(),
 })
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -30,11 +37,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const isMember = expense.group.members.some((m: { userId: string }) => m.userId === session.user.id)
   if (!isMember) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-  const { date, tripDayId, amount, ...rest } = parsed.data
+  const { date, tripDayId, amount, splits, splitType, ...rest } = parsed.data
 
-  // If amount changed, recalculate equal splits
+  // Determine splits to write
   let splitsUpdate = {}
-  if (amount !== undefined) {
+  if (splits && splits.length > 0) {
+    // Explicit splits provided — use them directly
+    splitsUpdate = {
+      splits: {
+        deleteMany: {},
+        createMany: { data: splits },
+      },
+    }
+  } else if (amount !== undefined) {
+    // Amount changed but no explicit splits — recalculate equal
     const memberCount = expense.group.members.length
     const perPerson = Math.round((amount / memberCount) * 100) / 100
     splitsUpdate = {
@@ -55,6 +71,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     data: {
       ...rest,
       ...(amount !== undefined ? { amount } : {}),
+      ...(splitType !== undefined ? { splitType } : {}),
       ...(date ? { date: new Date(date) } : {}),
       ...(tripDayId !== undefined ? { tripDayId: tripDayId ?? null } : {}),
       ...splitsUpdate,
