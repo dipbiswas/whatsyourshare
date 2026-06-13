@@ -696,6 +696,37 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               </a>
             </CardContent>
           </Card>
+
+          {/* Danger Zone — admin only */}
+          {isAdmin && (
+            <Card className="border border-red-200 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base text-red-600">Danger Zone</CardTitle>
+              </CardHeader>
+              <CardContent className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-800">Delete this group</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Permanently deletes the group, all expenses, and settlements. This cannot be undone.</p>
+                </div>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={async () => {
+                    if (!confirm(`Delete "${group.name}"? This cannot be undone.`)) return
+                    const res = await fetch(`/api/groups/${group.id}`, { method: "DELETE" })
+                    if (res.ok) {
+                      toast.success("Group deleted")
+                      router.push("/groups")
+                    } else {
+                      toast.error("Failed to delete group")
+                    }
+                  }}
+                >
+                  Delete Group
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
