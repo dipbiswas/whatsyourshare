@@ -76,6 +76,33 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   }
 }
 
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth()
+  if (!session?.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const { id } = await params
+
+  const member = await prisma.groupMember.findFirst({
+    where: { groupId: id, userId: session.user.id },
+  })
+  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+
+  const body = await req.json()
+  const { defaultSplitType, defaultSplitShares } = body
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updated = await (prisma.group.update as any)({
+    where: { id },
+    data: {
+      ...(defaultSplitType !== undefined ? { defaultSplitType } : {}),
+      ...(defaultSplitShares !== undefined ? { defaultSplitShares } : {}),
+    },
+    select: { id: true, defaultSplitType: true, defaultSplitShares: true },
+  })
+
+  return NextResponse.json(updated)
+}
+
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session?.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

@@ -90,6 +90,9 @@ model Group {
   workspaceType WorkspaceType @default(PERSONAL)
   createdBy     User   @relation(fields: [createdById], references: [id])
 
+  defaultSplitType   String @default("EQUAL")
+  defaultSplitShares Json?
+
   members            GroupMember[]
   expenses           Expense[]
   settlements        Settlement[]
@@ -131,6 +134,7 @@ model Expense {
   recurringExpenseId String?
   tripDayId          String?
   cardTransactionId  String?           @unique
+  guestPayeeName     String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -146,6 +150,7 @@ enum SplitType {
   EQUAL
   EXACT
   PERCENTAGE
+  SELECTED
 }
 
 enum ExpenseVisibility {
@@ -395,6 +400,7 @@ model RecurringExpense {
   currency    String         @default("USD")
   category    String         @default("General")
   splitType   SplitType      @default(EQUAL)
+  splitData   Json?
   frequency   RecurFrequency @default(MONTHLY)
   nextDueDate DateTime
   createdById String

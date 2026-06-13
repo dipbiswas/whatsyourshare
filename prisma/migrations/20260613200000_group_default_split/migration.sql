@@ -1,0 +1,2 @@
+ALTER TABLE "Group" ADD COLUMN "defaultSplitType" TEXT NOT NULL DEFAULT 'EQUAL';
+ALTER TABLE "Group" ADD COLUMN "defaultSplitShares" JSONB;

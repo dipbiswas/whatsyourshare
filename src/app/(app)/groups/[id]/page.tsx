@@ -24,6 +24,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -97,6 +98,8 @@ interface GroupDetail {
   description: string | null
   currency: string
   workspaceType: "PERSONAL" | "TEAM"
+  defaultSplitType: string
+  defaultSplitShares: Record<string, number> | null
   members: Member[]
   expenses: Expense[]
   settlements: Settlement[]
@@ -390,6 +393,8 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           currency={group.currency}
           members={group.members}
           currentUserId={userId}
+          defaultSplitType={group.defaultSplitType as "EQUAL" | "SELECTED" | "SHARES" | "PERCENTAGE" | "EXACT"}
+          defaultSplitShares={group.defaultSplitShares ?? undefined}
           onCreated={() => refreshGroup()}
         />
         <AddSettlementDialog
@@ -704,6 +709,14 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               )
             })}
           </div>
+
+          {/* Default split settings */}
+          <DefaultSplitSettings
+            group={group}
+            onSaved={(type, shares) =>
+              setGroup((g) => g ? { ...g, defaultSplitType: type, defaultSplitShares: shares } : g)
+            }
+          />
         </TabsContent>
 
         {/* Balances */}
@@ -844,6 +857,142 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
         open={openDialog === "createTrip"}
         onOpenChange={(v) => !v && setOpenDialog(null)}
       />
+    </div>
+  )
+}
+
+// ── Default split settings card ───────────────────────────────────────────────
+
+const SPLIT_TYPE_OPTIONS = [
+  { value: "EQUAL",      label: "Equal",       desc: "Split evenly between all members" },
+  { value: "SHARES",     label: "Shares",      desc: "Proportional headcount (e.g. family of 4 vs 2)" },
+  { value: "PERCENTAGE", label: "Percentage",  desc: "Each member pays a fixed %" },
+  { value: "EXACT",      label: "Exact",       desc: "Enter exact amounts each time" },
+]
+
+function DefaultSplitSettings({
+  group,
+  onSaved,
+}: {
+  group: GroupDetail
+  onSaved: (type: string, shares: Record<string, number> | null) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [splitType, setSplitType] = useState(group.defaultSplitType || "EQUAL")
+  const [shares, setShares] = useState<Record<string, string>>(
+    Object.fromEntries(group.members.map((m) => [m.userId, String(group.defaultSplitShares?.[m.userId] ?? "")]))
+  )
+  const [saving, setSaving] = useState(false)
+
+  async function save() {
+    setSaving(true)
+    try {
+      const splitData = splitType === "SHARES"
+        ? Object.fromEntries(
+            group.members
+              .map((m) => [m.userId, parseFloat(shares[m.userId]) || 0])
+              .filter(([, v]) => (v as number) > 0)
+          )
+        : null
+      const res = await fetch(`/api/groups/${group.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ defaultSplitType: splitType, defaultSplitShares: splitData }),
+      })
+      if (!res.ok) { toast.error("Failed to save"); return }
+      onSaved(splitType, splitData)
+      setEditing(false)
+      toast.success("Default split saved")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const currentLabel = SPLIT_TYPE_OPTIONS.find((o) => o.value === group.defaultSplitType)?.label ?? "Equal"
+
+  return (
+    <div className="mt-4 glass rounded-2xl p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-foreground">Default split</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            New expenses start with this split — you can change it per expense
+          </p>
+        </div>
+        {!editing && (
+          <button
+            onClick={() => setEditing(true)}
+            className="text-xs text-violet-600 dark:text-violet-400 hover:underline font-medium"
+          >
+            Edit
+          </button>
+        )}
+      </div>
+
+      {!editing ? (
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-foreground bg-violet-50 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300 px-2.5 py-1 rounded-lg">
+            {currentLabel}
+          </span>
+          {group.defaultSplitType === "SHARES" && group.defaultSplitShares && (
+            <span className="text-xs text-muted-foreground">
+              {group.members.map((m) => `${m.user.name.split(" ")[0]}: ${(group.defaultSplitShares as Record<string,number>)[m.userId] ?? 0}`).join(" · ")}
+            </span>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="grid grid-cols-4 gap-1.5">
+            {SPLIT_TYPE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setSplitType(opt.value)}
+                className={cn(
+                  "rounded-lg border px-2 py-2 text-xs font-medium transition-colors text-center",
+                  splitType === opt.value
+                    ? "border-violet-500 bg-violet-50 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300"
+                    : "border-border bg-background text-muted-foreground hover:bg-accent"
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {SPLIT_TYPE_OPTIONS.find((o) => o.value === splitType)?.desc}
+          </p>
+
+          {splitType === "SHARES" && (
+            <div className="rounded-xl border border-border overflow-hidden">
+              {group.members.map((m, i) => (
+                <div key={m.userId} className={cn("flex items-center gap-3 px-3 py-2", i > 0 && "border-t border-border/50")}>
+                  <span className="text-sm text-foreground flex-1">{m.user.name}</span>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="0"
+                    value={shares[m.userId] ?? ""}
+                    onChange={(e) => setShares((s) => ({ ...s, [m.userId]: e.target.value }))}
+                    className="w-16 h-7 text-xs text-right"
+                  />
+                  <span className="text-xs text-muted-foreground w-10">shares</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" size="sm" onClick={() => { setEditing(false); setSplitType(group.defaultSplitType || "EQUAL") }}>
+              Cancel
+            </Button>
+            <Button size="sm" className="bg-violet-600 hover:bg-violet-700" onClick={save} disabled={saving}>
+              {saving ? "Saving…" : "Save default"}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

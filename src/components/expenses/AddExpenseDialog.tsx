@@ -27,6 +27,8 @@ interface Props {
   currency: string
   members: Member[]
   currentUserId: string
+  defaultSplitType?: "EQUAL" | "SELECTED" | "SHARES" | "PERCENTAGE" | "EXACT"
+  defaultSplitShares?: Record<string, number>
   onCreated: () => void
 }
 
@@ -41,11 +43,11 @@ const SPLIT_TABS: { value: SplitType; label: string; desc: string }[] = [
   { value: "EXACT",      label: "Exact",       desc: "Enter each person's exact amount" },
 ]
 
-export function AddExpenseDialog({ groupId, currency, members, currentUserId, onCreated }: Props) {
+export function AddExpenseDialog({ groupId, currency, members, currentUserId, defaultSplitType = "EQUAL", defaultSplitShares, onCreated }: Props) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [scanning, setScanning] = useState(false)
-  const [splitType, setSplitType] = useState<SplitType>("EQUAL")
+  const [splitType, setSplitType] = useState<SplitType>(defaultSplitType)
 
   const [form, setForm] = useState({
     description: "",
@@ -69,8 +71,12 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, on
   // EXACT: amount string per userId
   const [exactSplits, setExactSplits] = useState<Record<string, string>>({})
 
-  // SHARES: share count per userId (e.g. 4 and 2 for families)
-  const [shares, setShares] = useState<Record<string, string>>({})
+  // SHARES: share count per userId (e.g. 4 and 2 for families) — pre-fill from group defaults
+  const [shares, setShares] = useState<Record<string, string>>(
+    defaultSplitShares
+      ? Object.fromEntries(members.map((m) => [m.userId, String(defaultSplitShares[m.userId] ?? "")]))
+      : {}
+  )
 
   const amount = parseFloat(form.amount) || 0
 
@@ -191,11 +197,15 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, on
 
   function resetForm() {
     setForm({ description: "", amount: "", category: "General", paidById: currentUserId, visibility: "GROUP", date: format(new Date(), "yyyy-MM-dd") })
-    setSplitType("EQUAL")
+    setSplitType(defaultSplitType)
     setSelectedIds(new Set(members.map((m) => m.userId)))
     setPctSplits({})
     setExactSplits({})
-    setShares({})
+    setShares(
+      defaultSplitShares
+        ? Object.fromEntries(members.map((m) => [m.userId, String(defaultSplitShares[m.userId] ?? "")]))
+        : {}
+    )
     setGuestPayee("")
     setIsGuestPayee(false)
   }
