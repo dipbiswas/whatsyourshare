@@ -24,6 +24,7 @@ import {
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -32,7 +33,6 @@ import { AddExpenseDialog } from "@/components/expenses/AddExpenseDialog"
 import { EditExpenseDialog } from "@/components/expenses/EditExpenseDialog"
 import { AddSettlementDialog } from "@/components/settlements/AddSettlementDialog"
 import { AddMemberDialog } from "@/components/groups/AddMemberDialog"
-import { EditGroupDialog } from "@/components/groups/EditGroupDialog"
 import { AddRecurringExpenseDialog } from "@/components/expenses/AddRecurringExpenseDialog"
 import { BudgetProgressCard } from "@/components/budget/BudgetProgressCard"
 import { CreateTripDialog } from "@/components/trips/CreateTripDialog"
@@ -250,21 +250,14 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
 
-        {/* Edit + Export buttons */}
-        <div className="flex items-center gap-2 shrink-0">
-          <EditGroupDialog
-            group={group}
-            onUpdated={(updates) => setGroup((g) => g ? ({ ...g, ...updates } as GroupDetail) : g)}
-          />
-          <a
-            href={`/api/groups/${group.id}/export?format=csv`}
-            download
-            className="hidden md:inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-2 hover:bg-accent transition-colors"
-          >
-            <Download className="h-3.5 w-3.5" />
-            Export
-          </a>
-        </div>
+        <a
+          href={`/api/groups/${group.id}/export?format=csv`}
+          download
+          className="hidden md:inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-2 hover:bg-accent transition-colors shrink-0"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Export
+        </a>
       </div>
 
       {/* Stats — same card style as dashboard balance cards */}
@@ -706,6 +699,12 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           <GroupCardCard groupId={group.id} isAdmin={!!isAdmin} />
           {group.workspaceType === "TEAM" && <ExpensePolicyCard groupId={group.id} />}
 
+          {/* Inline group editor */}
+          <GroupSettingsCard
+            group={group}
+            onUpdated={(updates) => setGroup((g) => g ? ({ ...g, ...updates } as GroupDetail) : g)}
+          />
+
           <div className="glass rounded-2xl p-5">
             <div className="flex items-center gap-3 mb-4">
               <div className="h-8 w-8 rounded-lg bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center">
@@ -994,6 +993,139 @@ function MembersTab({
           <span className="font-semibold tabular-nums">{percentageTotal.toFixed(1)}% / 100%</span>
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Inline group settings card (replaces EditGroupDialog) ────────────────────
+
+const CURRENCIES = ["USD", "EUR", "GBP", "INR", "CAD", "AUD", "JPY", "SGD", "AED", "CHF"]
+const SPLIT_TYPE_EDIT_OPTIONS = [
+  { value: "EQUAL",      label: "Equal",      desc: "Split evenly between all members" },
+  { value: "SHARES",     label: "Shares",     desc: "Proportional headcount (e.g. family of 4 vs 2)" },
+  { value: "PERCENTAGE", label: "Percentage", desc: "Each member pays a fixed %" },
+  { value: "EXACT",      label: "Exact",      desc: "Enter exact amounts each time" },
+]
+
+function GroupSettingsCard({
+  group,
+  onUpdated,
+}: {
+  group: GroupDetail
+  onUpdated: (updates: Partial<GroupDetail>) => void
+}) {
+  const [name, setName] = useState(group.name)
+  const [description, setDescription] = useState(group.description ?? "")
+  const [currency, setCurrency] = useState(group.currency)
+  const [splitType, setSplitType] = useState(group.defaultSplitType || "EQUAL")
+  const [shares, setShares] = useState<Record<string, string>>(
+    Object.fromEntries(group.members.map((m) => [m.userId, String(group.defaultSplitShares?.[m.userId] ?? "")]))
+  )
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    if (!name.trim()) { toast.error("Group name is required"); return }
+    const splitShares = splitType === "SHARES"
+      ? Object.fromEntries(
+          group.members.map((m) => [m.userId, parseFloat(shares[m.userId]) || 0]).filter(([, v]) => (v as number) > 0)
+        )
+      : null
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/groups/${group.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), description: description.trim() || null, currency, defaultSplitType: splitType, defaultSplitShares: splitShares }),
+      })
+      if (!res.ok) { toast.error("Failed to update group"); return }
+      toast.success("Group updated")
+      onUpdated({ name: name.trim(), description: description.trim() || null, currency, defaultSplitType: splitType, defaultSplitShares: splitShares })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="glass rounded-2xl p-5 space-y-4">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="h-8 w-8 rounded-lg bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center">
+          <Receipt className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-foreground">Group settings</p>
+          <p className="text-xs text-muted-foreground">Name, currency and default split</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label className="text-sm">Group name</Label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Family, Apartment" />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-sm">Description <span className="text-muted-foreground font-normal">(optional)</span></Label>
+          <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What's this group for?" />
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-sm">Currency</Label>
+        <select
+          value={currency}
+          onChange={(e) => setCurrency(e.target.value)}
+          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        >
+          {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-sm">Default split for new expenses</Label>
+        <div className="grid grid-cols-4 gap-1.5">
+          {SPLIT_TYPE_EDIT_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setSplitType(opt.value)}
+              className={cn(
+                "rounded-lg border px-2 py-2 text-xs font-medium transition-colors text-center",
+                splitType === opt.value
+                  ? "border-violet-500 bg-violet-50 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300"
+                  : "border-border bg-background text-muted-foreground hover:bg-accent"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">{SPLIT_TYPE_EDIT_OPTIONS.find((o) => o.value === splitType)?.desc}</p>
+      </div>
+
+      {splitType === "SHARES" && group.members.length > 0 && (
+        <div className="space-y-1.5">
+          <Label className="text-sm">Shares per member</Label>
+          <div className="rounded-xl border border-border overflow-hidden">
+            {group.members.map((m, i) => (
+              <div key={m.userId} className={cn("flex items-center gap-3 px-3 py-2.5", i > 0 && "border-t border-border/50")}>
+                <span className="text-sm text-foreground flex-1">{m.user.name}</span>
+                <Input
+                  type="number" min="0" step="1" placeholder="0"
+                  value={shares[m.userId] ?? ""}
+                  onChange={(e) => setShares((s) => ({ ...s, [m.userId]: e.target.value }))}
+                  className="w-20 h-7 text-xs text-right"
+                />
+                <span className="text-xs text-muted-foreground w-10">shares</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-end">
+        <Button size="sm" className="bg-violet-600 hover:bg-violet-700" onClick={handleSave} disabled={saving}>
+          {saving ? "Saving…" : "Save changes"}
+        </Button>
+      </div>
     </div>
   )
 }
