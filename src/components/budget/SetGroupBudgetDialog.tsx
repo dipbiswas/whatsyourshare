@@ -97,7 +97,8 @@ export function SetGroupBudgetDialog({ groupId, currency, existingBudget, onSave
       })
 
       if (!res.ok) {
-        toast.error("Failed to save budget")
+        const err = await res.json().catch(() => ({}))
+        toast.error(err?.error ? String(err.error) : "Failed to save budget")
         return
       }
       const budget = await res.json()

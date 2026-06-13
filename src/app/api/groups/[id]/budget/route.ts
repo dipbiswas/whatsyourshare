@@ -82,33 +82,38 @@ export async function PUT(
 
   const { categoryBudgets, startDate, endDate, ...rest } = parsed.data
 
-  // Upsert budget
-  const budget = await prisma.groupBudget.upsert({
-    where: { groupId },
-    update: {
-      ...rest,
-      startDate: new Date(startDate),
-      endDate: endDate ? new Date(endDate) : null,
-    },
-    create: {
-      groupId,
-      ...rest,
-      startDate: new Date(startDate),
-      endDate: endDate ? new Date(endDate) : null,
-    },
-  })
+  try {
+    // Upsert budget
+    const budget = await prisma.groupBudget.upsert({
+      where: { groupId },
+      update: {
+        ...rest,
+        startDate: new Date(startDate),
+        endDate: endDate ? new Date(endDate) : null,
+      },
+      create: {
+        groupId,
+        ...rest,
+        startDate: new Date(startDate),
+        endDate: endDate ? new Date(endDate) : null,
+      },
+    })
 
-  // Replace category budgets if provided
-  if (categoryBudgets) {
-    await prisma.categoryBudget.deleteMany({ where: { budgetId: budget.id } })
-    if (categoryBudgets.length > 0) {
-      await prisma.categoryBudget.createMany({
-        data: categoryBudgets.map((cb) => ({ budgetId: budget.id, ...cb })),
-      })
+    // Replace category budgets if provided
+    if (categoryBudgets) {
+      await prisma.categoryBudget.deleteMany({ where: { budgetId: budget.id } })
+      if (categoryBudgets.length > 0) {
+        await prisma.categoryBudget.createMany({
+          data: categoryBudgets.map((cb) => ({ budgetId: budget.id, ...cb })),
+        })
+      }
     }
-  }
 
-  return NextResponse.json(budget)
+    return NextResponse.json(budget)
+  } catch (err) {
+    console.error("[PUT /api/groups/[id]/budget] error:", err)
+    return NextResponse.json({ error: String(err) }, { status: 500 })
+  }
 }
 
 export async function DELETE(
