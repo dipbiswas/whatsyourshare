@@ -130,7 +130,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
   const [expandedExpenses, setExpandedExpenses] = useState<Set<string>>(new Set())
   const [approvingId, setApprovingId] = useState<string | null>(null)
   const [openDialog, setOpenDialog] = useState<"addMember" | "addRecurring" | "createTrip" | null>(null)
-  const [trips, setTrips] = useState<{ id: string; name: string; destination: string | null; coverEmoji: string | null; startDate: string; endDate: string; _count: { days: number } }[]>([])
+  const [trips, setTrips] = useState<{ id: string; name: string; destination: string | null; coverEmoji: string | null; eventType: string; startDate: string; endDate: string; _count: { days: number } }[]>([])
 
   const userId = session?.user.id ?? ""
 
@@ -431,7 +431,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
             </button>
             <button onClick={() => setOpenDialog("createTrip")} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border hover:bg-accent text-sm font-medium text-foreground transition-colors">
               <Receipt className="h-4 w-4 shrink-0 text-muted-foreground" />
-              Create Trip
+              Create Event
             </button>
           </div>
 
@@ -448,7 +448,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               { value: "expenses", label: "Expenses", count: group.expenses.length },
               { value: "settlements", label: "Settlements", count: group.settlements.length },
               { value: "recurring", label: "Recurring", count: group.recurringExpenses.length },
-              { value: "trips", label: "Trips", count: trips.length },
+              { value: "trips", label: "Events", count: trips.length },
               { value: "members", label: "Members", count: group.members.length },
               { value: "balances", label: "Balances", count: null },
               { value: "settings", label: "Settings", count: null },
@@ -640,14 +640,14 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               <div className="mx-auto h-14 w-14 rounded-2xl bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center mb-3">
                 <Plane className="h-6 w-6 text-violet-600 dark:text-violet-400" />
               </div>
-              <p className="text-sm font-medium text-muted-foreground">No trips yet</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">Create a trip to track day-by-day expenses</p>
+              <p className="text-sm font-medium text-muted-foreground">No events yet</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">Create an event to track expenses for a trip, dinner, or celebration</p>
               <button
                 onClick={() => setOpenDialog("createTrip")}
                 className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-violet-600 dark:text-violet-400 hover:underline"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Create first trip
+                Create first event
               </button>
             </div>
           ) : (
@@ -659,7 +659,10 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                       {t.coverEmoji ?? "✈️"}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-foreground">{t.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-foreground">{t.name}</p>
+                        <span className="text-xs text-muted-foreground capitalize shrink-0">{(t.eventType ?? "TRIP").toLowerCase()}</span>
+                      </div>
                       {t.destination && (
                         <p className="text-xs text-muted-foreground mt-0.5">{t.destination}</p>
                       )}
@@ -677,7 +680,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                 className="w-full glass rounded-2xl p-4 border-2 border-dashed border-border hover:border-violet-400/50 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-all flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground"
               >
                 <Plus className="h-4 w-4" />
-                New trip
+                New event
               </button>
             </div>
           )}

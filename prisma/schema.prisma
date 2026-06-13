@@ -267,6 +267,7 @@ model Trip {
   name        String
   destination String?
   coverEmoji  String?   @default("✈️")
+  eventType   String    @default("TRIP")
   startDate   DateTime
   endDate     DateTime
   createdById String

@@ -17,7 +17,7 @@ const nav = [
   { href: "/groups",     label: "Groups",           icon: Users,           mobile: true },
   { href: "/friends",    label: "Friends",          icon: UserCheck,       mobile: true },
   { href: "/activity",   label: "Recent Activity",  icon: Activity,        mobile: true },
-  { href: "/trips",      label: "Trips",            icon: Plane,           mobile: false },
+  { href: "/trips",      label: "Events",           icon: Plane,           mobile: false },
   { href: "/expenses",   label: "Expenses",         icon: Receipt,         mobile: false },
   { href: "/settings",   label: "Account",          icon: Settings,        mobile: false },
 ]

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { format } from "date-fns"
-import { MapPin, Calendar, Users, Wallet, Plane } from "lucide-react"
+import { MapPin, Calendar, Users, Wallet, CalendarDays } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -14,6 +14,7 @@ interface Trip {
   name: string
   destination: string | null
   coverEmoji: string | null
+  eventType: string
   startDate: string
   endDate: string
   group: { id: string; name: string; currency: string }
@@ -48,20 +49,20 @@ export default function TripsPage() {
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Trips</h1>
+        <h1 className="text-2xl font-bold text-foreground">Events</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Time-bounded events within a group — track spending for a specific getaway, conference, or event separately from your group&apos;s everyday expenses.
+          Time-bounded events within a group — track spending for a specific trip, celebration, dinner, or project separately from your group&apos;s everyday expenses.
         </p>
       </div>
 
       {trips.length === 0 ? (
         <div className="text-center py-20">
           <div className="mx-auto h-16 w-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
-            <Plane className="h-8 w-8 text-muted-foreground/40" />
+            <CalendarDays className="h-8 w-8 text-muted-foreground/40" />
           </div>
-          <h3 className="text-base font-semibold text-foreground/70 mb-1">No trips yet</h3>
+          <h3 className="text-base font-semibold text-foreground/70 mb-1">No events yet</h3>
           <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-            Trips live inside groups. Open a group and use <strong>More → Create trip</strong> to plan one.
+            Events live inside groups. Open a group and create an event to get started.
           </p>
 
           {/* Explainer */}
@@ -73,14 +74,14 @@ export default function TripsPage() {
                 body: "A permanent space for a set of people — roommates, a team, a couple.",
               },
               {
-                icon: "✈️",
-                title: "Trip = what + when",
-                body: "A named event with dates inside a group. The Paris trip, the team offsite, the wedding weekend.",
+                icon: "🎉",
+                title: "Event = what + when",
+                body: "A trip, celebration, dinner, or project with dates. Track it separately from everyday expenses.",
               },
               {
                 icon: "📊",
                 title: "Separate totals",
-                body: "Trip expenses are tracked on their own so you can see exactly what that event cost.",
+                body: "Event expenses are tracked on their own so you can see exactly what that event cost.",
               },
             ].map(({ icon, title, body }) => (
               <div key={title} className="glass rounded-2xl p-4">
@@ -92,7 +93,7 @@ export default function TripsPage() {
           </div>
 
           <Link href="/groups" className="inline-block mt-6 text-sm text-violet-600 dark:text-violet-400 hover:underline">
-            Go to a group to create a trip →
+            Go to a group to create an event →
           </Link>
         </div>
       ) : (
@@ -120,18 +121,23 @@ export default function TripsPage() {
                         )}
                       </div>
                     </div>
-                    <Badge
-                      variant="outline"
-                      className={`text-xs shrink-0 ${
-                        status === "active"
-                          ? "border-emerald-300 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10"
-                          : status === "upcoming"
-                          ? "border-violet-300 text-violet-700 dark:text-violet-400 bg-violet-50 dark:bg-violet-500/10"
-                          : "border-border text-muted-foreground"
-                      }`}
-                    >
-                      {status}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${
+                          status === "active"
+                            ? "border-emerald-300 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10"
+                            : status === "upcoming"
+                            ? "border-violet-300 text-violet-700 dark:text-violet-400 bg-violet-50 dark:bg-violet-500/10"
+                            : "border-border text-muted-foreground"
+                        }`}
+                      >
+                        {status}
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground capitalize">
+                        {(trip.eventType ?? "TRIP").toLowerCase()}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Dates */}

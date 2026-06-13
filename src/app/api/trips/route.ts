@@ -8,6 +8,7 @@ const createSchema = z.object({
   name: z.string().min(1).max(100),
   destination: z.string().optional(),
   coverEmoji: z.string().optional(),
+  eventType: z.string().default("TRIP"),
   startDate: z.string(),
   endDate: z.string(),
 })
@@ -51,7 +52,8 @@ export async function POST(req: Request) {
 
   const { startDate, endDate, ...rest } = parsed.data
 
-  const trip = await prisma.trip.create({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const trip = await (prisma.trip.create as any)({
     data: {
       ...rest,
       startDate: new Date(startDate),
