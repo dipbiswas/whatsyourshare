@@ -11,6 +11,7 @@ const INSTANT_PLATFORM_KEEP = 0.10  // our revenue per instant transfer
 
 const schema = z.object({
   groupId: z.string(),
+  fromUserId: z.string().optional(), // defaults to current user; allows recording on behalf of others
   toUserId: z.string(),
   amount: z.number().positive(),
   note: z.string().max(200).optional(),
@@ -25,19 +26,28 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
 
-  const { paymentMethod, ...rest } = parsed.data
+  const { paymentMethod, fromUserId: requestedFromId, ...rest } = parsed.data
 
   const isMember = await prisma.groupMember.findFirst({
     where: { groupId: rest.groupId, userId: session.user.id },
   })
   if (!isMember) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
+  // Use requested fromUserId if provided and they're a group member; otherwise default to self
+  const fromUserId = requestedFromId ?? session.user.id
+  if (fromUserId !== session.user.id) {
+    const fromIsMember = await prisma.groupMember.findFirst({
+      where: { groupId: rest.groupId, userId: fromUserId },
+    })
+    if (!fromIsMember) return NextResponse.json({ error: "fromUserId is not a group member" }, { status: 400 })
+  }
+
   const group = await prisma.group.findUnique({ where: { id: rest.groupId } })
 
   // For Stripe settlements verify both users are Connect-onboarded
   if (paymentMethod === "STRIPE_ACH" || paymentMethod === "STRIPE_INSTANT") {
     const [payer, payee] = await Promise.all([
-      prisma.user.findUnique({ where: { id: session.user.id } }),
+      prisma.user.findUnique({ where: { id: fromUserId } }),
       prisma.user.findUnique({ where: { id: rest.toUserId } }),
     ])
 
@@ -69,7 +79,7 @@ export async function POST(req: Request) {
       // Platform fee: for instant we keep $0.10
       application_fee_amount: isInstant ? Math.round(INSTANT_PLATFORM_KEEP * 100) : 0,
       metadata: {
-        fromUserId: session.user.id,
+        fromUserId,
         toUserId: rest.toUserId,
         groupId: rest.groupId,
         instant: String(isInstant),
@@ -79,7 +89,7 @@ export async function POST(req: Request) {
     const settlement = await prisma.settlement.create({
       data: {
         ...rest,
-        fromUserId: session.user.id,
+        fromUserId,
         currency: group?.currency ?? "USD",
         paymentMethod,
         status: "PROCESSING",
@@ -104,7 +114,7 @@ export async function POST(req: Request) {
   const settlement = await prisma.settlement.create({
     data: {
       ...rest,
-      fromUserId: session.user.id,
+      fromUserId,
       currency: group?.currency ?? "USD",
       paymentMethod: "MANUAL",
       status: "COMPLETED",

@@ -44,12 +44,18 @@ export function AddSettlementDialog({
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
+    fromUserId: currentUserId,
     toUserId: suggestedTo ?? "",
     amount: suggestedAmount?.toFixed(2) ?? "",
     note: "",
   })
 
-  const others = members.filter((m) => m.userId !== currentUserId)
+  // When "paying from" changes, reset "paying to" so they can't be the same
+  function setFromUser(id: string) {
+    setForm((f) => ({ ...f, fromUserId: id, toUserId: f.toUserId === id ? "" : f.toUserId }))
+  }
+
+  const payingToOptions = members.filter((m) => m.userId !== form.fromUserId)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -59,7 +65,7 @@ export function AddSettlementDialog({
       return
     }
     if (!form.toUserId) {
-      toast.error("Select who you are paying")
+      toast.error("Select who is being paid")
       return
     }
     setLoading(true)
@@ -67,7 +73,7 @@ export function AddSettlementDialog({
       const res = await fetch("/api/settlements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groupId, toUserId: form.toUserId, amount, note: form.note }),
+        body: JSON.stringify({ groupId, fromUserId: form.fromUserId, toUserId: form.toUserId, amount, note: form.note }),
       })
       if (!res.ok) {
         toast.error("Failed to record settlement")
@@ -76,7 +82,7 @@ export function AddSettlementDialog({
       toast.success("Settlement recorded!")
       onCreated()
       setOpen(false)
-      setForm({ toUserId: "", amount: "", note: "" })
+      setForm({ fromUserId: currentUserId, toUserId: "", amount: "", note: "" })
     } finally {
       setLoading(false)
     }
@@ -102,15 +108,32 @@ export function AddSettlementDialog({
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
             <div className="space-y-1.5">
+              <Label>Paying from</Label>
+              <Select value={form.fromUserId} onValueChange={setFromUser}>
+                <SelectTrigger>
+                  <SelectValue>
+                    {members.find((m) => m.userId === form.fromUserId)?.user.name ?? "Select member…"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {members.map((m) => (
+                    <SelectItem key={m.userId} value={m.userId}>
+                      {m.user.name}{m.userId === currentUserId ? " (you)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
               <Label>Paying to</Label>
               <Select value={form.toUserId} onValueChange={(v) => setForm((f) => ({ ...f, toUserId: v ?? f.toUserId }))}>
                 <SelectTrigger>
                   <SelectValue>
-                    {others.find((m) => m.userId === form.toUserId)?.user.name ?? "Select member…"}
+                    {payingToOptions.find((m) => m.userId === form.toUserId)?.user.name ?? "Select member…"}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {others.map((m) => (
+                  {payingToOptions.map((m) => (
                     <SelectItem key={m.userId} value={m.userId}>
                       {m.user.name}
                     </SelectItem>
