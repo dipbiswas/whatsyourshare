@@ -639,84 +639,13 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Members */}
         <TabsContent value="members" className="mt-4">
-          <div className="glass rounded-2xl overflow-hidden">
-            {group.members.map((m, idx) => {
-              const balance = group.balanceMap[m.userId] ?? 0
-              const hasBalance = Math.abs(balance) > 0.01
-              const canRemove = isAdmin ? m.userId !== userId : m.userId === userId
-              const isSelf = m.userId === userId
-              return (
-                <div key={m.userId}>
-                  {idx > 0 && <div className="h-px bg-border/60 mx-4" />}
-                  <div className="flex items-center gap-3 px-4 py-3.5">
-                    <Avatar className="h-9 w-9 shrink-0">
-                      <AvatarFallback
-                        className="text-sm font-bold"
-                        style={{
-                          background: `hsl(${(m.userId.charCodeAt(0) * 37) % 360}, 70%, 88%)`,
-                          color: `hsl(${(m.userId.charCodeAt(0) * 37) % 360}, 60%, 35%)`,
-                        }}
-                      >
-                        {m.user.name.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className="font-semibold text-foreground text-sm">{m.user.name}</p>
-                        {isSelf && <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">you</span>}
-                        {m.role === "ADMIN" && <span className="text-[10px] text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-500/15 px-1.5 py-0.5 rounded-full font-medium">Admin</span>}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">{m.user.email}</p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <p className={cn("text-sm font-bold tabular-nums",
-                        balance > 0.01 ? "text-emerald-600 dark:text-emerald-400"
-                        : balance < -0.01 ? "text-rose-500 dark:text-rose-400"
-                        : "text-muted-foreground/50"
-                      )}>
-                        {balance > 0.01 ? "+" : ""}{formatCurrency(balance, group.currency)}
-                      </p>
-                      {canRemove && (
-                        hasBalance ? (
-                          <span className="text-[10px] text-muted-foreground/50" title="Settle up before removing">
-                            Unsettled
-                          </span>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10"
-                            onClick={async () => {
-                              if (!confirm(isSelf ? "Leave this group?" : `Remove ${m.user.name} from this group?`)) return
-                              const res = await fetch(`/api/groups/${group.id}/members`, {
-                                method: "DELETE",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ userId: m.userId }),
-                              })
-                              if (res.ok) {
-                                if (isSelf) {
-                                  router.push("/groups")
-                                } else {
-                                  setGroup((g) => g ? { ...g, members: g.members.filter((mem) => mem.userId !== m.userId) } : g)
-                                  toast.success(`${m.user.name} removed from group`)
-                                }
-                              } else {
-                                const data = await res.json()
-                                toast.error(data.error ?? "Failed to remove member")
-                              }
-                            }}
-                          >
-                            {isSelf ? "Leave" : "Remove"}
-                          </Button>
-                        )
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-
+          <MembersTab
+            group={group}
+            userId={userId}
+            isAdmin={isAdmin}
+            onGroupChange={setGroup}
+            onLeave={() => router.push("/groups")}
+          />
         </TabsContent>
 
         {/* Balances */}
@@ -862,6 +791,182 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
         open={openDialog === "createTrip"}
         onOpenChange={(v) => !v && setOpenDialog(null)}
       />
+    </div>
+  )
+}
+
+// ── Members tab with inline share editing ────────────────────────────────────
+
+function MembersTab({
+  group,
+  userId,
+  isAdmin,
+  onGroupChange,
+  onLeave,
+}: {
+  group: GroupDetail
+  userId: string
+  isAdmin: boolean
+  onGroupChange: React.Dispatch<React.SetStateAction<GroupDetail | null>>
+  onLeave: () => void
+}) {
+  const isShares = group.defaultSplitType === "SHARES"
+  // editingSharesFor = userId whose share is being edited
+  const [editingSharesFor, setEditingSharesFor] = useState<string | null>(null)
+  const [shareInput, setShareInput] = useState("")
+  const [savingShares, setSavingShares] = useState(false)
+
+  async function saveShare(memberId: string) {
+    const val = parseFloat(shareInput)
+    if (isNaN(val) || val < 0) { toast.error("Enter a valid number"); return }
+    setSavingShares(true)
+    try {
+      const newShares = { ...(group.defaultSplitShares ?? {}), [memberId]: val }
+      const res = await fetch(`/api/groups/${group.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ defaultSplitShares: newShares }),
+      })
+      if (!res.ok) { toast.error("Failed to save share"); return }
+      onGroupChange((g) => g ? { ...g, defaultSplitShares: newShares } : g)
+      setEditingSharesFor(null)
+      toast.success("Share updated")
+    } finally {
+      setSavingShares(false)
+    }
+  }
+
+  return (
+    <div className="glass rounded-2xl overflow-hidden">
+      {group.members.map((m, idx) => {
+        const balance = group.balanceMap[m.userId] ?? 0
+        const hasBalance = Math.abs(balance) > 0.01
+        const canRemove = isAdmin ? m.userId !== userId : m.userId === userId
+        const isSelf = m.userId === userId
+        const currentShare = group.defaultSplitShares?.[m.userId]
+        const isEditing = editingSharesFor === m.userId
+
+        return (
+          <div key={m.userId}>
+            {idx > 0 && <div className="h-px bg-border/60 mx-4" />}
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <Avatar className="h-9 w-9 shrink-0">
+                <AvatarFallback
+                  className="text-sm font-bold"
+                  style={{
+                    background: `hsl(${(m.userId.charCodeAt(0) * 37) % 360}, 70%, 88%)`,
+                    color: `hsl(${(m.userId.charCodeAt(0) * 37) % 360}, 60%, 35%)`,
+                  }}
+                >
+                  {m.user.name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className="font-semibold text-foreground text-sm">{m.user.name}</p>
+                  {isSelf && <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">you</span>}
+                  {m.role === "ADMIN" && <span className="text-[10px] text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-500/15 px-1.5 py-0.5 rounded-full font-medium">Admin</span>}
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">{m.user.email}</p>
+
+                {/* Shares editor */}
+                {isShares && (
+                  <div className="mt-1.5">
+                    {isEditing ? (
+                      <div className="flex items-center gap-1.5">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="1"
+                          placeholder="0"
+                          value={shareInput}
+                          onChange={(e) => setShareInput(e.target.value)}
+                          className="w-16 h-6 text-xs text-right py-0"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveShare(m.userId)
+                            if (e.key === "Escape") setEditingSharesFor(null)
+                          }}
+                        />
+                        <span className="text-xs text-muted-foreground">shares</span>
+                        <button
+                          onClick={() => saveShare(m.userId)}
+                          disabled={savingShares}
+                          className="text-xs font-medium text-violet-600 dark:text-violet-400 hover:underline disabled:opacity-50"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditingSharesFor(null)}
+                          className="text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setEditingSharesFor(m.userId); setShareInput(String(currentShare ?? "")) }}
+                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-violet-600 dark:hover:text-violet-400 transition-colors group/share"
+                      >
+                        <span className={cn(
+                          "font-medium",
+                          currentShare != null ? "text-foreground" : "text-muted-foreground/50 italic"
+                        )}>
+                          {currentShare != null ? `${currentShare} shares` : "Set shares"}
+                        </span>
+                        <span className="text-[10px] opacity-0 group-hover/share:opacity-100 transition-opacity text-violet-500">✎</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <p className={cn("text-sm font-bold tabular-nums",
+                  balance > 0.01 ? "text-emerald-600 dark:text-emerald-400"
+                  : balance < -0.01 ? "text-rose-500 dark:text-rose-400"
+                  : "text-muted-foreground/50"
+                )}>
+                  {balance > 0.01 ? "+" : ""}{formatCurrency(balance, group.currency)}
+                </p>
+                {canRemove && (
+                  hasBalance ? (
+                    <span className="text-[10px] text-muted-foreground/50" title="Settle up before removing">
+                      Unsettled
+                    </span>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10"
+                      onClick={async () => {
+                        if (!confirm(isSelf ? "Leave this group?" : `Remove ${m.user.name} from this group?`)) return
+                        const res = await fetch(`/api/groups/${group.id}/members`, {
+                          method: "DELETE",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ userId: m.userId }),
+                        })
+                        if (res.ok) {
+                          if (isSelf) {
+                            onLeave()
+                          } else {
+                            onGroupChange((g) => g ? { ...g, members: g.members.filter((mem) => mem.userId !== m.userId) } : g)
+                            toast.success(`${m.user.name} removed from group`)
+                          }
+                        } else {
+                          const data = await res.json()
+                          toast.error(data.error ?? "Failed to remove member")
+                        }
+                      }}
+                    >
+                      {isSelf ? "Leave" : "Remove"}
+                    </Button>
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
