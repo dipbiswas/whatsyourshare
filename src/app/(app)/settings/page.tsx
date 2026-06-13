@@ -600,7 +600,6 @@ const DEFAULT_PREFS: NotifPrefs = {
   monthlySummary: true,
 }
 
-const PREFS_KEY = "wys_notif_prefs"
 
 const NOTIF_GROUPS: { label: string; items: { key: keyof NotifPrefs; label: string; desc: string }[] }[] = [
   {
@@ -656,6 +655,7 @@ function NotificationsSection() {
   const [subscribed, setSubscribed] = useState(false)
   const [subscribing, setSubscribing] = useState(false)
   const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT_PREFS)
+  const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
@@ -667,11 +667,15 @@ function NotificationsSection() {
         .then((sub) => { if (sub) setSubscribed(true) })
         .catch(() => {})
     }
-    // Load saved prefs
-    try {
-      const stored = localStorage.getItem(PREFS_KEY)
-      if (stored) setPrefs({ ...DEFAULT_PREFS, ...JSON.parse(stored) })
-    } catch { /* ignore */ }
+    // Load prefs from server
+    fetch("/api/account")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.notificationPrefs) {
+          setPrefs({ ...DEFAULT_PREFS, ...data.notificationPrefs })
+        }
+      })
+      .catch(() => {})
   }, [])
 
   async function enableNotifications() {
@@ -710,14 +714,22 @@ function NotificationsSection() {
     setSaved(false)
   }
 
-  function savePrefs() {
+  async function savePrefs() {
+    setSaving(true)
     try {
-      localStorage.setItem(PREFS_KEY, JSON.stringify(prefs))
+      const res = await fetch("/api/account", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationPrefs: prefs }),
+      })
+      if (!res.ok) { toast.error("Failed to save preferences"); return }
       setSaved(true)
       toast.success("Notification preferences saved")
       setTimeout(() => setSaved(false), 3000)
     } catch {
       toast.error("Failed to save preferences")
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -785,9 +797,10 @@ function NotificationsSection() {
             size="sm"
             className="bg-violet-600 hover:bg-violet-700 gap-1.5"
             onClick={savePrefs}
+            disabled={saving}
           >
-            {saved ? <Check className="h-3.5 w-3.5" /> : null}
-            {saved ? "Saved" : "Save preferences"}
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : saved ? <Check className="h-3.5 w-3.5" /> : null}
+            {saving ? "Saving…" : saved ? "Saved" : "Save preferences"}
           </Button>
         </div>
       </div>

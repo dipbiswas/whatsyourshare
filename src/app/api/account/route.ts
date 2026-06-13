@@ -10,6 +10,7 @@ const updateProfileSchema = z.object({
   phone: z.string().max(30).optional().nullable(),
   defaultCurrency: z.string().length(3).optional(),
   timezone: z.string().max(60).optional(),
+  notificationPrefs: z.record(z.string(), z.boolean()).optional(),
 })
 
 // GET /api/account — return full profile
@@ -17,10 +18,10 @@ export async function GET() {
   const session = await auth()
   if (!session?.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const user = await prisma.user.findUnique({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const user = await (prisma.user.findUnique as any)({
     where: { id: session.user.id },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    select: { id: true, name: true, email: true, phone: true, defaultCurrency: true, timezone: true } as any,
+    select: { id: true, name: true, email: true, phone: true, defaultCurrency: true, timezone: true, notificationPrefs: true },
   })
   return NextResponse.json(user)
 }
@@ -58,7 +59,7 @@ export async function PATCH(req: Request) {
   const parsed = updateProfileSchema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 })
 
-  const { name, email, phone, defaultCurrency, timezone } = parsed.data
+  const { name, email, phone, defaultCurrency, timezone, notificationPrefs } = parsed.data
 
   // Check email uniqueness if changing email
   if (email && email !== session.user.email) {
@@ -75,8 +76,9 @@ export async function PATCH(req: Request) {
       ...(phone !== undefined ? { phone } : {}),
       ...(defaultCurrency ? { defaultCurrency } : {}),
       ...(timezone ? { timezone } : {}),
+      ...(notificationPrefs !== undefined ? { notificationPrefs } : {}),
     },
-    select: { id: true, name: true, email: true, phone: true, defaultCurrency: true, timezone: true },
+    select: { id: true, name: true, email: true, phone: true, defaultCurrency: true, timezone: true, notificationPrefs: true },
   })
 
   return NextResponse.json(updated)
