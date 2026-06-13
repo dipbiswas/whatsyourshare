@@ -27,9 +27,9 @@ export default function ExpensesPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch("/api/dashboard")
+    fetch("/api/expenses")
       .then((r) => r.json())
-      .then((d) => setExpenses(d.recentExpenses ?? []))
+      .then((d) => setExpenses(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
   }, [])
 

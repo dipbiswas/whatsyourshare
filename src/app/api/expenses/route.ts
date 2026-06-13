@@ -22,6 +22,24 @@ const expenseSchema = z.object({
   recurringExpenseId: z.string().optional(),
 })
 
+export async function GET() {
+  const session = await auth()
+  if (!session?.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const userId = session.user.id
+
+  const expenses = await prisma.expense.findMany({
+    where: { group: { members: { some: { userId } } } },
+    include: {
+      group: { select: { id: true, name: true } },
+      paidBy: { select: { id: true, name: true } },
+    },
+    orderBy: { date: "desc" },
+  })
+
+  return NextResponse.json(expenses)
+}
+
 export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
