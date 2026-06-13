@@ -33,6 +33,7 @@ import { AddExpenseDialog } from "@/components/expenses/AddExpenseDialog"
 import { EditExpenseDialog } from "@/components/expenses/EditExpenseDialog"
 import { AddSettlementDialog } from "@/components/settlements/AddSettlementDialog"
 import { AddMemberDialog } from "@/components/groups/AddMemberDialog"
+import { EditGroupDialog } from "@/components/groups/EditGroupDialog"
 import { AddRecurringExpenseDialog } from "@/components/expenses/AddRecurringExpenseDialog"
 import { BudgetProgressCard } from "@/components/budget/BudgetProgressCard"
 import { CreateTripDialog } from "@/components/trips/CreateTripDialog"
@@ -251,15 +252,21 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
 
-        {/* Export button */}
-        <a
-          href={`/api/groups/${group.id}/export?format=csv`}
-          download
-          className="hidden md:inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-2 hover:bg-accent transition-colors shrink-0"
-        >
-          <Download className="h-3.5 w-3.5" />
-          Export
-        </a>
+        {/* Edit + Export buttons */}
+        <div className="flex items-center gap-2 shrink-0">
+          <EditGroupDialog
+            group={group}
+            onUpdated={(updates) => setGroup((g) => g ? ({ ...g, ...updates } as GroupDetail) : g)}
+          />
+          <a
+            href={`/api/groups/${group.id}/export?format=csv`}
+            download
+            className="hidden md:inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-2 hover:bg-accent transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export
+          </a>
+        </div>
       </div>
 
       {/* Stats — same card style as dashboard balance cards */}
@@ -710,13 +717,6 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
             })}
           </div>
 
-          {/* Default split settings */}
-          <DefaultSplitSettings
-            group={group}
-            onSaved={(type, shares) =>
-              setGroup((g) => g ? { ...g, defaultSplitType: type, defaultSplitShares: shares } : g)
-            }
-          />
         </TabsContent>
 
         {/* Balances */}
