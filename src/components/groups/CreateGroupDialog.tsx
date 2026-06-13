@@ -20,9 +20,10 @@ const CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "INR"]
 
 interface Props {
   onCreated: (group: object) => void
+  trigger?: React.ReactNode
 }
 
-export function CreateGroupDialog({ onCreated }: Props) {
+export function CreateGroupDialog({ onCreated, trigger }: Props) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({ name: "", description: "", currency: "USD" })
@@ -52,10 +53,14 @@ export function CreateGroupDialog({ onCreated }: Props) {
 
   return (
     <>
-      <Button className="bg-violet-600 hover:bg-violet-700 gap-2" onClick={() => setOpen(true)}>
-        <Plus className="h-4 w-4" />
-        New Group
-      </Button>
+      {trigger ? (
+        <div onClick={() => setOpen(true)}>{trigger}</div>
+      ) : (
+        <Button className="bg-violet-600 hover:bg-violet-700 gap-2" onClick={() => setOpen(true)}>
+          <Plus className="h-4 w-4" />
+          New Group
+        </Button>
+      )}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>

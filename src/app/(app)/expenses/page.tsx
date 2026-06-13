@@ -4,9 +4,6 @@ import { useEffect, useState } from "react"
 import { format } from "date-fns"
 import Link from "next/link"
 import { Receipt } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatCurrency } from "@/lib/balance"
 
@@ -22,6 +19,27 @@ interface Expense {
   paidBy: { id: string; name: string }
 }
 
+const CATEGORY_COLORS: Record<string, string> = {
+  Food: "bg-orange-400",
+  Transport: "bg-blue-400",
+  Accommodation: "bg-purple-400",
+  Entertainment: "bg-pink-400",
+  Utilities: "bg-yellow-400",
+  General: "bg-gray-300",
+  Other: "bg-teal-400",
+}
+
+// Group expenses by date
+function groupByDate(expenses: Expense[]) {
+  const groups: Record<string, Expense[]> = {}
+  for (const e of expenses) {
+    const key = format(new Date(e.date), "yyyy-MM-dd")
+    if (!groups[key]) groups[key] = []
+    groups[key].push(e)
+  }
+  return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a))
+}
+
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
@@ -33,56 +51,58 @@ export default function ExpensesPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  const grouped = groupByDate(expenses)
+
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-5 md:p-8 space-y-6 max-w-2xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Expenses</h1>
-        <p className="text-gray-500 mt-1">All recent expenses across your groups</p>
+        <p className="text-sm text-gray-400 mt-0.5">All expenses across your groups</p>
       </div>
 
       {loading && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
         </div>
       )}
 
       {!loading && expenses.length === 0 && (
         <div className="text-center py-24">
-          <Receipt className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-700">No expenses yet</h3>
-          <p className="text-gray-400 mt-1">Add expenses inside a group to see them here.</p>
+          <div className="mx-auto h-16 w-16 rounded-2xl bg-gray-50 flex items-center justify-center mb-4">
+            <Receipt className="h-8 w-8 text-gray-300" />
+          </div>
+          <h3 className="text-base font-semibold text-gray-700">No expenses yet</h3>
+          <p className="text-sm text-gray-400 mt-1">Add expenses inside a group to see them here.</p>
         </div>
       )}
 
-      {!loading && expenses.length > 0 && (
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-0">
-            {expenses.map((e, idx) => (
+      {!loading && grouped.map(([dateKey, items]) => (
+        <div key={dateKey}>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+            {format(new Date(dateKey), "EEEE, MMMM d")}
+          </p>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            {items.map((e, idx) => (
               <div key={e.id}>
-                {idx > 0 && <Separator />}
-                <div className="flex items-center gap-4 p-4 hover:bg-gray-50">
+                {idx > 0 && <div className="h-px bg-gray-50 mx-4" />}
+                <Link href={`/groups/${e.group.id}`} className="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors">
+                  <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${CATEGORY_COLORS[e.category] ?? "bg-gray-300"}`} />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-gray-900 truncate">{e.description}</p>
-                      <Badge variant="secondary" className="text-xs shrink-0">{e.category}</Badge>
-                    </div>
-                    <p className="text-sm text-gray-500 mt-0.5">
-                      <Link href={`/groups/${e.group.id}`} className="text-violet-600 hover:underline">
-                        {e.group.name}
-                      </Link>
-                      {" · "}Paid by <strong>{e.paidBy.name}</strong>
-                      {" · "}{format(new Date(e.date), "MMM d, yyyy")}
+                    <p className="text-sm font-semibold text-gray-900 truncate">{e.description}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 truncate">
+                      {e.group.name} · paid by {e.paidBy.name}
                     </p>
                   </div>
-                  <p className="font-semibold text-gray-900 shrink-0">
-                    {formatCurrency(e.amount, e.currency)}
-                  </p>
-                </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-bold text-gray-900 tabular-nums">{formatCurrency(e.amount, e.currency)}</p>
+                    <p className="text-xs text-gray-400">{e.category}</p>
+                  </div>
+                </Link>
               </div>
             ))}
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

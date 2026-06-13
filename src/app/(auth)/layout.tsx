@@ -1,16 +1,15 @@
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-full flex items-center justify-center bg-gradient-to-br from-violet-50 via-white to-indigo-50">
-      <div className="w-full max-w-md px-4 py-12">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">W</span>
-            </div>
-            <span className="text-xl font-bold text-gray-900">WhatsYourShare</span>
-          </div>
-          <p className="text-sm text-gray-500">Enterprise expense splitting</p>
+    <div className="min-h-full flex flex-col items-center justify-center bg-gradient-to-br from-violet-50 via-white to-indigo-50 px-4 py-12">
+      {/* Brand */}
+      <div className="text-center mb-8">
+        <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-600 shadow-lg shadow-violet-200 mb-4">
+          <span className="text-white font-bold text-xl">W</span>
         </div>
+        <h1 className="text-2xl font-bold text-gray-900">WhatsYourShare</h1>
+        <p className="text-sm text-gray-400 mt-1">Split expenses. Stay friends.</p>
+      </div>
+      <div className="w-full max-w-sm">
         {children}
       </div>
     </div>

@@ -2,12 +2,22 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Users, Receipt, ArrowRight } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Users, Receipt, Plus } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { CreateGroupDialog } from "@/components/groups/CreateGroupDialog"
+import { formatDistanceToNow } from "date-fns"
+
+const GROUP_ACCENTS = [
+  "from-violet-400 to-violet-600",
+  "from-blue-400 to-blue-600",
+  "from-emerald-400 to-emerald-600",
+  "from-orange-400 to-orange-600",
+  "from-pink-400 to-pink-600",
+  "from-teal-400 to-teal-600",
+  "from-amber-400 to-amber-600",
+  "from-rose-400 to-rose-600",
+]
 
 interface Member {
   userId: string
@@ -36,81 +46,101 @@ export default function GroupsPage() {
   }, [])
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-5 md:p-8 space-y-6 max-w-6xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Groups</h1>
-          <p className="text-gray-500 mt-1">Manage your expense groups</p>
+          <p className="text-sm text-gray-400 mt-0.5">{groups.length > 0 ? `${groups.length} group${groups.length !== 1 ? "s" : ""}` : "Split expenses with anyone"}</p>
         </div>
         <CreateGroupDialog onCreated={(g) => setGroups((prev) => [g as Group, ...prev])} />
       </div>
 
       {loading && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-44 rounded-xl" />
-          ))}
+          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-44 rounded-2xl" />)}
         </div>
       )}
 
       {!loading && groups.length === 0 && (
         <div className="text-center py-24">
-          <Users className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-700">No groups yet</h3>
-          <p className="text-gray-400 mt-1">Create your first group to start splitting expenses.</p>
+          <div className="mx-auto h-16 w-16 rounded-2xl bg-violet-50 flex items-center justify-center mb-4">
+            <Users className="h-8 w-8 text-violet-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-800">No groups yet</h3>
+          <p className="text-gray-400 mt-1 text-sm">Create your first group to start splitting expenses.</p>
         </div>
       )}
 
       {!loading && groups.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {groups.map((group) => (
-            <Link key={group.id} href={`/groups/${group.id}`}>
-              <Card className="border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer h-full">
-                <CardContent className="pt-6 flex flex-col h-full gap-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{group.name}</h3>
-                      {group.description && (
-                        <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">{group.description}</p>
-                      )}
-                    </div>
-                    <Badge variant="outline" className="text-xs shrink-0 ml-2">
-                      {group.currency}
-                    </Badge>
-                  </div>
+          {groups.map((group, idx) => {
+            const accent = GROUP_ACCENTS[idx % GROUP_ACCENTS.length]
+            return (
+              <Link key={group.id} href={`/groups/${group.id}`}>
+                <div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-gray-100 hover:border-violet-200 h-full flex flex-col">
+                  {/* Colored accent bar */}
+                  <div className={`h-1.5 w-full bg-gradient-to-r ${accent}`} />
 
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
-                    <span className="flex items-center gap-1.5">
-                      <Users className="h-3.5 w-3.5" />
-                      {group.members.length} member{group.members.length !== 1 ? "s" : ""}
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <Receipt className="h-3.5 w-3.5" />
-                      {group._count.expenses} expense{group._count.expenses !== 1 ? "s" : ""}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between mt-auto">
-                    <div className="flex -space-x-2">
-                      {group.members.slice(0, 4).map((m) => (
-                        <Avatar key={m.userId} className="h-7 w-7 ring-2 ring-white">
-                          <AvatarFallback className="text-xs bg-violet-100 text-violet-700 font-semibold">
-                            {m.user.name.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                      ))}
-                      {group.members.length > 4 && (
-                        <div className="h-7 w-7 rounded-full ring-2 ring-white bg-gray-100 flex items-center justify-center text-xs text-gray-600 font-medium">
-                          +{group.members.length - 4}
-                        </div>
-                      )}
+                  <div className="p-5 flex flex-col flex-1 gap-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-gray-900 text-base leading-tight">{group.name}</h3>
+                        {group.description && (
+                          <p className="text-xs text-gray-400 mt-1 line-clamp-1">{group.description}</p>
+                        )}
+                      </div>
+                      <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-1 rounded-lg shrink-0">
+                        {group.currency}
+                      </span>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-gray-400" />
+
+                    <div className="flex items-center gap-4 text-xs text-gray-400">
+                      <span className="flex items-center gap-1">
+                        <Receipt className="h-3.5 w-3.5" />
+                        {group._count.expenses} expense{group._count.expenses !== 1 ? "s" : ""}
+                      </span>
+                      <span>·</span>
+                      <span>{formatDistanceToNow(new Date(group.updatedAt), { addSuffix: true })}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-auto">
+                      <div className="flex -space-x-2">
+                        {group.members.slice(0, 5).map((m, i) => (
+                          <Avatar key={m.userId} className="h-8 w-8 ring-2 ring-white" style={{ zIndex: 5 - i }}>
+                            <AvatarFallback className="text-xs font-bold" style={{ background: `hsl(${(m.userId.charCodeAt(0) * 37) % 360}, 70%, 85%)`, color: `hsl(${(m.userId.charCodeAt(0) * 37) % 360}, 60%, 35%)` }}>
+                              {m.user.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                        ))}
+                        {group.members.length > 5 && (
+                          <div className="h-8 w-8 rounded-full ring-2 ring-white bg-gray-100 flex items-center justify-center text-xs text-gray-500 font-semibold">
+                            +{group.members.length - 5}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-gray-400">
+                        <Users className="h-3.5 w-3.5" />
+                        {group.members.length}
+                      </div>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+                </div>
+              </Link>
+            )
+          })}
+
+          {/* Create new group card */}
+          <CreateGroupDialog
+            onCreated={(g) => setGroups((prev) => [g as Group, ...prev])}
+            trigger={
+              <div className="bg-white rounded-2xl shadow-sm border-2 border-dashed border-gray-200 hover:border-violet-300 hover:bg-violet-50/30 transition-all duration-200 h-full min-h-[176px] flex flex-col items-center justify-center gap-2 cursor-pointer">
+                <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center">
+                  <Plus className="h-5 w-5 text-gray-400" />
+                </div>
+                <p className="text-sm font-medium text-gray-400">New group</p>
+              </div>
+            }
+          />
         </div>
       )}
     </div>

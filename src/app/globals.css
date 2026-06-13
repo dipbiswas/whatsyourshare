@@ -128,3 +128,12 @@
     @apply font-sans;
   }
 }
+
+/* Smooth scrolling */
+html { scroll-behavior: smooth; }
+
+/* Better number rendering */
+.tabular-nums { font-variant-numeric: tabular-nums; }
+
+/* Mobile bottom nav safe area */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 16px); }

@@ -36,7 +36,7 @@ export default function LoginPage() {
   }
 
   return (
-    <Card className="shadow-lg border-0">
+    <Card className="shadow-xl border-0 rounded-2xl">
       <CardHeader>
         <CardTitle className="text-2xl">Welcome back</CardTitle>
         <CardDescription>Sign in to your account to continue</CardDescription>

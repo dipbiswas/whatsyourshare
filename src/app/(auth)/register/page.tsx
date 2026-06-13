@@ -47,7 +47,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <Card className="shadow-lg border-0">
+    <Card className="shadow-xl border-0 rounded-2xl">
       <CardHeader>
         <CardTitle className="text-2xl">Create an account</CardTitle>
         <CardDescription>Get started with WhatsYourShare for free</CardDescription>
