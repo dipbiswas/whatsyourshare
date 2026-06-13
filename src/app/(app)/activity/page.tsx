@@ -256,7 +256,7 @@ export default function ActivityPage() {
                           {item.actorName}
                         </span>
                         {" "}
-                        {item.type === "expense" ? "added" : ""}{item.description}
+                        {item.type === "expense" ? "added " : ""}{item.description}
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5 truncate">
                         {item.groupName} · {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
