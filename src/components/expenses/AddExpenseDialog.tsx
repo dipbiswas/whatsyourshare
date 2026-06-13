@@ -210,7 +210,10 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, on
               <Label>Paid by</Label>
               <Select value={form.paidById} onValueChange={(v) => setForm((f) => ({ ...f, paidById: v ?? f.paidById }))}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue>
+                    {members.find((m) => m.userId === form.paidById)?.user.name ?? "Select member"}
+                    {form.paidById === currentUserId ? " (you)" : ""}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {members.map((m) => (
