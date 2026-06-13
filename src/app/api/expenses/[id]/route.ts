@@ -12,6 +12,7 @@ const patchSchema = z.object({
   description: z.string().min(1).max(200).optional(),
   amount: z.number().positive().optional(),
   category: z.string().optional(),
+  currency: z.string().length(3).optional(),
   paidById: z.string().optional(),
   date: z.string().optional(),
   tripDayId: z.string().nullable().optional(),
@@ -37,7 +38,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const isMember = expense.group.members.some((m: { userId: string }) => m.userId === session.user.id)
   if (!isMember) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-  const { date, tripDayId, amount, splits, splitType, ...rest } = parsed.data
+  const { date, tripDayId, amount, splits, splitType, currency, ...rest } = parsed.data
 
   // Determine splits to write
   let splitsUpdate = {}
@@ -71,6 +72,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     data: {
       ...rest,
       ...(amount !== undefined ? { amount } : {}),
+      ...(currency !== undefined ? { currency } : {}),
       ...(splitType !== undefined ? { splitType } : {}),
       ...(date ? { date: new Date(date) } : {}),
       ...(tripDayId !== undefined ? { tripDayId: tripDayId ?? null } : {}),

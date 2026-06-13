@@ -14,6 +14,7 @@ const expenseSchema = z.object({
   description: z.string().min(1).max(200),
   amount: z.number().positive(),
   category: z.string().default("General"),
+  currency: z.string().length(3).default("USD"),
   splitType: z.enum(["EQUAL", "EXACT", "PERCENTAGE", "SELECTED"]).default("EQUAL"),
   visibility: z.enum(["GROUP", "PAYERS_ONLY"]).default("GROUP"),
   paidById: z.string(),

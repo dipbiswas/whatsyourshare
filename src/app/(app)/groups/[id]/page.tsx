@@ -533,7 +533,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                             </Button>
                           </>
                         )}
-                        <EditExpenseDialog expense={expense} members={group.members} onUpdated={() => refreshGroup()} />
+                        <EditExpenseDialog expense={expense} members={group.members} currency={group.currency} onUpdated={() => refreshGroup()} />
                         <Button variant="ghost" size="icon" className="h-6 w-6 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10" onClick={() => deleteExpense(expense.id)}>
                           <Trash2 className="h-3 w-3" />
                         </Button>

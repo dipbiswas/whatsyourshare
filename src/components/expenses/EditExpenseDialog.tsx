@@ -47,10 +47,14 @@ interface Expense {
 interface Props {
   expense: Expense
   members: Member[]
+  /** Pass the group currency so the label is always correct regardless of stored value */
+  currency?: string
   onUpdated: (expense: object) => void
 }
 
-export function EditExpenseDialog({ expense, members, onUpdated }: Props) {
+export function EditExpenseDialog({ expense, members, currency: groupCurrency, onUpdated }: Props) {
+  // Prefer the group's currency (always correct) over what's stored on the expense (may be wrong legacy USD)
+  const currency = groupCurrency ?? expense.currency
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -151,7 +155,7 @@ export function EditExpenseDialog({ expense, members, onUpdated }: Props) {
       const res = await fetch(`/api/expenses/${expense.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, amount, splitType: apiSplitType, splits }),
+        body: JSON.stringify({ ...form, amount, currency, splitType: apiSplitType, splits }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -195,7 +199,7 @@ export function EditExpenseDialog({ expense, members, onUpdated }: Props) {
             {/* Amount + Category + Date */}
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <Label>Amount ({expense.currency})</Label>
+                <Label>Amount ({currency})</Label>
                 <Input type="number" step="0.01" min="0.01" value={form.amount}
                   onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} required />
               </div>
@@ -243,7 +247,7 @@ export function EditExpenseDialog({ expense, members, onUpdated }: Props) {
                   {members.map((m) => (
                     <div key={m.userId} className="flex items-center justify-between text-sm">
                       <span className="text-foreground/80">{m.user.name}</span>
-                      <span className="font-semibold tabular-nums">{expense.currency} {equalAmount.toFixed(2)}</span>
+                      <span className="font-semibold tabular-nums">{currency} {equalAmount.toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
@@ -266,7 +270,7 @@ export function EditExpenseDialog({ expense, members, onUpdated }: Props) {
                             </div>
                             <span className={cn("flex-1 text-sm", checked ? "text-foreground" : "text-muted-foreground")}>{m.user.name}</span>
                             {checked && amount > 0 && (
-                              <span className="text-sm font-semibold tabular-nums">{expense.currency} {selectedEqualAmount.toFixed(2)}</span>
+                              <span className="text-sm font-semibold tabular-nums">{currency} {selectedEqualAmount.toFixed(2)}</span>
                             )}
                           </button>
                         </div>
@@ -294,7 +298,7 @@ export function EditExpenseDialog({ expense, members, onUpdated }: Props) {
                               onChange={(e) => setShares((p) => ({ ...p, [m.userId]: e.target.value }))} />
                             <span className="text-xs text-muted-foreground w-10">shares</span>
                             {s > 0 && amount > 0 && totalShares > 0 && (
-                              <span className="text-sm font-semibold tabular-nums w-20 text-right shrink-0">{expense.currency} {derived.toFixed(2)}</span>
+                              <span className="text-sm font-semibold tabular-nums w-20 text-right shrink-0">{currency} {derived.toFixed(2)}</span>
                             )}
                           </div>
                         </div>
@@ -302,7 +306,7 @@ export function EditExpenseDialog({ expense, members, onUpdated }: Props) {
                     })}
                   </div>
                   {totalShares > 0 && amount > 0 && (
-                    <p className="text-xs text-muted-foreground px-1">{totalShares} total shares · {expense.currency} {(amount / totalShares).toFixed(2)} per share</p>
+                    <p className="text-xs text-muted-foreground px-1">{totalShares} total shares · {currency} {(amount / totalShares).toFixed(2)} per share</p>
                   )}
                 </div>
               )}
@@ -325,7 +329,7 @@ export function EditExpenseDialog({ expense, members, onUpdated }: Props) {
                               onChange={(e) => setPctSplits((s) => ({ ...s, [m.userId]: e.target.value }))} />
                             <span className="text-sm text-muted-foreground w-4">%</span>
                             {amount > 0 && pct > 0 && (
-                              <span className="text-sm font-semibold tabular-nums w-20 text-right shrink-0">{expense.currency} {derived.toFixed(2)}</span>
+                              <span className="text-sm font-semibold tabular-nums w-20 text-right shrink-0">{currency} {derived.toFixed(2)}</span>
                             )}
                           </div>
                         </div>
@@ -372,11 +376,11 @@ export function EditExpenseDialog({ expense, members, onUpdated }: Props) {
                         style={{ width: amount > 0 ? `${Math.min((totalExact / amount) * 100, 100)}%` : "0%" }} />
                     </div>
                     <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">{expense.currency} {totalExact.toFixed(2)} assigned</span>
+                      <span className="text-muted-foreground">{currency} {totalExact.toFixed(2)} assigned</span>
                       {amount > 0 && Math.abs(remainingExact) <= 0.01
                         ? <span className="text-emerald-600 dark:text-emerald-400 font-medium">✓ Looks good</span>
                         : <span className={cn("font-medium", remainingExact < 0 ? "text-rose-500" : "text-muted-foreground")}>
-                            {remainingExact < 0 ? `Over by ${expense.currency} ${Math.abs(remainingExact).toFixed(2)}` : `${expense.currency} ${remainingExact.toFixed(2)} remaining`}
+                            {remainingExact < 0 ? `Over by ${currency} ${Math.abs(remainingExact).toFixed(2)}` : `${currency} ${remainingExact.toFixed(2)} remaining`}
                           </span>
                       }
                     </div>

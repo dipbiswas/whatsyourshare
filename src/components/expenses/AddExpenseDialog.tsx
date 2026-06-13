@@ -183,7 +183,7 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // SHARES is sent as PERCENTAGE to the API (already converted to amounts above)
-        body: JSON.stringify({ ...form, amount, groupId, splitType: splitType === "SHARES" ? "PERCENTAGE" : splitType, splits, date: form.date, guestPayeeName: isGuestPayee ? guestPayee : undefined }),
+        body: JSON.stringify({ ...form, amount, currency, groupId, splitType: splitType === "SHARES" ? "PERCENTAGE" : splitType, splits, date: form.date, guestPayeeName: isGuestPayee ? guestPayee : undefined }),
       })
       if (!res.ok) { toast.error("Failed to add expense"); return }
       toast.success("Expense added!")
