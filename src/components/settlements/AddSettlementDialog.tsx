@@ -51,7 +51,8 @@ export function AddSettlementDialog({
   })
 
   // When "paying from" changes, reset "paying to" so they can't be the same
-  function setFromUser(id: string) {
+  function setFromUser(id: string | null) {
+    if (!id) return
     setForm((f) => ({ ...f, fromUserId: id, toUserId: f.toUserId === id ? "" : f.toUserId }))
   }
 
