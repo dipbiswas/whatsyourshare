@@ -29,18 +29,25 @@ export async function GET() {
       settlements: {
         select: { fromUserId: true, toUserId: true, amount: true },
       },
+      trips: {
+        select: { id: true, name: true, coverEmoji: true, eventType: true, startDate: true, endDate: true },
+        orderBy: { startDate: "asc" },
+      },
     },
     orderBy: { updatedAt: "desc" },
   })
 
-  const result = groups.map(({ expenses, settlements, ...g }) => {
+  const now = new Date()
+  const result = groups.map(({ expenses, settlements, trips, ...g }) => {
     const balanceMap = calculateGroupBalances(
       g.members.map((m) => ({ userId: m.userId })),
       expenses,
       settlements,
     )
     const myBalance = Math.round((balanceMap[userId] ?? 0) * 100) / 100
-    return { ...g, myBalance }
+    // Only surface active or upcoming events on the card
+    const activeTrips = (trips as any[]).filter((t) => new Date(t.endDate) >= now)
+    return { ...g, myBalance, activeTrips }
   })
 
   return NextResponse.json(result)

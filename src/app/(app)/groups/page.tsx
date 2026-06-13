@@ -25,6 +25,15 @@ interface Member {
   user: { id: string; name: string; email: string; avatar: string | null }
 }
 
+interface ActiveTrip {
+  id: string
+  name: string
+  coverEmoji: string | null
+  eventType: string
+  startDate: string
+  endDate: string
+}
+
 interface Group {
   id: string
   name: string
@@ -34,6 +43,7 @@ interface Group {
   members: Member[]
   updatedAt: string
   myBalance: number
+  activeTrips: ActiveTrip[]
 }
 
 export default function GroupsPage() {
@@ -135,6 +145,31 @@ export default function GroupsPage() {
                         </span>
                       </div>
                     </div>
+
+                    {/* Active / upcoming events */}
+                    {group.activeTrips?.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {group.activeTrips.slice(0, 3).map((t) => {
+                          const now = new Date()
+                          const isActive = new Date(t.startDate) <= now && new Date(t.endDate) >= now
+                          return (
+                            <span
+                              key={t.id}
+                              className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border ${
+                                isActive
+                                  ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20"
+                                  : "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/20"
+                              }`}
+                            >
+                              {t.coverEmoji ?? "📅"} {t.name}
+                            </span>
+                          )
+                        })}
+                        {group.activeTrips.length > 3 && (
+                          <span className="text-[11px] text-muted-foreground px-1">+{group.activeTrips.length - 3} more</span>
+                        )}
+                      </div>
+                    )}
 
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
