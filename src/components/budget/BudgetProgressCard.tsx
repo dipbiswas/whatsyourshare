@@ -45,7 +45,13 @@ export function BudgetProgressCard({ groupId, currency }: Props) {
 
   if (budget === undefined) return null // still loading, render nothing
 
-  const handleSaved = (b: object) => setBudget(b as BudgetData)
+  const handleSaved = () => {
+    // Re-fetch the full budget (with computed fields) after saving
+    fetch(`/api/groups/${groupId}/budget`)
+      .then((r) => r.json())
+      .then(setBudget)
+      .catch(() => setBudget(null))
+  }
 
   if (!budget) {
     return (

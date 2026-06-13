@@ -35,7 +35,7 @@ interface Props {
     alertAt: number
     categoryBudgets: { category: string; amount: number }[]
   } | null
-  onSaved: (budget: object) => void
+  onSaved: () => void
 }
 
 export function SetGroupBudgetDialog({ groupId, currency, existingBudget, onSaved }: Props) {
@@ -101,9 +101,8 @@ export function SetGroupBudgetDialog({ groupId, currency, existingBudget, onSave
         toast.error(err?.error ? String(err.error) : "Failed to save budget")
         return
       }
-      const budget = await res.json()
       toast.success(existingBudget ? "Budget updated!" : "Budget set!")
-      onSaved(budget)
+      onSaved()
       setOpen(false)
     } finally {
       setLoading(false)
