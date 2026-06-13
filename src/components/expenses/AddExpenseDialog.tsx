@@ -30,6 +30,7 @@ interface Props {
   defaultSplitType?: "EQUAL" | "SELECTED" | "SHARES" | "PERCENTAGE" | "EXACT"
   defaultSplitShares?: Record<string, number>
   onCreated: () => void
+  trigger?: React.ReactNode
 }
 
 const CATEGORIES = ["General", "Food", "Transport", "Accommodation", "Entertainment", "Utilities", "Other"]
@@ -43,7 +44,7 @@ const SPLIT_TABS: { value: SplitType; label: string; desc: string }[] = [
   { value: "EXACT",      label: "Exact",       desc: "Enter each person's exact amount" },
 ]
 
-export function AddExpenseDialog({ groupId, currency, members, currentUserId, defaultSplitType = "EQUAL", defaultSplitShares, onCreated }: Props) {
+export function AddExpenseDialog({ groupId, currency, members, currentUserId, defaultSplitType = "EQUAL", defaultSplitShares, onCreated, trigger }: Props) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [scanning, setScanning] = useState(false)
@@ -269,10 +270,14 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
 
   return (
     <>
-      <Button className="bg-violet-600 hover:bg-violet-700 gap-2" onClick={() => setOpen(true)}>
-        <Plus className="h-4 w-4" />
-        Add Expense
-      </Button>
+      {trigger ? (
+        <div onClick={() => setOpen(true)}>{trigger}</div>
+      ) : (
+        <Button className="bg-violet-600 hover:bg-violet-700 gap-2" onClick={() => setOpen(true)}>
+          <Plus className="h-4 w-4" />
+          Add Expense
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm() }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">

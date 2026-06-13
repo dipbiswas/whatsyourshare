@@ -478,7 +478,24 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* Expenses */}
-        <TabsContent value="expenses" className="mt-4">
+        <TabsContent value="expenses" className="mt-4 space-y-3">
+          <div className="flex justify-end">
+            <AddExpenseDialog
+              groupId={group.id}
+              currency={group.currency}
+              members={group.members}
+              currentUserId={userId}
+              defaultSplitType={group.defaultSplitType as "EQUAL" | "SELECTED" | "SHARES" | "PERCENTAGE" | "EXACT"}
+              defaultSplitShares={group.defaultSplitShares ?? undefined}
+              onCreated={() => refreshGroup()}
+              trigger={
+                <Button size="sm" variant="outline" className="gap-1.5">
+                  <Plus className="h-3.5 w-3.5" />
+                  Add expense
+                </Button>
+              }
+            />
+          </div>
           {group.expenses.length === 0 ? (
             <div className="text-center py-16">
               <div className="mx-auto h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mb-3">
