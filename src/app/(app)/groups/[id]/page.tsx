@@ -834,6 +834,11 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
       <AddMemberDialog
         groupId={group.id}
         existingMemberIds={group.members.map((m) => m.userId)}
+        defaultSplitType={group.defaultSplitType}
+        defaultSplitShares={group.defaultSplitShares}
+        onSplitShiftUpdated={(shares) =>
+          setGroup((g) => g ? { ...g, defaultSplitShares: shares } : g)
+        }
         open={openDialog === "addMember"}
         onOpenChange={(v) => !v && setOpenDialog(null)}
         onAdded={(member) => {
