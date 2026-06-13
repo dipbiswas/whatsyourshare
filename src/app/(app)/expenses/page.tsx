@@ -53,6 +53,13 @@ function groupByDate(expenses: Expense[]) {
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
+  const [defaultCurrency, setDefaultCurrency] = useState<string>("USD")
+
+  useEffect(() => {
+    fetch("/api/account")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.defaultCurrency) setDefaultCurrency(d.defaultCurrency) })
+  }, [])
   const [search, setSearch] = useState("")
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [activeGroup, setActiveGroup] = useState<string | null>(null)
@@ -148,11 +155,18 @@ export default function ExpensesPage() {
               {Object.keys(map).length === 0 ? (
                 <p className="text-lg font-bold text-foreground tabular-nums">—</p>
               ) : (
-                Object.entries(map).map(([currency, amount]) => (
-                  <p key={currency} className="text-lg font-bold text-foreground tabular-nums leading-tight">
-                    {formatCurrency(amount, currency)}
+                <>
+                  <p className="text-lg font-bold text-foreground tabular-nums leading-tight">
+                    {formatCurrency(map[defaultCurrency] ?? 0, defaultCurrency)}
                   </p>
-                ))
+                  {Object.entries(map)
+                    .filter(([c]) => c !== defaultCurrency && map[c] > 0)
+                    .map(([currency, amount]) => (
+                      <p key={currency} className="text-xs text-muted-foreground tabular-nums leading-tight mt-0.5">
+                        +{formatCurrency(amount, currency)}
+                      </p>
+                    ))}
+                </>
               )}
             </div>
           ))}
