@@ -638,7 +638,18 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
         </TabsContent>
 
         {/* Members */}
-        <TabsContent value="members" className="mt-4">
+        <TabsContent value="members" className="mt-4 space-y-3">
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => setOpenDialog("addMember")}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add member
+            </Button>
+          </div>
           <MembersTab
             group={group}
             userId={userId}
