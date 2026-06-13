@@ -117,12 +117,18 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
   useEffect(() => {
     fetch(`/api/groups/${id}`)
-      .then((r) => {
-        if (!r.ok) throw new Error("Not found")
+      .then(async (r) => {
+        if (!r.ok) {
+          const text = await r.text()
+          throw new Error(`${r.status}: ${text}`)
+        }
         return r.json()
       })
       .then(setGroup)
-      .catch(() => router.push("/groups"))
+      .catch((err) => {
+        console.error("Group fetch error:", err)
+        toast.error("Error: " + (err?.message ?? "unknown"))
+      })
       .finally(() => setLoading(false))
   }, [id, router])
 
