@@ -14,8 +14,9 @@ export default function RegisterPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard"
+  const prefillEmail = searchParams.get("email") ?? ""
   const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState({ name: "", email: "", password: "" })
+  const [form, setForm] = useState({ name: "", email: prefillEmail, password: "" })
 
   function detectLocale() {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC"

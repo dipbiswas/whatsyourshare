@@ -73,7 +73,7 @@ export default async function InvitePage({ params }: Props) {
           <Link href={`/login?callbackUrl=/invite/${token}`}>
             <Button variant="outline">Sign in</Button>
           </Link>
-          <Link href={`/register?callbackUrl=/invite/${token}`}>
+          <Link href={`/register?callbackUrl=/invite/${token}&email=${encodeURIComponent(invite.email)}`}>
             <Button className="bg-violet-600 hover:bg-violet-700">Create account</Button>
           </Link>
         </div>
