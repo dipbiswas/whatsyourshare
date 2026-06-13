@@ -410,18 +410,19 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           {showMoreActions && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setShowMoreActions(false)} />
-              <div className="absolute left-0 top-full mt-1 z-20 w-56 glass-strong rounded-xl shadow-2xl py-1 overflow-hidden">
+              <div className="absolute left-0 top-full mt-1 z-20 w-64 glass-strong rounded-xl shadow-2xl py-1 overflow-hidden">
                 {[
-                  { label: "Add member",   action: () => setOpenDialog("addMember") },
-                  { label: "Add recurring", action: () => setOpenDialog("addRecurring") },
-                  { label: "Create trip",   action: () => setOpenDialog("createTrip") },
-                ].map(({ label, action }) => (
+                  { label: "Add member",            hint: "Invite someone to this group",                    action: () => setOpenDialog("addMember") },
+                  { label: "Add recurring expense", hint: "Auto-split a bill every week or month",           action: () => setOpenDialog("addRecurring") },
+                  { label: "Create trip",            hint: "Track a specific event separately from this group", action: () => setOpenDialog("createTrip") },
+                ].map(({ label, hint, action }) => (
                   <button
                     key={label}
-                    className="w-full text-left px-3 py-2 text-sm text-foreground/80 hover:bg-accent transition-colors"
+                    className="w-full text-left px-3 py-2.5 hover:bg-accent transition-colors"
                     onClick={() => { setShowMoreActions(false); action() }}
                   >
-                    {label}
+                    <p className="text-sm text-foreground/80">{label}</p>
+                    <p className="text-xs text-muted-foreground/60 mt-0.5">{hint}</p>
                   </button>
                 ))}
               </div>

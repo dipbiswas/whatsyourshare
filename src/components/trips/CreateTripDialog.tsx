@@ -73,11 +73,11 @@ export function CreateTripDialog({ groupId, onCreated, open: controlledOpen, onO
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Plan a new trip</DialogTitle>
+            <DialogTitle>Create a trip</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-500 -mt-1">
-            Track expenses day-by-day and collect funds from the group upfront.
-          </p>
+          <div className="text-sm text-muted-foreground -mt-1 space-y-1">
+            <p>A trip is a time-bounded event within this group — like a weekend away, a conference, or a dinner series. Expenses added during the trip are tracked separately so you can see exactly what it cost, without mixing with the group&apos;s other spending.</p>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
             {/* Emoji picker */}
