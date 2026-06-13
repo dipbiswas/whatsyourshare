@@ -6,7 +6,10 @@ import { toast } from "sonner"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Check, CreditCard, Link2, Loader2, Zap, Crown, DollarSign, Shield } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+import { Check, CreditCard, Link2, Loader2, Zap, Crown, DollarSign, Shield, User, Lock, KeyRound } from "lucide-react"
 
 interface BillingStatus {
   plan: "FREE" | "PRO" | "FAMILY"
@@ -137,6 +140,73 @@ export default function SettingsPage() {
   const currentPlan = billing?.plan ?? "FREE"
   const planColor = PLAN_COLORS[currentPlan]
 
+  // Account management state
+  const [profileForm, setProfileForm] = useState({ name: "", email: "" })
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" })
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [savingPassword, setSavingPassword] = useState(false)
+  const [profileReady, setProfileReady] = useState(false)
+
+  useEffect(() => {
+    if (session?.user && !profileReady) {
+      setProfileForm({ name: session.user.name ?? "", email: session.user.email ?? "" })
+      setProfileReady(true)
+    }
+  }, [session, profileReady])
+
+  const handleSaveProfile = async () => {
+    if (!profileForm.name.trim() || !profileForm.email.trim()) {
+      toast.error("Name and email are required")
+      return
+    }
+    setSavingProfile(true)
+    try {
+      const res = await fetch("/api/account", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: profileForm.name.trim(), email: profileForm.email.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) { toast.error(data.error ?? "Failed to update profile"); return }
+      toast.success("Profile updated")
+    } catch {
+      toast.error("Failed to update profile")
+    } finally {
+      setSavingProfile(false)
+    }
+  }
+
+  const handleChangePassword = async () => {
+    if (!passwordForm.currentPassword || !passwordForm.newPassword) {
+      toast.error("Please fill in all password fields")
+      return
+    }
+    if (passwordForm.newPassword.length < 6) {
+      toast.error("New password must be at least 6 characters")
+      return
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error("New passwords don't match")
+      return
+    }
+    setSavingPassword(true)
+    try {
+      const res = await fetch("/api/account", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: passwordForm.currentPassword, newPassword: passwordForm.newPassword }),
+      })
+      const data = await res.json()
+      if (!res.ok) { toast.error(data.error ?? "Failed to change password"); return }
+      toast.success("Password changed successfully")
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" })
+    } catch {
+      toast.error("Failed to change password")
+    } finally {
+      setSavingPassword(false)
+    }
+  }
+
   return (
     <div className="p-5 md:p-8 space-y-6 max-w-3xl mx-auto">
       <div>
@@ -166,6 +236,112 @@ export default function SettingsPage() {
           <p className="text-lg font-bold text-foreground">{session?.user.name}</p>
           <p className="text-sm text-muted-foreground">{session?.user.email}</p>
           <p className="text-xs text-muted-foreground/50 font-mono mt-1">{session?.user.id}</p>
+        </div>
+      </div>
+
+      {/* Account Management */}
+      <div className="glass rounded-2xl overflow-hidden">
+        {/* Section header */}
+        <div className="flex items-center gap-3 p-5 pb-4">
+          <div className="h-10 w-10 rounded-xl bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center shrink-0">
+            <User className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+          </div>
+          <div>
+            <p className="font-semibold text-foreground">Account</p>
+            <p className="text-xs text-muted-foreground">Update your name, email, and password</p>
+          </div>
+        </div>
+
+        {/* Profile fields */}
+        <div className="px-5 pb-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="account-name" className="text-sm">Display name</Label>
+              <Input
+                id="account-name"
+                value={profileForm.name}
+                onChange={(e) => setProfileForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Your name"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="account-email" className="text-sm">Email address</Label>
+              <Input
+                id="account-email"
+                type="email"
+                value={profileForm.email}
+                onChange={(e) => setProfileForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="you@example.com"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              className="bg-violet-600 hover:bg-violet-700"
+              onClick={handleSaveProfile}
+              disabled={savingProfile}
+            >
+              {savingProfile && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
+              Save profile
+            </Button>
+          </div>
+
+          <Separator className="opacity-50" />
+
+          {/* Password change */}
+          <div className="flex items-center gap-2 mb-3">
+            <Lock className="h-4 w-4 text-muted-foreground" />
+            <p className="text-sm font-medium text-foreground">Change password</p>
+          </div>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="current-password" className="text-sm">Current password</Label>
+              <Input
+                id="current-password"
+                type="password"
+                value={passwordForm.currentPassword}
+                onChange={(e) => setPasswordForm((f) => ({ ...f, currentPassword: e.target.value }))}
+                placeholder="••••••••"
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="new-password" className="text-sm">New password</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm((f) => ({ ...f, newPassword: e.target.value }))}
+                  placeholder="Min 6 characters"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="confirm-password" className="text-sm">Confirm new password</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm((f) => ({ ...f, confirmPassword: e.target.value }))}
+                  placeholder="Repeat new password"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleChangePassword}
+                disabled={savingPassword}
+              >
+                {savingPassword
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                  : <KeyRound className="h-3.5 w-3.5 mr-1.5" />
+                }
+                Update password
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
