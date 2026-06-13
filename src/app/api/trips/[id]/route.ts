@@ -52,6 +52,12 @@ export async function GET(
 
   if (!trip) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
+  // Fetch group settlements so balances can account for them
+  const groupSettlements = await prisma.settlement.findMany({
+    where: { groupId: trip.groupId },
+    select: { fromUserId: true, toUserId: true, amount: true },
+  })
+
   // Also fetch group expenses NOT linked to any trip day (to allow linking)
   const unlinkedExpenses = await prisma.expense.findMany({
     where: { groupId: trip.groupId, tripDayId: null },
@@ -72,7 +78,7 @@ export async function GET(
     }
   }
 
-  return NextResponse.json({ ...trip, unlinkedExpenses, memberSpend })
+  return NextResponse.json({ ...trip, unlinkedExpenses, memberSpend, groupSettlements })
   } catch (err) {
     console.error("[GET /api/trips/[id]] error:", err)
     return NextResponse.json({ error: String(err) }, { status: 500 })

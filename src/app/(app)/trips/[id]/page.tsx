@@ -97,6 +97,7 @@ interface TripDetail {
   fund: Fund | null
   unlinkedExpenses: Expense[]
   memberSpend: Record<string, number>
+  groupSettlements: { fromUserId: string; toUserId: string; amount: number }[]
 }
 
 export default function TripDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -341,7 +342,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
             amount: e.amount,
             splits: e.splits.map((s) => ({ userId: s.userId, amount: s.amount })),
           })),
-          []
+          trip.groupSettlements
         )
         const transfers = simplifyDebts(balanceMap, nameMap)
         const allSettled = transfers.length === 0
