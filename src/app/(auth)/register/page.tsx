@@ -47,7 +47,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <Card className="shadow-xl border-0 rounded-2xl">
+    <Card className="shadow-xl border-0 rounded-2xl glass-strong">
       <CardHeader>
         <CardTitle className="text-2xl">Create an account</CardTitle>
         <CardDescription>Get started with WhatsYourShare for free</CardDescription>
@@ -93,7 +93,7 @@ export default function RegisterPage() {
           </Button>
           <p className="text-sm text-gray-500 text-center">
             Already have an account?{" "}
-            <Link href="/login" className="text-violet-600 hover:underline font-medium">
+            <Link href="/login" className="text-violet-400 hover:underline font-medium">
               Sign in
             </Link>
           </p>

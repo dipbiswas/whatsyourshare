@@ -56,8 +56,8 @@ export default function ExpensesPage() {
   return (
     <div className="p-5 md:p-8 space-y-6 max-w-2xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Expenses</h1>
-        <p className="text-sm text-gray-400 mt-0.5">All expenses across your groups</p>
+        <h1 className="text-2xl font-bold text-white">Expenses</h1>
+        <p className="text-sm text-white/50 mt-0.5">All expenses across your groups</p>
       </div>
 
       {loading && (
@@ -68,34 +68,34 @@ export default function ExpensesPage() {
 
       {!loading && expenses.length === 0 && (
         <div className="text-center py-24">
-          <div className="mx-auto h-16 w-16 rounded-2xl bg-gray-50 flex items-center justify-center mb-4">
-            <Receipt className="h-8 w-8 text-gray-300" />
+          <div className="mx-auto h-16 w-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
+            <Receipt className="h-8 w-8 text-white/20" />
           </div>
-          <h3 className="text-base font-semibold text-gray-700">No expenses yet</h3>
-          <p className="text-sm text-gray-400 mt-1">Add expenses inside a group to see them here.</p>
+          <h3 className="text-base font-semibold text-white/70">No expenses yet</h3>
+          <p className="text-sm text-white/50 mt-1">Add expenses inside a group to see them here.</p>
         </div>
       )}
 
       {!loading && grouped.map(([dateKey, items]) => (
         <div key={dateKey}>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+          <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">
             {format(new Date(dateKey), "EEEE, MMMM d")}
           </p>
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="glass rounded-2xl overflow-hidden">
             {items.map((e, idx) => (
               <div key={e.id}>
-                {idx > 0 && <div className="h-px bg-gray-50 mx-4" />}
-                <Link href={`/groups/${e.group.id}`} className="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors">
+                {idx > 0 && <div className="h-px bg-white/5 mx-4" />}
+                <Link href={`/groups/${e.group.id}`} className="flex items-center gap-3 px-4 py-3.5 hover:bg-white/5 transition-colors">
                   <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${CATEGORY_COLORS[e.category] ?? "bg-gray-300"}`} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{e.description}</p>
-                    <p className="text-xs text-gray-400 mt-0.5 truncate">
+                    <p className="text-sm font-semibold text-white truncate">{e.description}</p>
+                    <p className="text-xs text-white/50 mt-0.5 truncate">
                       {e.group.name} · paid by {e.paidBy.name}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-gray-900 tabular-nums">{formatCurrency(e.amount, e.currency)}</p>
-                    <p className="text-xs text-gray-400">{e.category}</p>
+                    <p className="text-sm font-bold text-white tabular-nums">{formatCurrency(e.amount, e.currency)}</p>
+                    <p className="text-xs text-white/50">{e.category}</p>
                   </div>
                 </Link>
               </div>

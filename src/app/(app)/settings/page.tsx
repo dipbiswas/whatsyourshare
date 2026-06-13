@@ -70,9 +70,9 @@ const PLANS = [
 ]
 
 const PLAN_COLORS: Record<string, { bg: string; text: string; badge: string }> = {
-  FREE: { bg: "bg-gray-100", text: "text-gray-700", badge: "bg-gray-100 text-gray-600" },
-  PRO: { bg: "bg-violet-600", text: "text-white", badge: "bg-violet-100 text-violet-700" },
-  FAMILY: { bg: "bg-amber-500", text: "text-white", badge: "bg-amber-100 text-amber-700" },
+  FREE: { bg: "bg-white/10", text: "text-white", badge: "bg-white/15 text-white/80" },
+  PRO: { bg: "bg-violet-600/60", text: "text-white", badge: "bg-violet-500/30 text-violet-300" },
+  FAMILY: { bg: "bg-amber-500/60", text: "text-white", badge: "bg-amber-500/30 text-amber-300" },
 }
 
 export default function SettingsPage() {
@@ -140,18 +140,18 @@ export default function SettingsPage() {
   return (
     <div className="p-5 md:p-8 space-y-6 max-w-3xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-sm text-gray-400 mt-0.5">Manage your account and subscription</p>
+        <h1 className="text-2xl font-bold text-white">Settings</h1>
+        <p className="text-sm text-white/50 mt-0.5">Manage your account and subscription</p>
       </div>
 
       {/* Profile card */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="glass rounded-2xl overflow-hidden">
         {/* Gradient header */}
         <div className={`h-16 ${planColor.bg}`} />
         <div className="px-5 pb-5">
           {/* Avatar overlapping the gradient */}
           <div className="flex items-end gap-4 -mt-8 mb-4">
-            <Avatar className="h-16 w-16 ring-4 ring-white shadow-md shrink-0">
+            <Avatar className="h-16 w-16 ring-4 ring-white/20 shadow-md shrink-0">
               <AvatarFallback className="text-2xl font-bold bg-white text-violet-600">
                 {session?.user.name?.charAt(0).toUpperCase() ?? "U"}
               </AvatarFallback>
@@ -163,42 +163,42 @@ export default function SettingsPage() {
               </Badge>
             </div>
           </div>
-          <p className="text-lg font-bold text-gray-900">{session?.user.name}</p>
-          <p className="text-sm text-gray-400">{session?.user.email}</p>
-          <p className="text-xs text-gray-300 font-mono mt-1">{session?.user.id}</p>
+          <p className="text-lg font-bold text-white">{session?.user.name}</p>
+          <p className="text-sm text-white/50">{session?.user.email}</p>
+          <p className="text-xs text-white/30 font-mono mt-1">{session?.user.id}</p>
         </div>
       </div>
 
       {/* Payment Account (Stripe Connect) */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <div className="glass rounded-2xl p-5">
         <div className="flex items-center gap-3 mb-4">
-          <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0">
-            <Link2 className="h-5 w-5 text-violet-600" />
+          <div className="h-10 w-10 rounded-xl bg-violet-500/15 flex items-center justify-center shrink-0">
+            <Link2 className="h-5 w-5 text-violet-400" />
           </div>
           <div>
-            <p className="font-semibold text-gray-900">Payment Account</p>
-            <p className="text-xs text-gray-400">Send & receive settlements via Stripe</p>
+            <p className="font-semibold text-white">Payment Account</p>
+            <p className="text-xs text-white/50">Send & receive settlements via Stripe</p>
           </div>
         </div>
 
         {connect === null ? (
-          <div className="flex items-center gap-2 text-sm text-gray-400">
+          <div className="flex items-center gap-2 text-sm text-white/40">
             <Loader2 className="h-4 w-4 animate-spin" /> Loading…
           </div>
         ) : connect.onboarded ? (
-          <div className="flex items-center gap-3 bg-emerald-50 rounded-xl px-4 py-3">
-            <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-              <Check className="h-4 w-4 text-emerald-600" />
+          <div className="flex items-center gap-3 bg-emerald-500/15 rounded-xl px-4 py-3">
+            <div className="h-8 w-8 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+              <Check className="h-4 w-4 text-emerald-400" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-emerald-800">Stripe account connected</p>
-              <p className="text-xs text-emerald-600">You can send and receive instant settlements</p>
+              <p className="text-sm font-semibold text-emerald-300">Stripe account connected</p>
+              <p className="text-xs text-emerald-400">You can send and receive instant settlements</p>
             </div>
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="bg-gray-50 rounded-xl px-4 py-3">
-              <p className="text-sm text-gray-600">
+            <div className="bg-white/5 rounded-xl px-4 py-3">
+              <p className="text-sm text-white/60">
                 {connect.connected
                   ? "Your account is connected but not fully verified. Complete onboarding to enable settlements."
                   : "Connect your bank account to settle debts instantly."}
@@ -218,15 +218,15 @@ export default function SettingsPage() {
       </div>
 
       {/* Plan & Billing */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <div className="glass rounded-2xl p-5">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0">
-              <CreditCard className="h-5 w-5 text-violet-600" />
+            <div className="h-10 w-10 rounded-xl bg-violet-500/15 flex items-center justify-center shrink-0">
+              <CreditCard className="h-5 w-5 text-violet-400" />
             </div>
             <div>
-              <p className="font-semibold text-gray-900">Plan & Billing</p>
-              <p className="text-xs text-gray-400">Unlock AI features and unlimited groups</p>
+              <p className="font-semibold text-white">Plan & Billing</p>
+              <p className="text-xs text-white/50">Unlock AI features and unlimited groups</p>
             </div>
           </div>
           {billing?.subscriptionStatus && (
@@ -246,13 +246,13 @@ export default function SettingsPage() {
                 className={`relative rounded-xl border-2 p-4 transition-all ${
                   isCurrent
                     ? plan.key === "PRO"
-                      ? "border-violet-500 bg-gradient-to-b from-violet-50 to-white"
+                      ? "border-violet-500 bg-gradient-to-b from-violet-500/20 to-transparent"
                       : plan.key === "FAMILY"
-                      ? "border-amber-400 bg-gradient-to-b from-amber-50 to-white"
-                      : "border-gray-300 bg-gray-50"
+                      ? "border-amber-400 bg-gradient-to-b from-amber-500/20 to-transparent"
+                      : "border-white/20 bg-white/10"
                     : plan.highlight
-                    ? "border-violet-200 hover:border-violet-400"
-                    : "border-gray-100 hover:border-gray-200"
+                    ? "border-violet-500/30 hover:border-violet-400"
+                    : "border-white/10 hover:border-white/20"
                 }`}
               >
                 {isCurrent && (
@@ -271,17 +271,17 @@ export default function SettingsPage() {
                 )}
 
                 <div className="mb-3">
-                  <p className="font-bold text-gray-900">{plan.label}</p>
+                  <p className="font-bold text-white">{plan.label}</p>
                   <div className="flex items-baseline gap-0.5 mt-0.5">
-                    <p className="text-2xl font-extrabold text-gray-900">{plan.price}</p>
-                    <p className="text-xs text-gray-400">{plan.period}</p>
+                    <p className="text-2xl font-extrabold text-white">{plan.price}</p>
+                    <p className="text-xs text-white/50">{plan.period}</p>
                   </div>
-                  <p className="text-xs text-gray-400 mt-0.5">{plan.desc}</p>
+                  <p className="text-xs text-white/50 mt-0.5">{plan.desc}</p>
                 </div>
 
                 <ul className="space-y-1.5 mb-4">
                   {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-1.5 text-xs text-gray-600">
+                    <li key={f} className="flex items-start gap-1.5 text-xs text-white/60">
                       <Check className={`h-3 w-3 mt-0.5 shrink-0 ${
                         plan.key === "PRO" ? "text-violet-500" :
                         plan.key === "FAMILY" ? "text-amber-500" :
@@ -313,9 +313,9 @@ export default function SettingsPage() {
                 )}
                 {isCurrent && (
                   <div className={`w-full text-center text-xs font-medium py-1.5 rounded-lg ${
-                    plan.key === "PRO" ? "bg-violet-100 text-violet-700" :
-                    plan.key === "FAMILY" ? "bg-amber-100 text-amber-700" :
-                    "bg-gray-100 text-gray-500"
+                    plan.key === "PRO" ? "bg-violet-500/20 text-violet-300" :
+                    plan.key === "FAMILY" ? "bg-amber-500/20 text-amber-300" :
+                    "bg-white/10 text-white/50"
                   }`}>
                     Active plan
                   </div>
@@ -326,14 +326,14 @@ export default function SettingsPage() {
         </div>
 
         {billing?.currentPeriodEnd && (
-          <p className="mt-4 text-xs text-gray-400 text-center">
+          <p className="mt-4 text-xs text-white/40 text-center">
             Current period ends {new Date(billing.currentPeriodEnd).toLocaleDateString()}
           </p>
         )}
       </div>
 
       {/* Security / app info footer */}
-      <div className="flex items-center justify-between text-xs text-gray-300 px-1">
+      <div className="flex items-center justify-between text-xs text-white/25 px-1">
         <div className="flex items-center gap-1.5">
           <Shield className="h-3.5 w-3.5" />
           WhatsYourShare v1.0.0

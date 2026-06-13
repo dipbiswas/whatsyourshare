@@ -36,7 +36,7 @@ export default function LoginPage() {
   }
 
   return (
-    <Card className="shadow-xl border-0 rounded-2xl">
+    <Card className="shadow-xl border-0 rounded-2xl glass-strong">
       <CardHeader>
         <CardTitle className="text-2xl">Welcome back</CardTitle>
         <CardDescription>Sign in to your account to continue</CardDescription>
@@ -72,7 +72,7 @@ export default function LoginPage() {
           </Button>
           <p className="text-sm text-gray-500 text-center">
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-violet-600 hover:underline font-medium">
+            <Link href="/register" className="text-violet-400 hover:underline font-medium">
               Sign up
             </Link>
           </p>
