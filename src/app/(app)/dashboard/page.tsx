@@ -100,8 +100,8 @@ export default async function DashboardPage() {
     <div className="p-5 md:p-8 space-y-6 max-w-6xl mx-auto">
       {/* Header */}
       <div>
-        <p className="text-sm text-white/50 font-medium">{getGreeting()}</p>
-        <h1 className="text-2xl md:text-3xl font-bold text-white mt-0.5">{firstName}</h1>
+        <p className="text-sm text-muted-foreground font-medium">{getGreeting()}</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground mt-0.5">{firstName}</h1>
       </div>
 
       {/* Onboarding */}
@@ -110,16 +110,16 @@ export default async function DashboardPage() {
       {/* Balance hero card */}
       {data.groupCount > 0 && (
         <div className="grid grid-cols-2 gap-3">
-          <Card className="border-0 shadow-none bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 backdrop-blur-xl border border-emerald-500/20">
+          <Card className="border-0 shadow-none bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/20 dark:to-emerald-600/10 dark:backdrop-blur-xl border border-emerald-200 dark:border-emerald-500/20">
             <CardContent className="p-4">
-              <p className="text-xs font-medium text-emerald-400 mb-1">Owed to you</p>
-              <p className="text-2xl font-bold text-emerald-300 tabular-nums">{formatCurrency(data.totalOwed)}</p>
+              <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">Owed to you</p>
+              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-300 tabular-nums">{formatCurrency(data.totalOwed)}</p>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-none bg-gradient-to-br from-rose-500/20 to-rose-600/10 backdrop-blur-xl border border-rose-500/20">
+          <Card className="border-0 shadow-none bg-gradient-to-br from-rose-50 to-rose-100/50 dark:from-rose-500/20 dark:to-rose-600/10 dark:backdrop-blur-xl border border-rose-200 dark:border-rose-500/20">
             <CardContent className="p-4">
-              <p className="text-xs font-medium text-rose-400 mb-1">You owe</p>
-              <p className="text-2xl font-bold text-rose-300 tabular-nums">{formatCurrency(data.totalOwe)}</p>
+              <p className="text-xs font-medium text-rose-500 dark:text-rose-400 mb-1">You owe</p>
+              <p className="text-2xl font-bold text-rose-600 dark:text-rose-300 tabular-nums">{formatCurrency(data.totalOwe)}</p>
             </CardContent>
           </Card>
         </div>
@@ -129,7 +129,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <Card className="border-0 shadow-none glass lg:col-span-2">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-white/70">Monthly Spending</CardTitle>
+            <CardTitle className="text-sm font-semibold text-foreground/70">Monthly Spending</CardTitle>
           </CardHeader>
           <CardContent>
             <SpendingChart data={data.chartData} />
@@ -138,23 +138,23 @@ export default async function DashboardPage() {
 
         <Card className="border-0 shadow-none glass">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-semibold text-white/70">Recent Expenses</CardTitle>
+            <CardTitle className="text-sm font-semibold text-foreground/70">Recent Expenses</CardTitle>
             <Link href="/expenses" className="text-xs text-violet-400 hover:underline flex items-center gap-0.5">
               All <ArrowUpRight className="h-3 w-3" />
             </Link>
           </CardHeader>
           <CardContent className="space-y-3 pt-0">
             {data.recentExpenses.length === 0 && (
-              <p className="text-sm text-white/50 text-center py-6">No expenses yet</p>
+              <p className="text-sm text-muted-foreground text-center py-6">No expenses yet</p>
             )}
             {data.recentExpenses.map((e) => (
               <Link key={e.id} href={`/groups/${e.group.id}`} className="flex items-center gap-3 group">
                 <div className={`h-2 w-2 rounded-full shrink-0 ${CATEGORY_COLORS[e.category] ?? "bg-gray-400"}`} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate group-hover:text-violet-400 transition-colors">{e.description}</p>
-                  <p className="text-xs text-white/50 truncate">{e.group.name} · {format(new Date(e.createdAt), "MMM d")}</p>
+                  <p className="text-sm font-medium text-foreground truncate group-hover:text-violet-500 transition-colors">{e.description}</p>
+                  <p className="text-xs text-muted-foreground truncate">{e.group.name} · {format(new Date(e.createdAt), "MMM d")}</p>
                 </div>
-                <p className="text-sm font-semibold text-white tabular-nums shrink-0">{formatCurrency(e.amount)}</p>
+                <p className="text-sm font-semibold text-foreground tabular-nums shrink-0">{formatCurrency(e.amount)}</p>
               </Link>
             ))}
           </CardContent>

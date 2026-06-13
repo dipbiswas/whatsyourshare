@@ -300,14 +300,14 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* My pending settlements — only when I owe money */}
         {mySettlements.length > 0 && (
-          <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4">
-            <p className="text-xs font-semibold text-amber-300 uppercase tracking-wide mb-3">You owe</p>
+          <div className="rounded-2xl border border-amber-200 dark:border-amber-500/25 bg-amber-50 dark:bg-amber-500/10 p-4">
+            <p className="text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wide mb-3">You owe</p>
             <div className="space-y-2">
               {mySettlements.map((s, i) => (
                 <div key={i} className="flex items-center gap-3">
-                  <div className="flex-1 flex items-center gap-2 text-sm text-amber-200">
+                  <div className="flex-1 flex items-center gap-2 text-sm text-amber-700 dark:text-amber-200">
                     <span className="font-semibold">{formatCurrency(s.amount, group.currency)}</span>
-                    <ArrowRight className="h-3.5 w-3.5 text-amber-400" />
+                    <ArrowRight className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                     <span>{s.toName}</span>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
@@ -351,7 +351,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
         {/* All settlements summary (non-mine) — collapsed accordion */}
         {group.suggestedSettlements.filter((s) => s.from !== userId).length > 0 && (
           <div className="glass rounded-2xl p-4">
-            <p className="text-xs font-semibold text-white/50 uppercase tracking-wide mb-3">Others owe</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Others owe</p>
             <div className="space-y-2">
               {group.suggestedSettlements.filter((s) => s.from !== userId).map((s, i) => {
                 const globalIdx = group.suggestedSettlements.indexOf(s)
@@ -364,18 +364,18 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                         next.has(globalIdx) ? next.delete(globalIdx) : next.add(globalIdx)
                         return next
                       })}
-                      className="w-full flex items-center gap-2 text-sm hover:bg-white/5 rounded-xl px-2 py-1.5 transition-colors"
+                      className="w-full flex items-center gap-2 text-sm hover:bg-accent/50 rounded-xl px-2 py-1.5 transition-colors"
                     >
-                      <span className="font-medium text-white/80">{s.fromName}</span>
-                      <ArrowRight className="h-3.5 w-3.5 text-white/40" />
-                      <span className="font-medium text-white/80">{s.toName}</span>
-                      <span className="ml-auto font-semibold text-white">{formatCurrency(s.amount, group.currency)}</span>
-                      {isExpanded ? <ChevronUp className="h-3.5 w-3.5 text-white/40" /> : <ChevronDown className="h-3.5 w-3.5 text-white/40" />}
+                      <span className="font-medium text-foreground/80">{s.fromName}</span>
+                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="font-medium text-foreground/80">{s.toName}</span>
+                      <span className="ml-auto font-semibold text-foreground">{formatCurrency(s.amount, group.currency)}</span>
+                      {isExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
                     </button>
                     {isExpanded && s.reasons.length > 0 && (
-                      <div className="ml-4 mt-1 mb-2 pl-3 border-l-2 border-white/10 space-y-1">
+                      <div className="ml-4 mt-1 mb-2 pl-3 border-l-2 border-border space-y-1">
                         {s.reasons.map((r) => (
-                          <div key={r.expenseId} className="flex justify-between text-xs text-white/50">
+                          <div key={r.expenseId} className="flex justify-between text-xs text-muted-foreground">
                             <span className="truncate max-w-[200px]">{r.description}</span>
                             <span className="font-medium shrink-0 ml-2">{formatCurrency(r.shareAmount, group.currency)}</span>
                           </div>
@@ -431,7 +431,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                   ].map(({ label, node }) => (
                     <div
                       key={label}
-                      className="flex items-center px-3 py-2 text-sm text-white/80 hover:bg-white/8 cursor-pointer [&>*]:w-full [&_button]:justify-start [&_button]:px-0 [&_button]:h-auto [&_button]:py-0 [&_button]:text-white/80 [&_button]:bg-transparent [&_button]:shadow-none [&_button]:font-normal [&_button]:text-sm"
+                      className="flex items-center px-3 py-2 text-sm text-foreground/80 hover:bg-accent cursor-pointer [&>*]:w-full [&_button]:justify-start [&_button]:px-0 [&_button]:h-auto [&_button]:py-0 [&_button]:text-foreground/80 [&_button]:bg-transparent [&_button]:shadow-none [&_button]:font-normal [&_button]:text-sm"
                       onClick={() => setShowMoreActions(false)}
                     >
                       {node}
@@ -445,23 +445,23 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Tabs */}
         <Tabs defaultValue="expenses">
-          <TabsList className="w-full overflow-x-auto flex h-auto p-1 gap-0.5 bg-white/8 rounded-xl">
-            <TabsTrigger value="expenses" className="flex-1 text-xs rounded-lg py-2 data-[state=active]:bg-white/15 data-[state=active]:shadow-sm whitespace-nowrap">
+          <TabsList className="w-full overflow-x-auto flex h-auto p-1 gap-0.5 bg-muted rounded-xl">
+            <TabsTrigger value="expenses" className="flex-1 text-xs rounded-lg py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap">
               Expenses {group.expenses.length > 0 && <span className="ml-1 text-gray-400">({group.expenses.length})</span>}
             </TabsTrigger>
-            <TabsTrigger value="settlements" className="flex-1 text-xs rounded-lg py-2 data-[state=active]:bg-white/15 data-[state=active]:shadow-sm whitespace-nowrap">
+            <TabsTrigger value="settlements" className="flex-1 text-xs rounded-lg py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap">
               Settlements {group.settlements.length > 0 && <span className="ml-1 text-gray-400">({group.settlements.length})</span>}
             </TabsTrigger>
-            <TabsTrigger value="recurring" className="flex-1 text-xs rounded-lg py-2 data-[state=active]:bg-white/15 data-[state=active]:shadow-sm whitespace-nowrap">
+            <TabsTrigger value="recurring" className="flex-1 text-xs rounded-lg py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap">
               Recurring
             </TabsTrigger>
-            <TabsTrigger value="members" className="flex-1 text-xs rounded-lg py-2 data-[state=active]:bg-white/15 data-[state=active]:shadow-sm whitespace-nowrap">
+            <TabsTrigger value="members" className="flex-1 text-xs rounded-lg py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap">
               Members
             </TabsTrigger>
-            <TabsTrigger value="balances" className="flex-1 text-xs rounded-lg py-2 data-[state=active]:bg-white/15 data-[state=active]:shadow-sm whitespace-nowrap">
+            <TabsTrigger value="balances" className="flex-1 text-xs rounded-lg py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap">
               Balances
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex-1 text-xs rounded-lg py-2 data-[state=active]:bg-white/15 data-[state=active]:shadow-sm whitespace-nowrap">
+            <TabsTrigger value="settings" className="flex-1 text-xs rounded-lg py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap">
               Settings
             </TabsTrigger>
           </TabsList>
@@ -470,24 +470,24 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           <TabsContent value="expenses" className="mt-4">
             {group.expenses.length === 0 ? (
               <div className="text-center py-16">
-                <div className="mx-auto h-14 w-14 rounded-2xl bg-white/5 flex items-center justify-center mb-3">
-                  <Plus className="h-6 w-6 text-white/20" />
+                <div className="mx-auto h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mb-3">
+                  <Plus className="h-6 w-6 text-muted-foreground/40" />
                 </div>
-                <p className="text-sm font-medium text-white/50">No expenses yet</p>
-                <p className="text-xs text-white/40 mt-1">Add the first expense to start splitting</p>
+                <p className="text-sm font-medium text-muted-foreground">No expenses yet</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">Add the first expense to start splitting</p>
               </div>
             ) : (
               <div className="glass rounded-2xl overflow-hidden">
                 {group.expenses.map((expense, idx) => (
                   <div key={expense.id}>
-                    {idx > 0 && <div className="h-px bg-white/5 mx-4" />}
-                    <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-white/5 group transition-colors">
+                    {idx > 0 && <div className="h-px bg-border mx-4" />}
+                    <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-accent/50 group transition-colors">
                       {/* Category dot */}
                       <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${CATEGORY_COLORS[expense.category] ?? "bg-gray-300"}`} />
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="font-semibold text-white text-sm truncate">{expense.description}</p>
+                          <p className="font-semibold text-foreground text-sm truncate">{expense.description}</p>
                           {expense.visibility === "PAYERS_ONLY" && (
                             <EyeOff className="h-3 w-3 text-amber-500 shrink-0" />
                           )}
@@ -502,13 +502,13 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-white/50 mt-0.5">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           {expense.paidBy.name} · {format(new Date(expense.date), "MMM d")} · {expense.category}
                         </p>
                       </div>
 
                       <div className="text-right shrink-0">
-                        <p className="font-bold text-white text-sm tabular-nums">{formatCurrency(expense.amount, expense.currency)}</p>
+                        <p className="font-bold text-foreground text-sm tabular-nums">{formatCurrency(expense.amount, expense.currency)}</p>
                         <div className="flex items-center justify-end gap-0.5 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           {isAdmin && group.workspaceType === "TEAM" && expense.approvalStatus === "PENDING_APPROVAL" && (
                             <>
@@ -551,17 +551,17 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           <TabsContent value="settlements" className="mt-4">
             {group.settlements.length === 0 ? (
               <div className="text-center py-16">
-                <div className="mx-auto h-14 w-14 rounded-2xl bg-emerald-500/15 flex items-center justify-center mb-3">
-                  <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+                <div className="mx-auto h-14 w-14 rounded-2xl bg-emerald-50 dark:bg-emerald-500/15 flex items-center justify-center mb-3">
+                  <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
-                <p className="text-sm font-medium text-white/50">No settlements yet</p>
-                <p className="text-xs text-white/40 mt-1">Payments between members will appear here</p>
+                <p className="text-sm font-medium text-muted-foreground">No settlements yet</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">Payments between members will appear here</p>
               </div>
             ) : (
               <div className="glass rounded-2xl overflow-hidden">
                 {group.settlements.map((s, idx) => (
                   <div key={s.id}>
-                    {idx > 0 && <div className="h-px bg-white/5 mx-4" />}
+                    {idx > 0 && <div className="h-px bg-border mx-4" />}
                     <div className="flex items-center gap-3 px-4 py-3.5">
                       <div className="flex items-center gap-1.5">
                         <Avatar className="h-7 w-7">
@@ -577,10 +577,10 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                         </Avatar>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-white">
+                        <p className="text-sm font-semibold text-foreground">
                           {s.fromUser.name} → {s.toUser.name}
                         </p>
-                        <p className="text-xs text-white/50">
+                        <p className="text-xs text-muted-foreground">
                           {s.note ? `${s.note} · ` : ""}{format(new Date(s.createdAt), "MMM d, yyyy")}
                         </p>
                       </div>
@@ -596,32 +596,32 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           <TabsContent value="recurring" className="mt-4">
             {group.recurringExpenses.length === 0 ? (
               <div className="text-center py-16">
-                <div className="mx-auto h-14 w-14 rounded-2xl bg-violet-500/15 flex items-center justify-center mb-3">
-                  <RefreshCw className="h-6 w-6 text-violet-400" />
+                <div className="mx-auto h-14 w-14 rounded-2xl bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center mb-3">
+                  <RefreshCw className="h-6 w-6 text-violet-600 dark:text-violet-400" />
                 </div>
-                <p className="text-sm font-medium text-white/50">No recurring expenses</p>
-                <p className="text-xs text-white/40 mt-1">Auto-split bills every week, month, or quarter</p>
+                <p className="text-sm font-medium text-muted-foreground">No recurring expenses</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">Auto-split bills every week, month, or quarter</p>
               </div>
             ) : (
               <div className="glass rounded-2xl overflow-hidden">
                 {group.recurringExpenses.map((r, idx) => (
                   <div key={r.id}>
-                    {idx > 0 && <div className="h-px bg-white/5 mx-4" />}
-                    <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-white/5 transition-colors">
+                    {idx > 0 && <div className="h-px bg-border mx-4" />}
+                    <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-accent/50 transition-colors">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="font-semibold text-white text-sm">{r.description}</p>
+                          <p className="font-semibold text-foreground text-sm">{r.description}</p>
                           <Badge variant="outline" className="text-[10px] text-violet-600 border-violet-200 px-1.5 py-0">
                             {r.frequency === "WEEKLY" ? "Weekly" : r.frequency === "MONTHLY" ? "Monthly" : "Quarterly"}
                           </Badge>
                         </div>
-                        <p className="text-xs text-white/50 mt-0.5">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           Next: {format(new Date(r.nextDueDate), "MMM d")} · {r.category} · by {r.createdBy.name}
                         </p>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="font-bold text-white text-sm tabular-nums">{formatCurrency(r.lastAmount, r.currency)}</p>
-                        <p className="text-xs text-white/50">per period</p>
+                        <p className="font-bold text-foreground text-sm tabular-nums">{formatCurrency(r.lastAmount, r.currency)}</p>
+                        <p className="text-xs text-muted-foreground">per period</p>
                       </div>
                     </div>
                   </div>
@@ -637,7 +637,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                 const balance = group.balanceMap[m.userId] ?? 0
                 return (
                   <div key={m.userId}>
-                    {idx > 0 && <div className="h-px bg-white/5 mx-4" />}
+                    {idx > 0 && <div className="h-px bg-border mx-4" />}
                     <div className="flex items-center gap-3 px-4 py-3.5">
                       <Avatar className="h-9 w-9 shrink-0">
                         <AvatarFallback
@@ -652,14 +652,14 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <p className="font-semibold text-white text-sm">{m.user.name}</p>
-                          {m.userId === userId && <span className="text-[10px] text-white/40 bg-white/10 px-1.5 py-0.5 rounded-full">you</span>}
-                          {m.role === "ADMIN" && <span className="text-[10px] text-violet-300 bg-violet-500/15 px-1.5 py-0.5 rounded-full font-medium">Admin</span>}
+                          <p className="font-semibold text-foreground text-sm">{m.user.name}</p>
+                          {m.userId === userId && <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">you</span>}
+                          {m.role === "ADMIN" && <span className="text-[10px] text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-500/15 px-1.5 py-0.5 rounded-full font-medium">Admin</span>}
                         </div>
-                        <p className="text-xs text-white/50 mt-0.5">{m.user.email}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{m.user.email}</p>
                       </div>
                       <p className={cn("text-sm font-bold tabular-nums shrink-0",
-                        balance > 0.01 ? "text-emerald-400" : balance < -0.01 ? "text-rose-400" : "text-white/30"
+                        balance > 0.01 ? "text-emerald-600 dark:text-emerald-400" : balance < -0.01 ? "text-rose-500 dark:text-rose-400" : "text-muted-foreground/50"
                       )}>
                         {balance > 0.01 ? "+" : ""}{formatCurrency(balance, group.currency)}
                       </p>
@@ -686,25 +686,25 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                             {m.user.name.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="text-sm font-semibold text-white">
+                        <span className="text-sm font-semibold text-foreground">
                           {m.user.name}{m.userId === userId && " (you)"}
                         </span>
                       </div>
                       <div className="text-right">
                         <p className={cn("text-sm font-bold tabular-nums",
-                          balance > 0.01 ? "text-emerald-400" : balance < -0.01 ? "text-rose-400" : "text-white/40"
+                          balance > 0.01 ? "text-emerald-600 dark:text-emerald-400" : balance < -0.01 ? "text-rose-500 dark:text-rose-400" : "text-muted-foreground/50"
                         )}>
                           {balance > 0.01 ? "+" : ""}{formatCurrency(balance, group.currency)}
                         </p>
-                        <p className="text-[10px] text-white/40">
+                        <p className="text-[10px] text-muted-foreground/50">
                           {Math.abs(balance) < 0.01 ? "settled" : balance > 0 ? "owed to them" : "they owe"}
                         </p>
                       </div>
                     </div>
                     {/* Balance bar */}
-                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                       <div
-                        className={cn("h-full rounded-full transition-all", balance > 0.01 ? "bg-emerald-400" : balance < -0.01 ? "bg-rose-400" : "bg-gray-200")}
+                        className={cn("h-full rounded-full transition-all", balance > 0.01 ? "bg-emerald-500" : balance < -0.01 ? "bg-rose-500" : "bg-gray-300 dark:bg-gray-200")}
                         style={{ width: `${barWidth}%` }}
                       />
                     </div>
@@ -723,29 +723,29 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
             {/* Export */}
             <div className="glass rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-4">
-                <div className="h-8 w-8 rounded-lg bg-violet-500/15 flex items-center justify-center">
-                  <Download className="h-4 w-4 text-violet-400" />
+                <div className="h-8 w-8 rounded-lg bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center">
+                  <Download className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">Export Data</p>
-                  <p className="text-xs text-white/50">Download expense records</p>
+                  <p className="text-sm font-semibold text-foreground">Export Data</p>
+                  <p className="text-xs text-muted-foreground">Download expense records</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 <a
                   href={`/api/groups/${group.id}/export?format=csv`}
                   download
-                  className="inline-flex items-center gap-1.5 text-sm font-medium border border-white/15 rounded-lg px-3 py-2 hover:bg-white/8 transition-colors text-white/80"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium border border-border rounded-lg px-3 py-2 hover:bg-accent transition-colors text-foreground/80"
                 >
-                  <Download className="h-3.5 w-3.5 text-white/40" />
+                  <Download className="h-3.5 w-3.5 text-muted-foreground" />
                   CSV
                 </a>
                 <a
                   href={`/api/groups/${group.id}/export?format=qbo`}
                   download
-                  className="inline-flex items-center gap-1.5 text-sm font-medium border border-white/15 rounded-lg px-3 py-2 hover:bg-white/8 transition-colors text-white/80"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium border border-border rounded-lg px-3 py-2 hover:bg-accent transition-colors text-foreground/80"
                 >
-                  <Download className="h-3.5 w-3.5 text-white/40" />
+                  <Download className="h-3.5 w-3.5 text-muted-foreground" />
                   QuickBooks (IIF)
                 </a>
               </div>
@@ -753,20 +753,20 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
             {/* Danger Zone */}
             {isAdmin && (
-              <div className="glass rounded-2xl border border-red-500/25 p-5">
+              <div className="glass rounded-2xl border border-red-200 dark:border-red-500/25 p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="h-8 w-8 rounded-lg bg-red-500/15 flex items-center justify-center">
-                    <Trash2 className="h-4 w-4 text-red-400" />
+                  <div className="h-8 w-8 rounded-lg bg-red-50 dark:bg-red-500/15 flex items-center justify-center">
+                    <Trash2 className="h-4 w-4 text-red-500 dark:text-red-400" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-red-400">Danger Zone</p>
-                    <p className="text-xs text-white/50">Irreversible actions</p>
+                    <p className="text-sm font-semibold text-red-500 dark:text-red-400">Danger Zone</p>
+                    <p className="text-xs text-muted-foreground">Irreversible actions</p>
                   </div>
                 </div>
-                <div className="flex items-center justify-between gap-4 bg-red-500/10 rounded-xl p-4">
+                <div className="flex items-center justify-between gap-4 bg-red-50 dark:bg-red-500/10 rounded-xl p-4">
                   <div>
-                    <p className="text-sm font-medium text-white/80">Delete this group</p>
-                    <p className="text-xs text-white/50 mt-0.5">Permanently removes all expenses and settlements.</p>
+                    <p className="text-sm font-medium text-foreground/80">Delete this group</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Permanently removes all expenses and settlements.</p>
                   </div>
                   <Button
                     variant="destructive"

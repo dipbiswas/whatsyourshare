@@ -6,8 +6,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-600 shadow-lg shadow-violet-900/50 mb-4">
           <span className="text-white font-bold text-xl">W</span>
         </div>
-        <h1 className="text-2xl font-bold text-white">WhatsYourShare</h1>
-        <p className="text-sm text-white/50 mt-1">Split expenses. Stay friends.</p>
+        <h1 className="text-2xl font-bold text-foreground">WhatsYourShare</h1>
+        <p className="text-sm text-muted-foreground mt-1">Split expenses. Stay friends.</p>
       </div>
       <div className="w-full max-w-sm">
         {children}

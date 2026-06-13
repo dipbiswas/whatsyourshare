@@ -70,9 +70,9 @@ const PLANS = [
 ]
 
 const PLAN_COLORS: Record<string, { bg: string; text: string; badge: string }> = {
-  FREE: { bg: "bg-white/10", text: "text-white", badge: "bg-white/15 text-white/80" },
-  PRO: { bg: "bg-violet-600/60", text: "text-white", badge: "bg-violet-500/30 text-violet-300" },
-  FAMILY: { bg: "bg-amber-500/60", text: "text-white", badge: "bg-amber-500/30 text-amber-300" },
+  FREE: { bg: "bg-gray-100 dark:bg-white/10", text: "text-foreground", badge: "bg-gray-100 dark:bg-white/15 text-foreground" },
+  PRO: { bg: "bg-violet-600/80 dark:bg-violet-600/60", text: "text-white", badge: "bg-violet-100 dark:bg-violet-500/30 text-violet-700 dark:text-violet-300" },
+  FAMILY: { bg: "bg-amber-500/80 dark:bg-amber-500/60", text: "text-white", badge: "bg-amber-100 dark:bg-amber-500/30 text-amber-700 dark:text-amber-300" },
 }
 
 export default function SettingsPage() {
@@ -140,8 +140,8 @@ export default function SettingsPage() {
   return (
     <div className="p-5 md:p-8 space-y-6 max-w-3xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold text-white">Settings</h1>
-        <p className="text-sm text-white/50 mt-0.5">Manage your account and subscription</p>
+        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Manage your account and subscription</p>
       </div>
 
       {/* Profile card */}
@@ -163,42 +163,42 @@ export default function SettingsPage() {
               </Badge>
             </div>
           </div>
-          <p className="text-lg font-bold text-white">{session?.user.name}</p>
-          <p className="text-sm text-white/50">{session?.user.email}</p>
-          <p className="text-xs text-white/30 font-mono mt-1">{session?.user.id}</p>
+          <p className="text-lg font-bold text-foreground">{session?.user.name}</p>
+          <p className="text-sm text-muted-foreground">{session?.user.email}</p>
+          <p className="text-xs text-muted-foreground/50 font-mono mt-1">{session?.user.id}</p>
         </div>
       </div>
 
       {/* Payment Account (Stripe Connect) */}
       <div className="glass rounded-2xl p-5">
         <div className="flex items-center gap-3 mb-4">
-          <div className="h-10 w-10 rounded-xl bg-violet-500/15 flex items-center justify-center shrink-0">
-            <Link2 className="h-5 w-5 text-violet-400" />
+          <div className="h-10 w-10 rounded-xl bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center shrink-0">
+            <Link2 className="h-5 w-5 text-violet-600 dark:text-violet-400" />
           </div>
           <div>
-            <p className="font-semibold text-white">Payment Account</p>
-            <p className="text-xs text-white/50">Send & receive settlements via Stripe</p>
+            <p className="font-semibold text-foreground">Payment Account</p>
+            <p className="text-xs text-muted-foreground">Send & receive settlements via Stripe</p>
           </div>
         </div>
 
         {connect === null ? (
-          <div className="flex items-center gap-2 text-sm text-white/40">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Loading…
           </div>
         ) : connect.onboarded ? (
-          <div className="flex items-center gap-3 bg-emerald-500/15 rounded-xl px-4 py-3">
-            <div className="h-8 w-8 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-              <Check className="h-4 w-4 text-emerald-400" />
+          <div className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-500/15 rounded-xl px-4 py-3">
+            <div className="h-8 w-8 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center shrink-0">
+              <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-emerald-300">Stripe account connected</p>
-              <p className="text-xs text-emerald-400">You can send and receive instant settlements</p>
+              <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">Stripe account connected</p>
+              <p className="text-xs text-emerald-600 dark:text-emerald-400">You can send and receive instant settlements</p>
             </div>
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="bg-white/5 rounded-xl px-4 py-3">
-              <p className="text-sm text-white/60">
+            <div className="bg-muted rounded-xl px-4 py-3">
+              <p className="text-sm text-foreground/70">
                 {connect.connected
                   ? "Your account is connected but not fully verified. Complete onboarding to enable settlements."
                   : "Connect your bank account to settle debts instantly."}
@@ -221,12 +221,12 @@ export default function SettingsPage() {
       <div className="glass rounded-2xl p-5">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-violet-500/15 flex items-center justify-center shrink-0">
-              <CreditCard className="h-5 w-5 text-violet-400" />
+            <div className="h-10 w-10 rounded-xl bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center shrink-0">
+              <CreditCard className="h-5 w-5 text-violet-600 dark:text-violet-400" />
             </div>
             <div>
-              <p className="font-semibold text-white">Plan & Billing</p>
-              <p className="text-xs text-white/50">Unlock AI features and unlimited groups</p>
+              <p className="font-semibold text-foreground">Plan & Billing</p>
+              <p className="text-xs text-muted-foreground">Unlock AI features and unlimited groups</p>
             </div>
           </div>
           {billing?.subscriptionStatus && (
@@ -249,10 +249,10 @@ export default function SettingsPage() {
                       ? "border-violet-500 bg-gradient-to-b from-violet-500/20 to-transparent"
                       : plan.key === "FAMILY"
                       ? "border-amber-400 bg-gradient-to-b from-amber-500/20 to-transparent"
-                      : "border-white/20 bg-white/10"
+                      : "border-border bg-muted"
                     : plan.highlight
                     ? "border-violet-500/30 hover:border-violet-400"
-                    : "border-white/10 hover:border-white/20"
+                    : "border-border hover:border-foreground/20"
                 }`}
               >
                 {isCurrent && (
@@ -271,17 +271,17 @@ export default function SettingsPage() {
                 )}
 
                 <div className="mb-3">
-                  <p className="font-bold text-white">{plan.label}</p>
+                  <p className="font-bold text-foreground">{plan.label}</p>
                   <div className="flex items-baseline gap-0.5 mt-0.5">
-                    <p className="text-2xl font-extrabold text-white">{plan.price}</p>
-                    <p className="text-xs text-white/50">{plan.period}</p>
+                    <p className="text-2xl font-extrabold text-foreground">{plan.price}</p>
+                    <p className="text-xs text-muted-foreground">{plan.period}</p>
                   </div>
-                  <p className="text-xs text-white/50 mt-0.5">{plan.desc}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{plan.desc}</p>
                 </div>
 
                 <ul className="space-y-1.5 mb-4">
                   {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-1.5 text-xs text-white/60">
+                    <li key={f} className="flex items-start gap-1.5 text-xs text-foreground/70">
                       <Check className={`h-3 w-3 mt-0.5 shrink-0 ${
                         plan.key === "PRO" ? "text-violet-500" :
                         plan.key === "FAMILY" ? "text-amber-500" :
@@ -313,9 +313,9 @@ export default function SettingsPage() {
                 )}
                 {isCurrent && (
                   <div className={`w-full text-center text-xs font-medium py-1.5 rounded-lg ${
-                    plan.key === "PRO" ? "bg-violet-500/20 text-violet-300" :
-                    plan.key === "FAMILY" ? "bg-amber-500/20 text-amber-300" :
-                    "bg-white/10 text-white/50"
+                    plan.key === "PRO" ? "bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300" :
+                    plan.key === "FAMILY" ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300" :
+                    "bg-muted text-muted-foreground"
                   }`}>
                     Active plan
                   </div>
@@ -326,14 +326,14 @@ export default function SettingsPage() {
         </div>
 
         {billing?.currentPeriodEnd && (
-          <p className="mt-4 text-xs text-white/40 text-center">
+          <p className="mt-4 text-xs text-muted-foreground text-center">
             Current period ends {new Date(billing.currentPeriodEnd).toLocaleDateString()}
           </p>
         )}
       </div>
 
       {/* Security / app info footer */}
-      <div className="flex items-center justify-between text-xs text-white/25 px-1">
+      <div className="flex items-center justify-between text-xs text-muted-foreground/40 px-1">
         <div className="flex items-center gap-1.5">
           <Shield className="h-3.5 w-3.5" />
           WhatsYourShare v1.0.0
