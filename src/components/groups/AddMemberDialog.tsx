@@ -176,10 +176,12 @@ export function AddMemberDialog({ groupId, existingMemberIds = [], onAdded, open
 
   return (
     <>
-      <Button variant="outline" className="gap-2" onClick={() => setOpen(true)}>
-        <UserPlus className="h-4 w-4" />
-        Add Member
-      </Button>
+      {controlledOpen === undefined && (
+        <Button variant="outline" className="gap-2" onClick={() => setOpen(true)}>
+          <UserPlus className="h-4 w-4" />
+          Add Member
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset() }}>
         <DialogContent className="max-w-sm">

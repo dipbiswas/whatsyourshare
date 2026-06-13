@@ -64,9 +64,11 @@ export function CreateTripDialog({ groupId, onCreated, open: controlledOpen, onO
 
   return (
     <>
-      <Button className="bg-violet-600 hover:bg-violet-700 gap-2" onClick={() => setOpen(true)}>
-        <Plus className="h-4 w-4" /> New Trip
-      </Button>
+      {controlledOpen === undefined && (
+        <Button className="bg-violet-600 hover:bg-violet-700 gap-2" onClick={() => setOpen(true)}>
+          <Plus className="h-4 w-4" /> New Trip
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">

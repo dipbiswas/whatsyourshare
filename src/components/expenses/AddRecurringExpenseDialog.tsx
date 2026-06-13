@@ -93,10 +93,12 @@ export function AddRecurringExpenseDialog({ groupId, currency, onCreated, open: 
 
   return (
     <>
-      <Button variant="outline" className="gap-2" onClick={() => setOpen(true)}>
-        <RefreshCw className="h-4 w-4" />
-        Add Recurring
-      </Button>
+      {controlledOpen === undefined && (
+        <Button variant="outline" className="gap-2" onClick={() => setOpen(true)}>
+          <RefreshCw className="h-4 w-4" />
+          Add Recurring
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
