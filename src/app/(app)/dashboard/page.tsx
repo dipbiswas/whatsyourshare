@@ -83,11 +83,19 @@ async function getDashboardData(userId: string) {
   }
 }
 
-function getGreeting() {
-  const h = new Date().getHours()
-  if (h < 12) return "Good morning"
-  if (h < 17) return "Good afternoon"
-  return "Good evening"
+function getGreeting(timezone?: string) {
+  try {
+    const tz = timezone && timezone !== "UTC" ? timezone : undefined
+    const h = parseInt(new Intl.DateTimeFormat("en", { hour: "numeric", hour12: false, timeZone: tz }).format(new Date()))
+    if (h < 12) return "Good morning"
+    if (h < 17) return "Good afternoon"
+    return "Good evening"
+  } catch {
+    const h = new Date().getHours()
+    if (h < 12) return "Good morning"
+    if (h < 17) return "Good afternoon"
+    return "Good evening"
+  }
 }
 
 export default async function DashboardPage() {
@@ -96,11 +104,19 @@ export default async function DashboardPage() {
   const data = await getDashboardData(session.user.id)
   const firstName = session.user.name?.split(" ")[0] ?? "there"
 
+  // Fetch user timezone for greeting
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const userProfile = await (prisma.user.findUnique as any)({
+    where: { id: session.user.id },
+    select: { timezone: true },
+  })
+  const greeting = getGreeting(userProfile?.timezone)
+
   return (
     <div className="p-5 md:p-8 space-y-6 max-w-6xl mx-auto">
       {/* Header */}
       <div>
-        <p className="text-sm text-muted-foreground font-medium">{getGreeting()}</p>
+        <p className="text-sm text-muted-foreground font-medium">{greeting}</p>
         <h1 className="text-2xl md:text-3xl font-bold text-foreground mt-0.5">{firstName}</h1>
       </div>
 

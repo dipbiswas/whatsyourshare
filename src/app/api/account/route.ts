@@ -7,7 +7,23 @@ import { z } from "zod"
 const updateProfileSchema = z.object({
   name: z.string().min(2).max(64).optional(),
   email: z.string().email().optional(),
+  phone: z.string().max(30).optional().nullable(),
+  defaultCurrency: z.string().length(3).optional(),
+  timezone: z.string().max(60).optional(),
 })
+
+// GET /api/account — return full profile
+export async function GET() {
+  const session = await auth()
+  if (!session?.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    select: { id: true, name: true, email: true, phone: true, defaultCurrency: true, timezone: true } as any,
+  })
+  return NextResponse.json(user)
+}
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1),
@@ -42,7 +58,7 @@ export async function PATCH(req: Request) {
   const parsed = updateProfileSchema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 })
 
-  const { name, email } = parsed.data
+  const { name, email, phone, defaultCurrency, timezone } = parsed.data
 
   // Check email uniqueness if changing email
   if (email && email !== session.user.email) {
@@ -50,10 +66,17 @@ export async function PATCH(req: Request) {
     if (existing) return NextResponse.json({ error: "Email already in use" }, { status: 409 })
   }
 
-  const updated = await prisma.user.update({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updated = await (prisma.user.update as any)({
     where: { id: session.user.id },
-    data: { ...(name && { name }), ...(email && { email }) },
-    select: { id: true, name: true, email: true },
+    data: {
+      ...(name && { name }),
+      ...(email && { email }),
+      ...(phone !== undefined ? { phone } : {}),
+      ...(defaultCurrency ? { defaultCurrency } : {}),
+      ...(timezone ? { timezone } : {}),
+    },
+    select: { id: true, name: true, email: true, phone: true, defaultCurrency: true, timezone: true },
   })
 
   return NextResponse.json(updated)

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -26,7 +26,21 @@ interface Props {
 export function CreateGroupDialog({ onCreated, trigger }: Props) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [defaultCurrency, setDefaultCurrency] = useState("USD")
   const [form, setForm] = useState({ name: "", description: "", currency: "USD" })
+
+  // Fetch user's default currency once
+  useEffect(() => {
+    fetch("/api/account")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.defaultCurrency) {
+          setDefaultCurrency(data.defaultCurrency)
+          setForm((f) => ({ ...f, currency: data.defaultCurrency }))
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -45,7 +59,7 @@ export function CreateGroupDialog({ onCreated, trigger }: Props) {
       toast.success(`Group "${form.name}" created!`)
       onCreated(group)
       setOpen(false)
-      setForm({ name: "", description: "", currency: "USD" })
+      setForm({ name: "", description: "", currency: defaultCurrency })
     } finally {
       setLoading(false)
     }

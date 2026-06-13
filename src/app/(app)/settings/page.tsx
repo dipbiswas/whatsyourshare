@@ -141,7 +141,7 @@ export default function SettingsPage() {
   const planColor = PLAN_COLORS[currentPlan]
 
   // Account management state
-  const [profileForm, setProfileForm] = useState({ name: "", email: "" })
+  const [profileForm, setProfileForm] = useState({ name: "", email: "", phone: "", defaultCurrency: "USD", timezone: "" })
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" })
   const [savingProfile, setSavingProfile] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
@@ -149,8 +149,19 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (session?.user && !profileReady) {
-      setProfileForm({ name: session.user.name ?? "", email: session.user.email ?? "" })
-      setProfileReady(true)
+      // Fetch full profile (includes phone, defaultCurrency, timezone)
+      fetch("/api/account")
+        .then((r) => r.ok ? r.json() : null)
+        .then((data) => {
+          setProfileForm({
+            name: data?.name ?? session.user?.name ?? "",
+            email: data?.email ?? session.user?.email ?? "",
+            phone: data?.phone ?? "",
+            defaultCurrency: data?.defaultCurrency ?? "USD",
+            timezone: data?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC",
+          })
+          setProfileReady(true)
+        })
     }
   }, [session, profileReady])
 
@@ -164,7 +175,13 @@ export default function SettingsPage() {
       const res = await fetch("/api/account", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: profileForm.name.trim(), email: profileForm.email.trim() }),
+        body: JSON.stringify({
+          name: profileForm.name.trim(),
+          email: profileForm.email.trim(),
+          phone: profileForm.phone.trim() || null,
+          defaultCurrency: profileForm.defaultCurrency,
+          timezone: profileForm.timezone,
+        }),
       })
       const data = await res.json()
       if (!res.ok) { toast.error(data.error ?? "Failed to update profile"); return }
@@ -251,7 +268,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <p className="font-semibold text-foreground">Account</p>
-            <p className="text-xs text-muted-foreground">Update your name, email, and password</p>
+            <p className="text-xs text-muted-foreground">Update your name, email, phone, currency, and timezone</p>
           </div>
         </div>
 
@@ -277,6 +294,43 @@ export default function SettingsPage() {
                 placeholder="you@example.com"
               />
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="account-phone" className="text-sm">Phone number <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Input
+                id="account-phone"
+                type="tel"
+                value={profileForm.phone}
+                onChange={(e) => setProfileForm((f) => ({ ...f, phone: e.target.value }))}
+                placeholder="+1 555 000 0000"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="account-currency" className="text-sm">Default currency</Label>
+              <select
+                id="account-currency"
+                value={profileForm.defaultCurrency}
+                onChange={(e) => setProfileForm((f) => ({ ...f, defaultCurrency: e.target.value }))}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                {["USD","EUR","GBP","INR","CAD","AUD","JPY","SGD","AED","CHF"].map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="account-timezone" className="text-sm">Timezone</Label>
+            <select
+              id="account-timezone"
+              value={profileForm.timezone}
+              onChange={(e) => setProfileForm((f) => ({ ...f, timezone: e.target.value }))}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              {Intl.supportedValuesOf("timeZone").map((tz) => (
+                <option key={tz} value={tz}>{tz.replace(/_/g, " ")}</option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">Used for dashboard greeting and time-based features</p>
           </div>
           <div className="flex justify-end">
             <Button
