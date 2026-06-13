@@ -8,7 +8,7 @@ const createSchema = z.object({
   description: z.string().max(500).optional(),
   currency: z.string().length(3).default("USD"),
   defaultSplitType: z.string().default("EQUAL"),
-  defaultSplitShares: z.record(z.number()).optional(),
+  defaultSplitShares: z.record(z.string(), z.number()).optional(),
 })
 
 export async function GET() {
