@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
-import { LayoutDashboard, Users, Receipt, Settings, LogOut, DollarSign, Plane, Crown, Sun, Moon, UserCheck } from "lucide-react"
+import { LayoutDashboard, Users, Receipt, Settings, LogOut, DollarSign, Plane, Crown, Sun, Moon, UserCheck, Activity } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -12,12 +12,13 @@ import { useFeatureGate } from "@/lib/useFeatureGate"
 import { useTheme } from "@/components/providers/ThemeProvider"
 
 const nav = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, mobile: true },
-  { href: "/groups", label: "Groups", icon: Users, mobile: true },
-  { href: "/friends", label: "Friends", icon: UserCheck, mobile: true },
-  { href: "/trips", label: "Trips", icon: Plane, mobile: false },
-  { href: "/expenses", label: "Expenses", icon: Receipt, mobile: true },
-  { href: "/settings", label: "Settings", icon: Settings, mobile: false },
+  { href: "/dashboard",  label: "Dashboard",       icon: LayoutDashboard, mobile: true },
+  { href: "/groups",     label: "Groups",           icon: Users,           mobile: true },
+  { href: "/friends",    label: "Friends",          icon: UserCheck,       mobile: true },
+  { href: "/activity",   label: "Recent Activity",  icon: Activity,        mobile: true },
+  { href: "/trips",      label: "Trips",            icon: Plane,           mobile: false },
+  { href: "/expenses",   label: "Expenses",         icon: Receipt,         mobile: false },
+  { href: "/settings",   label: "Settings",         icon: Settings,        mobile: false },
 ]
 
 interface SidebarProps {
