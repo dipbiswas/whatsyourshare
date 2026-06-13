@@ -1,15 +1,15 @@
 "use client"
 
 import { useSession } from "next-auth/react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Check, CreditCard, Link2, Loader2, Zap, Crown, DollarSign, Shield, User, Lock, KeyRound, Bell, Trash2 } from "lucide-react"
+import { Camera, Check, CreditCard, Link2, Loader2, Zap, Crown, DollarSign, Shield, User, Lock, KeyRound, Bell, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface BillingStatus {
@@ -147,10 +147,13 @@ export default function SettingsPage() {
   const [savingProfile, setSavingProfile] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
   const [profileReady, setProfileReady] = useState(false)
+  const [avatar, setAvatar] = useState<string | null>(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (session?.user && !profileReady) {
-      // Fetch full profile (includes phone, defaultCurrency, timezone)
+      // Fetch full profile (includes phone, defaultCurrency, timezone, avatar)
       fetch("/api/account")
         .then((r) => r.ok ? r.json() : null)
         .then((data) => {
@@ -161,10 +164,50 @@ export default function SettingsPage() {
             defaultCurrency: data?.defaultCurrency ?? "USD",
             timezone: data?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC",
           })
+          if (data?.avatar) setAvatar(data.avatar)
           setProfileReady(true)
         })
     }
   }, [session, profileReady])
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith("image/")) { toast.error("Please select an image file"); return }
+
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = async () => {
+      URL.revokeObjectURL(url)
+      // Resize to 256×256 on canvas
+      const size = 256
+      const canvas = document.createElement("canvas")
+      canvas.width = size
+      canvas.height = size
+      const ctx = canvas.getContext("2d")!
+      const scale = Math.max(size / img.width, size / img.height)
+      const w = img.width * scale
+      const h = img.height * scale
+      ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h)
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85)
+      setUploadingAvatar(true)
+      try {
+        const res = await fetch("/api/account", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ avatar: dataUrl }),
+        })
+        if (!res.ok) { toast.error("Failed to save avatar"); return }
+        setAvatar(dataUrl)
+        toast.success("Avatar updated")
+      } catch {
+        toast.error("Failed to save avatar")
+      } finally {
+        setUploadingAvatar(false)
+      }
+    }
+    img.src = url
+  }
 
   const handleSaveProfile = async () => {
     if (!profileForm.name.trim() || !profileForm.email.trim()) {
@@ -238,12 +281,33 @@ export default function SettingsPage() {
         <div className={`h-16 ${planColor.bg}`} />
         <div className="px-5 pb-5">
           {/* Avatar overlapping the gradient */}
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAvatarChange}
+          />
           <div className="flex items-end gap-4 -mt-8 mb-4">
-            <Avatar className="h-16 w-16 ring-4 ring-white/20 shadow-md shrink-0">
-              <AvatarFallback className="text-2xl font-bold bg-white text-violet-600">
-                {session?.user.name?.charAt(0).toUpperCase() ?? "U"}
-              </AvatarFallback>
-            </Avatar>
+            <button
+              type="button"
+              onClick={() => avatarInputRef.current?.click()}
+              className="relative group shrink-0 focus:outline-none"
+              title="Change avatar"
+            >
+              <Avatar className="h-16 w-16 ring-4 ring-white/20 shadow-md">
+                {avatar && <AvatarImage src={avatar} alt="Avatar" className="object-cover" />}
+                <AvatarFallback className="text-2xl font-bold bg-white text-violet-600">
+                  {session?.user.name?.charAt(0).toUpperCase() ?? "U"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                {uploadingAvatar
+                  ? <Loader2 className="h-5 w-5 text-white animate-spin" />
+                  : <Camera className="h-5 w-5 text-white" />
+                }
+              </div>
+            </button>
             <div className="pb-1">
               <Badge className={`text-xs border-0 ${planColor.badge}`}>
                 {currentPlan === "PRO" && <Crown className="h-2.5 w-2.5 mr-1" />}

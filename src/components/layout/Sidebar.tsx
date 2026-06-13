@@ -5,11 +5,12 @@ import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { LayoutDashboard, Users, Receipt, Settings, LogOut, DollarSign, Plane, Crown, Sun, Moon, UserCheck, Activity } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useFeatureGate } from "@/lib/useFeatureGate"
 import { useTheme } from "@/components/providers/ThemeProvider"
+import { useEffect, useState } from "react"
 
 const nav = [
   { href: "/dashboard",  label: "Dashboard",       icon: LayoutDashboard, mobile: true },
@@ -28,6 +29,13 @@ interface SidebarProps {
 export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname()
   const { plan } = useFeatureGate("PRO")
+  const [avatar, setAvatar] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch("/api/account")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.avatar) setAvatar(data.avatar) })
+  }, [])
   const { theme, toggle } = useTheme()
 
   const planBadge: Record<string, { label: string; className: string } | null> = {
@@ -75,6 +83,7 @@ export function Sidebar({ user }: SidebarProps) {
         <div className="border-t border-border p-3">
           <div className="flex items-center gap-3 px-2 py-2 mb-1">
             <Avatar className="h-8 w-8 shrink-0">
+              {avatar && <AvatarImage src={avatar} alt="Avatar" className="object-cover" />}
               <AvatarFallback className="bg-violet-100 text-violet-700 text-xs font-bold">
                 {user.name?.charAt(0).toUpperCase() ?? "U"}
               </AvatarFallback>

@@ -11,6 +11,7 @@ const updateProfileSchema = z.object({
   defaultCurrency: z.string().length(3).optional(),
   timezone: z.string().max(60).optional(),
   notificationPrefs: z.record(z.string(), z.boolean()).optional(),
+  avatar: z.string().max(200000).optional().nullable(), // base64 data URL, ~150KB max
 })
 
 // GET /api/account — return full profile
@@ -21,7 +22,7 @@ export async function GET() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const user = await (prisma.user.findUnique as any)({
     where: { id: session.user.id },
-    select: { id: true, name: true, email: true, phone: true, defaultCurrency: true, timezone: true, notificationPrefs: true },
+    select: { id: true, name: true, email: true, phone: true, defaultCurrency: true, timezone: true, notificationPrefs: true, avatar: true },
   })
   return NextResponse.json(user)
 }
@@ -59,7 +60,7 @@ export async function PATCH(req: Request) {
   const parsed = updateProfileSchema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 })
 
-  const { name, email, phone, defaultCurrency, timezone, notificationPrefs } = parsed.data
+  const { name, email, phone, defaultCurrency, timezone, notificationPrefs, avatar } = parsed.data
 
   // Check email uniqueness if changing email
   if (email && email !== session.user.email) {
@@ -77,8 +78,9 @@ export async function PATCH(req: Request) {
       ...(defaultCurrency ? { defaultCurrency } : {}),
       ...(timezone ? { timezone } : {}),
       ...(notificationPrefs !== undefined ? { notificationPrefs } : {}),
+      ...(avatar !== undefined ? { avatar } : {}),
     },
-    select: { id: true, name: true, email: true, phone: true, defaultCurrency: true, timezone: true, notificationPrefs: true },
+    select: { id: true, name: true, email: true, phone: true, defaultCurrency: true, timezone: true, notificationPrefs: true, avatar: true },
   })
 
   return NextResponse.json(updated)
