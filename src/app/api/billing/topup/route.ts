@@ -45,12 +45,16 @@ export async function POST(req: Request) {
     ? await config.pricing.topupSmall()
     : await config.pricing.topupLarge()
 
-  if (!packCfg.stripeId) return NextResponse.json({ error: "Stripe price ID not configured" }, { status: 503 })
+  const stripeId = packCfg.stripeId
+    || (parsed.data.pack === "small" ? process.env.STRIPE_PRICE_TOPUP_SMALL : process.env.STRIPE_PRICE_TOPUP_LARGE)
+    || ""
+
+  if (!stripeId) return NextResponse.json({ error: "Stripe price ID not configured for this pack. Please set it in Admin → Config." }, { status: 503 })
 
   const checkoutSession = await stripe.checkout.sessions.create({
     customer: customerId,
     mode: "payment",
-    line_items: [{ price: packCfg.stripeId, quantity: 1 }],
+    line_items: [{ price: stripeId, quantity: 1 }],
     success_url: `${origin}/settings?topup=success`,
     cancel_url:  `${origin}/settings?topup=cancelled`,
     metadata: { userId: session.user.id, type: "scan_topup", pack: parsed.data.pack, scans: String(packCfg.scans) },
