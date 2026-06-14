@@ -21,7 +21,8 @@ export async function GET(req: Request) {
 
   // Fetch recent expenses, settlements, and member joins in parallel
   const [expenses, settlements, joins] = await Promise.all([
-    prisma.expense.findMany({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (prisma.expense as any).findMany({
       where: {
         groupId: { in: groupIds },
         OR: [
@@ -33,6 +34,8 @@ export async function GET(req: Request) {
       include: {
         group: { select: { id: true, name: true } },
         paidBy: { select: { id: true, name: true } },
+        tripDay: { select: { trip: { select: { id: true, name: true, coverEmoji: true } } } },
+        trip: { select: { id: true, name: true, coverEmoji: true } },
       },
       orderBy: { createdAt: "desc" },
       take: limit,
@@ -71,22 +74,29 @@ export async function GET(req: Request) {
     currency?: string
     involvedMe: boolean
     timestamp: string
+    tripId?: string
+    tripName?: string
+    tripEmoji?: string | null
   }
 
   const activities: Activity[] = [
-    ...expenses.map((e) => ({
-      id: `expense-${e.id}`,
-      type: "expense" as const,
-      groupId: e.group.id,
-      groupName: e.group.name,
-      actorId: e.paidBy.id,
-      actorName: e.paidBy.id === userId ? "You" : e.paidBy.name,
-      description: e.description,
-      amount: e.amount,
-      currency: e.currency,
-      involvedMe: e.paidById === userId,
-      timestamp: e.createdAt.toISOString(),
-    })),
+    ...expenses.map((e: any) => {
+      const eventTrip = e.trip ?? e.tripDay?.trip ?? null
+      return {
+        id: `expense-${e.id}`,
+        type: "expense" as const,
+        groupId: e.group.id,
+        groupName: e.group.name,
+        actorId: e.paidBy.id,
+        actorName: e.paidBy.id === userId ? "You" : e.paidBy.name,
+        description: e.description,
+        amount: e.amount,
+        currency: e.currency,
+        involvedMe: e.paidById === userId,
+        timestamp: e.createdAt.toISOString(),
+        ...(eventTrip ? { tripId: eventTrip.id, tripName: eventTrip.name, tripEmoji: eventTrip.coverEmoji } : {}),
+      }
+    }),
     ...settlements.map((s) => ({
       id: `settlement-${s.id}`,
       type: "settlement" as const,

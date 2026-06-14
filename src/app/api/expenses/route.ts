@@ -33,12 +33,14 @@ export async function GET() {
 
   const userId = session.user.id
 
-  const expenses = await prisma.expense.findMany({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const expenses = await (prisma.expense as any).findMany({
     where: { group: { members: { some: { userId } } } },
     include: {
       group: { select: { id: true, name: true } },
       paidBy: { select: { id: true, name: true } },
       tripDay: { select: { trip: { select: { id: true, name: true, coverEmoji: true } } } },
+      trip: { select: { id: true, name: true, coverEmoji: true } },
     },
     orderBy: { date: "desc" },
   })

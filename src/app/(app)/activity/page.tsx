@@ -23,6 +23,9 @@ interface ActivityItem {
   currency?: string
   involvedMe: boolean
   timestamp: string
+  tripId?: string
+  tripName?: string
+  tripEmoji?: string | null
 }
 
 const TYPE_META: Record<ActivityType, { icon: React.ElementType; color: string; label: string }> = {
@@ -54,7 +57,9 @@ export default function ActivityPage() {
   const [search, setSearch] = useState("")
   const [activeType, setActiveType] = useState<ActivityType | null>(null)
   const [activeGroup, setActiveGroup] = useState<string | null>(null)
+  const [activeTrip, setActiveTrip] = useState<string | null>(null)
   const [showGroupMenu, setShowGroupMenu] = useState(false)
+  const [showTripMenu, setShowTripMenu] = useState(false)
 
   useEffect(() => {
     fetch("/api/activity?limit=100")
@@ -69,6 +74,12 @@ export default function ActivityPage() {
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
   }, [items])
 
+  const eventTrips = useMemo(() => {
+    const map = new Map<string, { name: string; emoji: string | null | undefined }>()
+    items.forEach((i) => { if (i.tripId && i.tripName) map.set(i.tripId, { name: i.tripName, emoji: i.tripEmoji }) })
+    return Array.from(map.entries()).map(([id, { name, emoji }]) => ({ id, name, emoji }))
+  }, [items])
+
   const filtered = useMemo(() => {
     let list = [...items]
     if (search.trim()) {
@@ -81,12 +92,14 @@ export default function ActivityPage() {
     }
     if (activeType) list = list.filter((i) => i.type === activeType)
     if (activeGroup) list = list.filter((i) => i.groupId === activeGroup)
+    if (activeTrip)  list = list.filter((i) => i.tripId === activeTrip)
     return list
   }, [items, search, activeType, activeGroup])
 
   const grouped = groupByDay(filtered)
-  const hasFilters = search || activeType || activeGroup
+  const hasFilters = search || activeType || activeGroup || activeTrip
   const activeGroupName = groups.find((g) => g.id === activeGroup)?.name
+  const activeTripName = eventTrips.find((t) => t.id === activeTrip)?.name
 
   return (
     <div className="p-5 md:p-8 space-y-5 max-w-3xl mr-auto">
@@ -178,9 +191,50 @@ export default function ActivityPage() {
               )}
             </div>
 
+            {/* Event filter */}
+            {eventTrips.length > 0 && (
+              <div className="relative">
+                <button
+                  onClick={() => { setShowTripMenu((v) => !v); setShowGroupMenu(false) }}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all whitespace-nowrap",
+                    activeTrip
+                      ? "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-transparent"
+                      : "bg-transparent border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                  )}
+                >
+                  📅 {activeTripName ?? "All events"}
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+                {showTripMenu && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowTripMenu(false)} />
+                    <div className="absolute left-0 top-full mt-1 z-20 w-52 bg-background border border-border rounded-xl shadow-xl py-1 overflow-hidden">
+                      <button
+                        onClick={() => { setActiveTrip(null); setShowTripMenu(false) }}
+                        className={cn("w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors", !activeTrip && "font-semibold text-foreground")}
+                      >
+                        All events
+                      </button>
+                      {eventTrips.map((t) => (
+                        <button
+                          key={t.id}
+                          onClick={() => { setActiveTrip(t.id); setShowTripMenu(false) }}
+                          className={cn("w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors flex items-center gap-2 truncate", activeTrip === t.id && "font-semibold text-foreground")}
+                        >
+                          <span>{t.emoji ?? "📅"}</span>
+                          <span className="truncate">{t.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             {hasFilters && (
               <button
-                onClick={() => { setSearch(""); setActiveType(null); setActiveGroup(null) }}
+                onClick={() => { setSearch(""); setActiveType(null); setActiveGroup(null); setActiveTrip(null) }}
                 className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 <X className="h-3 w-3" /> Clear
@@ -259,7 +313,13 @@ export default function ActivityPage() {
                         {item.type === "expense" ? "added " : ""}{item.description}
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                        {item.groupName} · {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
+                        {item.groupName}
+                        {item.tripName && (
+                          <span className="text-indigo-600 dark:text-indigo-400">
+                            {" "}· {item.tripEmoji ?? "📅"} {item.tripName}
+                          </span>
+                        )}
+                        {" "}· {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
                       </p>
                     </div>
 

@@ -28,7 +28,7 @@ export async function GET(req: Request) {
   const trips = await prisma.trip.findMany({
     where,
     include: {
-      group: { select: { id: true, name: true, currency: true } },
+      group: { select: { id: true, name: true, currency: true, members: { select: { userId: true } } } },
       _count: { select: { days: true } },
       fund: { select: { id: true, status: true, targetAmount: true, currency: true } },
     },

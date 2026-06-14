@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react"
 import Link from "next/link"
-import { Users, Receipt, Plus, Search, X, CheckCircle2 } from "lucide-react"
+import { Users, Receipt, Plus, Search, X, CheckCircle2, TrendingUp, TrendingDown } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
@@ -171,7 +171,7 @@ export default function GroupsPage() {
                       </div>
                     )}
 
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Receipt className="h-3.5 w-3.5" />
                         {group._count.expenses} expense{group._count.expenses !== 1 ? "s" : ""}
@@ -179,6 +179,20 @@ export default function GroupsPage() {
                       <span>·</span>
                       <span>{formatDistanceToNow(new Date(group.updatedAt), { addSuffix: true })}</span>
                     </div>
+
+                    {/* Balance */}
+                    {group._count.expenses > 0 && Math.abs(group.myBalance) >= 0.01 && (
+                      <div className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl w-fit ${
+                        group.myBalance > 0
+                          ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                          : "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                      }`}>
+                        {group.myBalance > 0
+                          ? <><TrendingUp className="h-3.5 w-3.5" /> You&apos;re owed {group.currency} {Math.abs(group.myBalance).toFixed(2)}</>
+                          : <><TrendingDown className="h-3.5 w-3.5" /> You owe {group.currency} {Math.abs(group.myBalance).toFixed(2)}</>
+                        }
+                      </div>
+                    )}
 
                     <div className="flex items-center justify-between mt-auto">
                       <div className="flex -space-x-2">

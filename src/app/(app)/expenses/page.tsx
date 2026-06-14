@@ -21,6 +21,7 @@ interface Expense {
   group: { id: string; name: string }
   paidBy: { id: string; name: string }
   tripDay: { trip: { id: string; name: string; coverEmoji: string | null } } | null
+  trip: { id: string; name: string; coverEmoji: string | null } | null
 }
 
 const CATEGORY_META: Record<string, { color: string; dot: string }> = {
@@ -64,9 +65,11 @@ export default function ExpensesPage() {
   const [search, setSearch] = useState("")
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [activeGroup, setActiveGroup] = useState<string | null>(null)
+  const [activeTrip, setActiveTrip] = useState<string | null>(null)
   const [sort, setSort] = useState<SortKey>("date-desc")
   const [showSortMenu, setShowSortMenu] = useState(false)
   const [showGroupMenu, setShowGroupMenu] = useState(false)
+  const [showTripMenu, setShowTripMenu] = useState(false)
 
   useEffect(() => {
     fetch("/api/expenses")
@@ -86,6 +89,15 @@ export default function ExpensesPage() {
     const map = new Map<string, string>()
     expenses.forEach((e) => map.set(e.group.id, e.group.name))
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
+  }, [expenses])
+
+  const trips = useMemo(() => {
+    const map = new Map<string, { name: string; emoji: string | null }>()
+    expenses.forEach((e) => {
+      const t = e.trip ?? e.tripDay?.trip
+      if (t) map.set(t.id, { name: t.name, emoji: t.coverEmoji })
+    })
+    return Array.from(map.entries()).map(([id, { name, emoji }]) => ({ id, name, emoji }))
   }, [expenses])
 
   // Summary stats — grouped by currency so mixed groups don't cross-contaminate
@@ -111,6 +123,7 @@ export default function ExpensesPage() {
     }
     if (activeCategory) list = list.filter((e) => e.category === activeCategory)
     if (activeGroup)    list = list.filter((e) => e.group.id === activeGroup)
+    if (activeTrip)     list = list.filter((e) => (e.trip?.id ?? e.tripDay?.trip?.id) === activeTrip)
     list.sort((a, b) => {
       if (sort === "date-desc")   return new Date(b.date).getTime() - new Date(a.date).getTime()
       if (sort === "date-asc")    return new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -125,13 +138,15 @@ export default function ExpensesPage() {
     sort === "date-desc" || sort === "date-asc" ? groupByDate(filtered) : null,
   [filtered, sort])
 
-  const hasFilters = search || activeCategory || activeGroup
+  const hasFilters = search || activeCategory || activeGroup || activeTrip
   const activeGroupName = groups.find((g) => g.id === activeGroup)?.name
+  const activeTripName = trips.find((t) => t.id === activeTrip)?.name
 
   const clearFilters = () => {
     setSearch("")
     setActiveCategory(null)
     setActiveGroup(null)
+    setActiveTrip(null)
   }
 
   return (
@@ -262,10 +277,51 @@ export default function ExpensesPage() {
               )}
             </div>
 
+            {/* Event filter */}
+            {trips.length > 0 && (
+              <div className="relative">
+                <button
+                  onClick={() => { setShowTripMenu((v) => !v); setShowGroupMenu(false); setShowSortMenu(false) }}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all whitespace-nowrap",
+                    activeTrip
+                      ? "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-transparent"
+                      : "bg-transparent border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                  )}
+                >
+                  📅 {activeTripName ?? "All events"}
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+                {showTripMenu && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowTripMenu(false)} />
+                    <div className="absolute left-0 top-full mt-1 z-20 w-52 bg-background border border-border rounded-xl shadow-xl py-1 overflow-hidden">
+                      <button
+                        onClick={() => { setActiveTrip(null); setShowTripMenu(false) }}
+                        className={cn("w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors", !activeTrip && "font-semibold text-foreground")}
+                      >
+                        All events
+                      </button>
+                      {trips.map((t) => (
+                        <button
+                          key={t.id}
+                          onClick={() => { setActiveTrip(t.id); setShowTripMenu(false) }}
+                          className={cn("w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors truncate flex items-center gap-2", activeTrip === t.id && "font-semibold text-foreground")}
+                        >
+                          <span>{t.emoji ?? "📅"}</span>
+                          <span className="truncate">{t.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             {/* Sort */}
             <div className="relative">
               <button
-                onClick={() => { setShowSortMenu((v) => !v); setShowGroupMenu(false) }}
+                onClick={() => { setShowSortMenu((v) => !v); setShowGroupMenu(false); setShowTripMenu(false) }}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-all whitespace-nowrap"
               >
                 <ArrowUpDown className="h-3 w-3" />
@@ -387,9 +443,9 @@ function ExpenseRow({ expense: e, showDivider, showDate }: { expense: Expense; s
           <p className="text-sm font-semibold text-foreground truncate">{e.description}</p>
           <p className="text-xs text-muted-foreground mt-0.5 truncate">
             {e.group.name}
-            {e.tripDay?.trip && (
+            {(e.trip ?? e.tripDay?.trip) && (
               <span className="text-indigo-600 dark:text-indigo-400">
-                {" "}· {e.tripDay.trip.coverEmoji ?? ""} {e.tripDay.trip.name}
+                {" "}· {(e.trip ?? e.tripDay?.trip)!.coverEmoji ?? "📅"} {(e.trip ?? e.tripDay?.trip)!.name}
               </span>
             )}
             {" "}· {e.paidBy.name}

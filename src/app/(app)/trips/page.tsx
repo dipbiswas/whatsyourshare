@@ -3,11 +3,20 @@
 import { useEffect, useState, useMemo } from "react"
 import Link from "next/link"
 import { format } from "date-fns"
-import { MapPin, Calendar, Users, Wallet, CalendarDays, X } from "lucide-react"
+import { MapPin, Calendar, Users, Wallet, CalendarDays, X, CalendarRange } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatCurrency } from "@/lib/balance"
 import { cn } from "@/lib/utils"
+
+const EVENT_ACCENTS: Record<string, string> = {
+  TRIP:         "from-indigo-400 to-indigo-600",
+  CELEBRATION:  "from-pink-400 to-rose-500",
+  DINING:       "from-orange-400 to-amber-500",
+  PROJECT:      "from-teal-400 to-emerald-600",
+  SPORTS:       "from-blue-400 to-cyan-500",
+  OTHER:        "from-gray-400 to-gray-600",
+}
 
 interface Trip {
   id: string
@@ -17,7 +26,8 @@ interface Trip {
   eventType: string
   startDate: string
   endDate: string
-  group: { id: string; name: string; currency: string }
+  memberIds: string[] | null
+  group: { id: string; name: string; currency: string; members: { userId: string }[] }
   _count: { days: number }
   fund: { id: string; status: string; targetAmount: number; currency: string } | null
 }
@@ -143,27 +153,39 @@ export default function TripsPage() {
                 const start = new Date(trip.startDate)
                 const end = new Date(trip.endDate)
                 const status = now < start ? "upcoming" : now > end ? "past" : "active"
+                const memberCount = trip.memberIds
+                  ? trip.memberIds.length
+                  : trip.group.members.length
+                const accent = EVENT_ACCENTS[trip.eventType?.toUpperCase()] ?? EVENT_ACCENTS.OTHER
 
                 return (
                   <Link key={trip.id} href={`/trips/${trip.id}`}>
-                    <div className="glass rounded-2xl p-5 space-y-3 hover:bg-accent/30 transition-colors cursor-pointer h-full">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-3">
-                          <span className="text-3xl">{trip.coverEmoji ?? "✈️"}</span>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-foreground truncate">{trip.name}</p>
-                            {trip.destination && (
-                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                                <MapPin className="h-3 w-3" />
-                                {trip.destination}
-                              </p>
-                            )}
+                    <div className="glass rounded-2xl hover:bg-accent/50 transition-all duration-200 overflow-hidden h-full flex flex-col">
+                      {/* Accent bar */}
+                      <div className={`h-1.5 w-full bg-gradient-to-r ${accent}`} />
+
+                      <div className="p-5 flex flex-col flex-1 gap-3">
+                        {/* Header row */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="text-2xl shrink-0">{trip.coverEmoji ?? "✈️"}</span>
+                            <div className="min-w-0">
+                              <p className="font-bold text-foreground text-base leading-tight truncate">{trip.name}</p>
+                              {trip.destination ? (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                  <MapPin className="h-3 w-3 shrink-0" />
+                                  {trip.destination}
+                                </p>
+                              ) : (
+                                <p className="text-xs text-muted-foreground mt-0.5 capitalize">
+                                  {(trip.eventType ?? "TRIP").toLowerCase()}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex flex-col items-end gap-1 shrink-0">
                           <Badge
                             variant="outline"
-                            className={`text-xs ${
+                            className={`text-xs shrink-0 ${
                               status === "active"
                                 ? "border-emerald-300 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10"
                                 : status === "upcoming"
@@ -173,28 +195,44 @@ export default function TripsPage() {
                           >
                             {status}
                           </Badge>
-                          <span className="text-[10px] text-muted-foreground capitalize">
-                            {(trip.eventType ?? "TRIP").toLowerCase()}
-                          </span>
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Calendar className="h-3.5 w-3.5 shrink-0" />
-                        {format(start, "MMM d")} – {format(end, "MMM d, yyyy")}
-                      </div>
+                        {/* Date row */}
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Calendar className="h-3.5 w-3.5 shrink-0" />
+                          {format(start, "MMM d")} – {format(end, "MMM d, yyyy")}
+                        </div>
 
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Users className="h-3.5 w-3.5" />
-                          {trip.group.name}
-                        </span>
-                        {trip.fund && (
-                          <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
-                            <Wallet className="h-3.5 w-3.5" />
-                            {formatCurrency(trip.fund.targetAmount, trip.fund.currency)} fund
+                        {/* Stats row */}
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-auto">
+                          <span className="flex items-center gap-1">
+                            <Users className="h-3.5 w-3.5" />
+                            {memberCount} member{memberCount !== 1 ? "s" : ""}
                           </span>
-                        )}
+                          {trip._count.days > 0 && (
+                            <>
+                              <span>·</span>
+                              <span className="flex items-center gap-1">
+                                <CalendarRange className="h-3.5 w-3.5" />
+                                {trip._count.days} day{trip._count.days !== 1 ? "s" : ""}
+                              </span>
+                            </>
+                          )}
+                          {trip.fund && (
+                            <>
+                              <span>·</span>
+                              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                                <Wallet className="h-3.5 w-3.5" />
+                                {formatCurrency(trip.fund.targetAmount, trip.fund.currency)}
+                              </span>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Group name */}
+                        <p className="text-xs text-muted-foreground truncate border-t border-border pt-2.5 mt-0.5">
+                          {trip.group.name}
+                        </p>
                       </div>
                     </div>
                   </Link>
