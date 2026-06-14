@@ -46,6 +46,14 @@ interface Settlement {
   amount: number
 }
 
+interface SuggestedSettlement {
+  from: string
+  fromName: string
+  to: string
+  toName: string
+  amount: number
+}
+
 export default function QuickSplitPage() {
   const router = useRouter()
 
@@ -54,6 +62,7 @@ export default function QuickSplitPage() {
   const [participants, setParticipants] = useState<Participant[]>([])
   const [balances, setBalances] = useState<Balance[]>([])
   const [settlements, setSettlements] = useState<Settlement[]>([])
+  const [hasNonEqualSplits, setHasNonEqualSplits] = useState(false)
 
   const [showGroupPopup, setShowGroupPopup] = useState(false)
   const [showMemberPopup, setShowMemberPopup] = useState(false)
@@ -82,6 +91,7 @@ export default function QuickSplitPage() {
   }, [])
 
   function selectGroup(g: Group) {
+    setHasNonEqualSplits(false)
     setSelectedGroup(g)
     const allParticipants: Participant[] = [
       ...g.members.map((m) => ({ type: "member" as const, userId: m.userId, name: m.user.name })),
@@ -100,25 +110,13 @@ export default function QuickSplitPage() {
     if (!res.ok) return
     const data = await res.json()
 
+    // Use the pre-computed balanceMap from the API
+    const balanceMap: Record<string, number> = data.balanceMap ?? {}
+
     const memberMap: Record<string, string> = {}
     data.members.forEach((m: Member) => { memberMap[m.userId] = m.user.name })
     const guestMap: Record<string, string> = {}
     ;(data.guests ?? []).forEach((g: Guest) => { guestMap[`guest_${g.id}`] = `${g.name} (guest)` })
-
-    const balanceMap: Record<string, number> = {}
-    for (const exp of data.expenses ?? []) {
-      for (const s of exp.splits ?? []) {
-        const key = s.userId ?? (s.guestMemberId ? `guest_${s.guestMemberId}` : null)
-        if (!key) continue
-        balanceMap[key] = (balanceMap[key] ?? 0) - s.amount
-      }
-      const paidKey = exp.paidById
-      balanceMap[paidKey] = (balanceMap[paidKey] ?? 0) + exp.amount
-    }
-    for (const s of data.settlements ?? []) {
-      balanceMap[s.fromUserId] = (balanceMap[s.fromUserId] ?? 0) + s.amount
-      balanceMap[s.toUserId] = (balanceMap[s.toUserId] ?? 0) - s.amount
-    }
 
     const allKeys = new Set([...Object.keys(memberMap), ...Object.keys(guestMap)])
     const bals: Balance[] = Array.from(allKeys).map((key) => ({
@@ -129,22 +127,19 @@ export default function QuickSplitPage() {
     }))
     setBalances(bals)
 
-    // compute settlements (greedy)
-    const pos = bals.filter((b) => b.amount > 0.01).map((b) => ({ ...b })).sort((a, b) => b.amount - a.amount)
-    const neg = bals.filter((b) => b.amount < -0.01).map((b) => ({ ...b })).sort((a, b) => a.amount - b.amount)
-    const settles: Settlement[] = []
-    let i = 0, j = 0
-    while (i < neg.length && j < pos.length) {
-      const amt = Math.min(-neg[i].amount, pos[j].amount)
-      if (amt > 0.005) {
-        settles.push({ from: neg[i].key, fromName: neg[i].name, to: pos[j].key, toName: pos[j].name, amount: Math.round(amt * 100) / 100 })
-      }
-      neg[i].amount += amt
-      pos[j].amount -= amt
-      if (Math.abs(neg[i].amount) < 0.005) i++
-      if (Math.abs(pos[j].amount) < 0.005) j++
-    }
+    // Use pre-computed suggested settlements from the API
+    const settles: Settlement[] = (data.suggestedSettlements ?? []).map((s: SuggestedSettlement) => ({
+      from: s.from,
+      fromName: s.fromName,
+      to: s.to,
+      toName: s.toName,
+      amount: Math.round(s.amount * 100) / 100,
+    }))
     setSettlements(settles)
+
+    // Detect any expenses with non-EQUAL split types
+    const nonEqual = (data.expenses ?? []).some((e: any) => e.splitType && e.splitType !== "EQUAL")
+    setHasNonEqualSplits(nonEqual)
   }, [])
 
   async function createGroup() {
@@ -321,6 +316,20 @@ export default function QuickSplitPage() {
           </div>
           <LayoutDashboard className="h-4 w-4 text-muted-foreground shrink-0" />
         </div>
+
+        {/* Non-equal splits warning */}
+        {hasNonEqualSplits && (
+          <div className="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3">
+            <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-300">This group has custom splits</p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                Some expenses in this group use percentage, exact, or custom splits. Quick Split only supports equal splits — balances shown are accurate, but new expenses added here will always be split equally.{" "}
+                <button onClick={switchToFull} className="underline font-medium">Switch to Full View</button> to add expenses with custom splits.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Top row: Group + Members */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
