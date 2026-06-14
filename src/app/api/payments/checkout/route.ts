@@ -2,7 +2,8 @@
  * POST /api/payments/checkout
  *
  * Creates a Stripe Checkout Session for a trip fund contribution.
- * The platform earns 1.5% on every successful payment.
+ * Payments are routed directly to the organizer's connected Stripe account.
+ * The platform deducts a 1.5% application fee automatically.
  *
  * Body: { tripId, amount }  (amount in the fund's currency, e.g. 200 = $200.00)
  */
@@ -39,12 +40,13 @@ export async function POST(req: Request) {
 
     const { tripId, amount } = parsed.data
 
-    // Fetch the trip + fund
+    // Fetch trip + fund + organizer's Connect account
     const trip = await prisma.trip.findFirst({
       where: { id: tripId, group: { members: { some: { userId: session.user.id } } } },
       include: {
         fund: true,
         group: { select: { currency: true } },
+        createdBy: { select: { id: true, stripeConnectId: true, stripeOnboarded: true } },
       },
     })
 
@@ -54,17 +56,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Fund is no longer collecting" }, { status: 400 })
     }
 
+    // Organizer must have a connected, onboarded Stripe account
+    const organizerConnectId = trip.createdBy.stripeConnectId
+    if (!organizerConnectId || !trip.createdBy.stripeOnboarded) {
+      return NextResponse.json({
+        error: "The organizer has not connected their Stripe account yet. Please ask them to connect in Settings before paying.",
+      }, { status: 400 })
+    }
+
     const currency = (trip.fund.currency ?? trip.group.currency ?? "usd").toLowerCase()
     const amountInCents = Math.round(amount * 100)
     const feeRate = await config.platform.feeRate().catch(() => 0.015)
-    const platformFeeInCents = Math.round(amountInCents * feeRate)
+    const applicationFeeInCents = Math.round(amountInCents * feeRate)
 
     const appUrl = process.env.NEXTAUTH_URL
       || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
 
-    console.log("[payments/checkout] appUrl:", appUrl, "currency:", currency, "amountInCents:", amountInCents)
-
-    // Create or update a PENDING contribution row first
+    // Create or update a PENDING contribution row
     const existing = await prisma.fundContribution.findFirst({
       where: { fundId: trip.fund.id, userId: session.user.id },
     })
@@ -77,7 +85,7 @@ export async function POST(req: Request) {
           data: { fundId: trip.fund.id, userId: session.user.id, amount, status: "PENDING" },
         })
 
-    // Create Stripe Checkout Session
+    // Create Stripe Checkout Session — money goes directly to organizer's account
     let checkoutSession: Awaited<ReturnType<typeof stripe.checkout.sessions.create>>
     try {
       checkoutSession = await stripe.checkout.sessions.create({
@@ -88,7 +96,7 @@ export async function POST(req: Request) {
             price_data: {
               currency,
               product_data: {
-                name: `Trip Fund: ${trip.name}`,
+                name: `${trip.name} — Fund Contribution`,
                 description: trip.fund.description ?? `Contribution to ${trip.name} trip fund`,
               },
               unit_amount: amountInCents,
@@ -96,12 +104,20 @@ export async function POST(req: Request) {
             quantity: 1,
           },
         ],
+        // Route payment directly to organizer; platform keeps the application fee
+        payment_intent_data: {
+          application_fee_amount: applicationFeeInCents,
+          transfer_data: {
+            destination: organizerConnectId,
+          },
+        },
         metadata: {
           tripId,
           fundId: trip.fund.id,
           userId: session.user.id,
           contributionId: contribution.id,
-          platformFeeInCents: String(platformFeeInCents),
+          organizerConnectId,
+          applicationFeeInCents: String(applicationFeeInCents),
         },
         success_url: `${appUrl}/trips/${tripId}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${appUrl}/trips/${tripId}?payment=cancelled`,
@@ -112,7 +128,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: info.message, ...info }, { status: 502 })
     }
 
-    // Store the Stripe session ID on the contribution
     await prisma.fundContribution.update({
       where: { id: contribution.id },
       data: { stripeSessionId: checkoutSession.id },

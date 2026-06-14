@@ -2,12 +2,11 @@
 
 import { useState } from "react"
 import { toast } from "sonner"
-import { Wallet, Check, Loader2, ExternalLink, Smartphone, Info, ArrowDownToLine } from "lucide-react"
+import { Wallet, Check, Loader2, ExternalLink, Smartphone, Info, AlertTriangle, Link2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -39,6 +38,7 @@ interface Props {
   fund: Fund | null
   currentUserId: string
   isOrganizer: boolean
+  organizerStripeOnboarded: boolean
   memberCount: number
   currency: string
   organizerName: string
@@ -57,6 +57,7 @@ export function TripFundCard({
   fund: initialFund,
   currentUserId,
   isOrganizer,
+  organizerStripeOnboarded,
   memberCount,
   currency,
   organizerName,
@@ -70,8 +71,8 @@ export function TripFundCard({
   const [setupOpen, setSetupOpen] = useState(false)
   const [contributeOpen, setContributeOpen] = useState(false)
   const [interacOpen, setInteracOpen] = useState(false)
-  const [disbursementOpen, setDisbursementOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [connectLoading, setConnectLoading] = useState(false)
   const [setupForm, setSetupForm] = useState({
     targetAmount: fund ? String(fund.targetAmount) : "",
     description: fund?.description ?? "",
@@ -79,15 +80,14 @@ export function TripFundCard({
   const [contributeAmount, setContributeAmount] = useState(
     fund ? String(Math.ceil(fund.targetAmount / memberCount)) : ""
   )
-  const [disbursementForm, setDisbursementForm] = useState({
-    method: isCAD ? "Interac e-Transfer" : "Bank transfer",
-    details: "",
-  })
 
   const paidContributions = fund?.contributions.filter((c) => c.status === "PAID") ?? []
   const totalCollected = paidContributions.reduce((s, c) => s + c.amount, 0)
   const myContribution = fund?.contributions.find((c) => c.user.id === currentUserId)
   const iHavePaid = myContribution?.status === "PAID"
+
+  // Stripe pay button is available only when enabled AND organizer is connected
+  const stripePayAvailable = stripeEnabled && organizerStripeOnboarded
 
   async function refreshFund() {
     const updated = await fetch(`/api/trips/${tripId}/fund`).then((r) => r.json())
@@ -98,17 +98,12 @@ export function TripFundCard({
     e.preventDefault()
     const amt = parseFloat(setupForm.targetAmount)
     if (!amt || amt <= 0) { toast.error("Enter a valid amount"); return }
-
     setLoading(true)
     try {
       const res = await fetch(`/api/trips/${tripId}/fund`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          targetAmount: amt,
-          currency,
-          description: setupForm.description || undefined,
-        }),
+        body: JSON.stringify({ targetAmount: amt, currency, description: setupForm.description || undefined }),
       })
       if (!res.ok) { toast.error("Failed to set up fund"); return }
       await refreshFund()
@@ -119,11 +114,22 @@ export function TripFundCard({
     }
   }
 
+  async function handleConnectStripe() {
+    setConnectLoading(true)
+    try {
+      const res = await fetch("/api/connect/onboard", { method: "POST" })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+      else toast.error("Could not start Stripe onboarding")
+    } finally {
+      setConnectLoading(false)
+    }
+  }
+
   async function handleStripeContribute(e: React.FormEvent) {
     e.preventDefault()
     const amt = parseFloat(contributeAmount)
     if (!amt || amt <= 0) { toast.error("Enter a valid amount"); return }
-
     setLoading(true)
     try {
       const res = await fetch("/api/payments/checkout", {
@@ -135,41 +141,13 @@ export function TripFundCard({
         const text = await res.text()
         let message = "Payment failed"
         let detail = ""
-        try {
-          const j = JSON.parse(text)
-          message = j.error ?? message
-          detail = j.detail ?? ""
-        } catch { /* non-JSON */ }
+        try { const j = JSON.parse(text); message = j.error ?? message; detail = j.detail ?? "" } catch { /* */ }
         console.error("[Stripe checkout]", message, detail)
         toast.error(`${message}${detail ? ` — ${detail}` : ""}`, { duration: 12000 })
         return
       }
       const { url } = await res.json()
       if (url) window.location.href = url
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function handleDisbursementRequest(e: React.FormEvent) {
-    e.preventDefault()
-    if (!disbursementForm.details.trim()) { toast.error("Please enter your payment details"); return }
-
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/trips/${tripId}/fund/disburse`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          method: disbursementForm.method,
-          details: disbursementForm.details,
-          totalCollected,
-          currency: fund?.currency,
-        }),
-      })
-      if (!res.ok) { toast.error("Failed to send request"); return }
-      setDisbursementOpen(false)
-      toast.success("Disbursement request sent! We'll transfer the funds within 2–3 business days.")
     } finally {
       setLoading(false)
     }
@@ -183,9 +161,7 @@ export function TripFundCard({
           <CardContent className="py-5 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-700">No {label} fund yet</p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Collect contributions from the group before the {label}
-              </p>
+              <p className="text-xs text-gray-400 mt-0.5">Collect contributions from the group before the {label}</p>
             </div>
             <Button variant="outline" className="gap-2" onClick={() => setSetupOpen(true)}>
               <Wallet className="h-4 w-4" /> Set up fund
@@ -201,32 +177,22 @@ export function TripFundCard({
             <form onSubmit={handleSetup} className="space-y-4 mt-2">
               <div className="space-y-1.5">
                 <Label>Target amount ({currency})</Label>
-                <Input
-                  type="number" min="1" step="0.01" placeholder="2500.00"
+                <Input type="number" min="1" step="0.01" placeholder="2500.00"
                   value={setupForm.targetAmount}
-                  onChange={(e) => setSetupForm((f) => ({ ...f, targetAmount: e.target.value }))}
-                  required
-                />
+                  onChange={(e) => setSetupForm((f) => ({ ...f, targetAmount: e.target.value }))} required />
               </div>
               <div className="space-y-1.5">
                 <Label>What&apos;s this for? (optional)</Label>
-                <Input
-                  placeholder="Airbnb deposit, group transport…"
+                <Input placeholder="Airbnb deposit, group transport…"
                   value={setupForm.description}
-                  onChange={(e) => setSetupForm((f) => ({ ...f, description: e.target.value }))}
-                />
+                  onChange={(e) => setSetupForm((f) => ({ ...f, description: e.target.value }))} />
               </div>
-              {(stripeEnabled || isCAD) && (
-                <div className="rounded-lg bg-indigo-50 border border-indigo-100 p-3 text-xs text-indigo-700">
-                  <p className="font-medium mb-1">💳 How payments work</p>
+              {stripeEnabled && !organizerStripeOnboarded && (
+                <div className="flex gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
+                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                   <p>
-                    Members pay via{stripeEnabled ? " Stripe" : ""}
-                    {stripeEnabled && isCAD ? " or" : ""}
-                    {isCAD ? " Interac e-Transfer" : ""}.
-                    Funds are held securely by WhatsYourShare. Once you&apos;re ready,
-                    you can request a disbursement and we&apos;ll transfer the total to you
-                    within 2–3 business days.
-                    {stripeEnabled && " A 1.5% platform fee applies to Stripe payments."}
+                    Connect your Stripe account in <strong>Settings → Payment Account</strong> so members
+                    can pay directly into your account. You can set up the fund now and connect later.
                   </p>
                 </div>
               )}
@@ -252,14 +218,9 @@ export function TripFundCard({
           <CardTitle className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
             <Wallet className="h-4 w-4" />
             Fund
-            <Badge
-              variant="outline"
-              className={`text-xs ml-1 ${
-                fund.status === "COLLECTING"
-                  ? "border-emerald-300 text-emerald-700"
-                  : "border-gray-300 text-gray-500"
-              }`}
-            >
+            <Badge variant="outline" className={`text-xs ml-1 ${
+              fund.status === "COLLECTING" ? "border-emerald-300 text-emerald-700" : "border-gray-300 text-gray-500"
+            }`}>
               {fund.status === "COLLECTING" ? "Collecting" : fund.status === "CLOSED" ? "Closed" : "Disbursed"}
             </Badge>
           </CardTitle>
@@ -271,25 +232,35 @@ export function TripFundCard({
         </CardHeader>
 
         <CardContent className="space-y-3">
-          {fund.description && (
-            <p className="text-xs text-emerald-700">{fund.description}</p>
+          {fund.description && <p className="text-xs text-emerald-700">{fund.description}</p>}
+
+          {/* Organizer: Connect Stripe banner */}
+          {isOrganizer && stripeEnabled && !organizerStripeOnboarded && fund.status === "COLLECTING" && (
+            <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
+              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <p className="font-medium">Connect your Stripe account to accept payments</p>
+                <p className="text-amber-700">
+                  Members won&apos;t be able to pay via Stripe until you connect. Payments go directly to your account — no manual transfers needed.
+                </p>
+                <Button size="sm" variant="outline"
+                  className="h-7 text-xs gap-1.5 border-amber-300 text-amber-800 hover:bg-amber-100"
+                  onClick={handleConnectStripe} disabled={connectLoading}>
+                  {connectLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2 className="h-3 w-3" />}
+                  Connect with Stripe
+                </Button>
+              </div>
+            </div>
           )}
 
           {/* Progress bar */}
           <div>
             <div className="flex justify-between items-end mb-1.5">
-              <span className="text-xl font-bold text-gray-900">
-                {formatCurrency(totalCollected, fund.currency)}
-              </span>
-              <span className="text-sm text-gray-500">
-                of {formatCurrency(fund.targetAmount, fund.currency)}
-              </span>
+              <span className="text-xl font-bold text-gray-900">{formatCurrency(totalCollected, fund.currency)}</span>
+              <span className="text-sm text-gray-500">of {formatCurrency(fund.targetAmount, fund.currency)}</span>
             </div>
             <div className="w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full bg-emerald-500 transition-all duration-700"
-                style={{ width: `${pct}%` }}
-              />
+              <div className="h-full rounded-full bg-emerald-500 transition-all duration-700" style={{ width: `${pct}%` }} />
             </div>
             <p className="text-xs text-gray-400 mt-1">
               {paidContributions.length} of {memberCount} members contributed
@@ -299,49 +270,48 @@ export function TripFundCard({
           {/* Contributors */}
           <div className="flex flex-wrap gap-2">
             {fund.contributions.map((c) => (
-              <div
-                key={c.id}
-                className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                  c.status === "PAID"
-                    ? "bg-emerald-100 text-emerald-800"
-                    : "bg-gray-100 text-gray-500"
-                }`}
-              >
+              <div key={c.id} className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                c.status === "PAID" ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-500"
+              }`}>
                 <Avatar className="h-4 w-4">
                   <AvatarFallback className="text-[8px]">{c.user.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 {c.user.name.split(" ")[0]}
                 {c.status === "PAID" && <Check className="h-3 w-3" />}
-                {c.status === "PAID" && (
-                  <span className="text-emerald-600">{formatCurrency(c.amount, fund.currency)}</span>
-                )}
+                {c.status === "PAID" && <span className="text-emerald-600">{formatCurrency(c.amount, fund.currency)}</span>}
               </div>
             ))}
           </div>
 
-          {/* Contribute CTAs (members) */}
+          {/* Contribute CTAs */}
           {fund.status === "COLLECTING" && !iHavePaid && (
-            <div className={`grid gap-2 ${stripeEnabled && isCAD ? "grid-cols-2" : stripeEnabled || isCAD ? "grid-cols-1" : "hidden"}`}>
-              {stripeEnabled && (
-                <Button
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 gap-2"
-                  onClick={() => setContributeOpen(true)}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Pay via Stripe
-                </Button>
+            <>
+              <div className={`grid gap-2 ${stripePayAvailable && isCAD ? "grid-cols-2" : stripePayAvailable || isCAD ? "grid-cols-1" : "hidden"}`}>
+                {stripePayAvailable && (
+                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700 gap-2" onClick={() => setContributeOpen(true)}>
+                    <ExternalLink className="h-4 w-4" /> Pay via Stripe
+                  </Button>
+                )}
+                {isCAD && (
+                  <Button variant="outline" className="w-full border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 gap-2"
+                    onClick={() => setInteracOpen(true)}>
+                    <Smartphone className="h-4 w-4" /> Pay via Interac
+                  </Button>
+                )}
+              </div>
+
+              {/* Member notice: organizer not connected yet */}
+              {stripeEnabled && !organizerStripeOnboarded && !isOrganizer && (
+                <div className="flex gap-2 rounded-lg bg-gray-50 border p-3 text-xs text-gray-500">
+                  <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                  <p>
+                    Online payment isn&apos;t available yet — the organizer ({organizerName}) needs to connect
+                    their Stripe account first.
+                    {isCAD ? " You can pay via Interac in the meantime." : ""}
+                  </p>
+                </div>
               )}
-              {isCAD && (
-                <Button
-                  variant="outline"
-                  className="w-full border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 gap-2"
-                  onClick={() => setInteracOpen(true)}
-                >
-                  <Smartphone className="h-4 w-4" />
-                  Pay via Interac
-                </Button>
-              )}
-            </div>
+            </>
           )}
 
           {iHavePaid && (
@@ -351,67 +321,35 @@ export function TripFundCard({
             </div>
           )}
 
-          {/* How it works — info banner for members who haven't paid */}
-          {fund.status === "COLLECTING" && !iHavePaid && stripeEnabled && (
-            <div className="flex gap-2 rounded-lg bg-blue-50 border border-blue-100 p-3 text-xs text-blue-700">
+          {/* Organizer: connected and collecting — info about how payouts work */}
+          {isOrganizer && stripeEnabled && organizerStripeOnboarded && fund.status === "COLLECTING" && (
+            <div className="flex gap-2 rounded-lg bg-emerald-50/80 border border-emerald-200 p-3 text-xs text-emerald-700">
               <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
               <p>
-                Payments are collected securely by WhatsYourShare and held until the organizer
-                is ready. The organizer will receive the total once they request a disbursement.
-                A 1.5% platform fee applies.
+                Payments go directly to your connected Stripe account minus the 1.5% platform fee.
+                Stripe pays out to your bank on your normal payout schedule.
               </p>
-            </div>
-          )}
-
-          {/* Organizer disbursement section */}
-          {isOrganizer && fund.status === "COLLECTING" && totalCollected > 0 && (
-            <div className="border-t border-emerald-200 pt-3 space-y-2">
-              <p className="text-xs text-emerald-800 font-medium">Ready to receive the funds?</p>
-              <p className="text-xs text-gray-500">
-                {formatCurrency(totalCollected, fund.currency)} is currently held by WhatsYourShare.
-                Request a disbursement and we&apos;ll transfer it to you within 2–3 business days.
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full gap-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                onClick={() => setDisbursementOpen(true)}
-              >
-                <ArrowDownToLine className="h-4 w-4" />
-                Request Disbursement
-              </Button>
-            </div>
-          )}
-
-          {isOrganizer && fund.status === "DISBURSED" && (
-            <div className="flex items-center gap-2 text-sm text-gray-500 border-t border-emerald-200 pt-3">
-              <Check className="h-4 w-4 text-emerald-500" />
-              Funds have been disbursed to the organizer.
             </div>
           )}
         </CardContent>
       </Card>
 
       {/* Stripe contribute dialog */}
-      {stripeEnabled && (
+      {stripePayAvailable && (
         <Dialog open={contributeOpen} onOpenChange={setContributeOpen}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
               <DialogTitle>Contribute to {tripName} fund</DialogTitle>
               <DialogDescription className="text-xs text-gray-500 pt-1">
-                Your payment is collected securely by WhatsYourShare and held until
-                the organizer requests disbursement.
+                Payment goes directly to {organizerName}&apos;s Stripe account.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleStripeContribute} className="space-y-4 mt-2">
               <div className="space-y-1.5">
                 <Label>Amount ({fund.currency})</Label>
-                <Input
-                  type="number" min="1" step="0.01"
+                <Input type="number" min="1" step="0.01"
                   value={contributeAmount}
-                  onChange={(e) => setContributeAmount(e.target.value)}
-                  required
-                />
+                  onChange={(e) => setContributeAmount(e.target.value)} required />
                 <p className="text-xs text-gray-400">
                   Suggested: {formatCurrency(fund.targetAmount / memberCount, fund.currency)} per person
                 </p>
@@ -430,13 +368,6 @@ export function TripFundCard({
                   <span>{formatCurrency(parseFloat(contributeAmount || "0") * 1.015, fund.currency)}</span>
                 </div>
               </div>
-              <div className="flex gap-2 rounded-lg bg-amber-50 border border-amber-100 p-3 text-xs text-amber-700">
-                <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                <p>
-                  You&apos;ll be redirected to Stripe&apos;s secure checkout.
-                  Funds are held by WhatsYourShare — not sent directly to the organizer.
-                </p>
-              </div>
               <DialogFooter>
                 <Button variant="outline" type="button" onClick={() => setContributeOpen(false)}>Cancel</Button>
                 <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 gap-2" disabled={loading}>
@@ -447,57 +378,6 @@ export function TripFundCard({
           </DialogContent>
         </Dialog>
       )}
-
-      {/* Disbursement request dialog (organizer only) */}
-      <Dialog open={disbursementOpen} onOpenChange={setDisbursementOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Request Disbursement</DialogTitle>
-            <DialogDescription className="text-xs text-gray-500 pt-1">
-              We&apos;ll transfer {formatCurrency(totalCollected, fund.currency)} to you within
-              2–3 business days after receiving your request.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleDisbursementRequest} className="space-y-4 mt-2">
-            <div className="rounded-lg bg-emerald-50 border border-emerald-100 p-3 text-xs text-emerald-800 space-y-1">
-              <p className="font-medium">Amount to be disbursed</p>
-              <p className="text-lg font-bold">{formatCurrency(totalCollected, fund.currency)}</p>
-              <p className="text-emerald-600">
-                from {paidContributions.length} contribution{paidContributions.length !== 1 ? "s" : ""}
-              </p>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Transfer method</Label>
-              <Input
-                value={disbursementForm.method}
-                onChange={(e) => setDisbursementForm((f) => ({ ...f, method: e.target.value }))}
-                placeholder="e.g. Interac e-Transfer, Bank transfer"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Your payment details</Label>
-              <Textarea
-                rows={3}
-                value={disbursementForm.details}
-                onChange={(e) => setDisbursementForm((f) => ({ ...f, details: e.target.value }))}
-                placeholder={isCAD
-                  ? "e.g. Interac email: you@email.com"
-                  : "e.g. Bank: RBC, Account: 12345, Transit: 00123"}
-                required
-              />
-              <p className="text-xs text-gray-400">
-                This is sent securely to the WhatsYourShare admin to process your transfer.
-              </p>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" type="button" onClick={() => setDisbursementOpen(false)}>Cancel</Button>
-              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700" disabled={loading}>
-                {loading ? "Sending…" : "Send Request"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* Interac contribute dialog (CAD only) */}
       {isCAD && (
@@ -524,20 +404,15 @@ export function TripFundCard({
             <form onSubmit={handleSetup} className="space-y-4 mt-2">
               <div className="space-y-1.5">
                 <Label>Target amount ({currency})</Label>
-                <Input
-                  type="number" min="1" step="0.01"
+                <Input type="number" min="1" step="0.01"
                   value={setupForm.targetAmount}
-                  onChange={(e) => setSetupForm((f) => ({ ...f, targetAmount: e.target.value }))}
-                  required
-                />
+                  onChange={(e) => setSetupForm((f) => ({ ...f, targetAmount: e.target.value }))} required />
               </div>
               <div className="space-y-1.5">
                 <Label>Description</Label>
-                <Input
-                  placeholder="Airbnb deposit, group transport…"
+                <Input placeholder="Airbnb deposit, group transport…"
                   value={setupForm.description}
-                  onChange={(e) => setSetupForm((f) => ({ ...f, description: e.target.value }))}
-                />
+                  onChange={(e) => setSetupForm((f) => ({ ...f, description: e.target.value }))} />
               </div>
               <DialogFooter>
                 <Button variant="outline" type="button" onClick={() => setSetupOpen(false)}>Cancel</Button>

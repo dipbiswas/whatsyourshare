@@ -58,7 +58,7 @@ export async function GET(
           },
         },
       },
-      createdBy: { select: { id: true, name: true, email: true } },
+      createdBy: { select: { id: true, name: true, email: true, stripeOnboarded: true } },
       // hideFromNonMembers is a scalar field, included by default
     },
   })

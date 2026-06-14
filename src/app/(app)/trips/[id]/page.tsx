@@ -588,6 +588,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
         fund={trip.fund}
         currentUserId={userId}
         isOrganizer={isOrganizer}
+        organizerStripeOnboarded={(trip.createdBy as any).stripeOnboarded ?? false}
         memberCount={eventMembers.length}
         currency={trip.group.currency}
         organizerName={trip.createdBy.name}
