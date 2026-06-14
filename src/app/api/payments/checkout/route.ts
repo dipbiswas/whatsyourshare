@@ -95,9 +95,11 @@ export async function POST(req: Request) {
     cancel_url: `${appUrl}/trips/${tripId}?payment=cancelled`,
   })
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Stripe error"
-    console.error("[payments/checkout] Stripe error:", message)
-    return NextResponse.json({ error: message }, { status: 502 })
+    const e = err as Record<string, unknown>
+    const message = (err instanceof Error ? err.message : null) ?? "Stripe error"
+    const detail = JSON.stringify({ message, code: e?.code, type: e?.type, param: e?.param })
+    console.error("[payments/checkout] Stripe error:", detail)
+    return NextResponse.json({ error: message, detail }, { status: 502 })
   }
 
   // Store the Stripe session ID on the contribution
