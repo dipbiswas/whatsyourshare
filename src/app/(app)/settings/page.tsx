@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Camera, Check, CreditCard, Link2, Loader2, Zap, Crown, DollarSign, Shield, User, Lock, KeyRound, Bell, Trash2 } from "lucide-react"
+import { Camera, Check, CreditCard, Link2, Loader2, Zap, Crown, DollarSign, Shield, User, Lock, KeyRound, Bell, Trash2, Sparkles } from "lucide-react"
+import { ScanTopupDialog } from "@/components/billing/ScanTopupDialog"
 import { cn } from "@/lib/utils"
 
 interface BillingStatus {
@@ -88,6 +89,8 @@ export default function SettingsPage() {
   const [billing, setBilling] = useState<BillingStatus | null>(null)
   const [connect, setConnect] = useState<ConnectStatus | null>(null)
   const [planPrices, setPlanPrices] = useState<{ pro: number; family: number; freeMaxGroups: number } | null>(null)
+  const [quota, setQuota] = useState<{ aiScansUsed: number; aiScansLimit: number; bonusScans: number } | null>(null)
+  const [showTopup, setShowTopup] = useState(false)
   const [loadingCheckout, setLoadingCheckout] = useState<string | null>(null)
   const [loadingPortal, setLoadingPortal] = useState(false)
   const [loadingConnect, setLoadingConnect] = useState(false)
@@ -108,6 +111,9 @@ export default function SettingsPage() {
     fetch("/api/billing/status").then((r) => r.ok ? r.json() : null).then(setBilling)
     fetch("/api/connect/status").then((r) => r.ok ? r.json() : null).then(setConnect)
     fetch("/api/billing/plan-prices").then((r) => r.ok ? r.json() : null).then(setPlanPrices)
+    fetch("/api/plan-status").then((r) => r.ok ? r.json() : null).then((d) => {
+      if (d) setQuota({ aiScansUsed: d.aiScansUsed, aiScansLimit: d.aiScansLimit, bonusScans: d.bonusScans })
+    })
   }, [])
 
   const handleUpgrade = async (plan: string) => {
@@ -661,6 +667,97 @@ export default function SettingsPage() {
           </p>
         )}
       </div>
+
+      {/* AI Scan Quota */}
+      {quota && (currentPlan !== "FREE" || quota.bonusScans > 0) && (
+        <div className="glass rounded-2xl p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/15 flex items-center justify-center shrink-0">
+              <Sparkles className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground">AI Scan Quota</p>
+              <p className="text-xs text-muted-foreground">Receipt scanning and AI insights usage</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {/* Monthly allowance (paid plans) */}
+            {currentPlan !== "FREE" && quota.aiScansLimit > 0 && (
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="text-muted-foreground">Monthly scans</span>
+                  <span className="font-medium text-foreground">{quota.aiScansUsed} / {quota.aiScansLimit} used</span>
+                </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all",
+                      quota.aiScansUsed / quota.aiScansLimit >= 1 ? "bg-rose-500" :
+                      quota.aiScansUsed / quota.aiScansLimit >= 0.8 ? "bg-amber-500" : "bg-indigo-500"
+                    )}
+                    style={{ width: `${Math.min(100, (quota.aiScansUsed / quota.aiScansLimit) * 100)}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  {Math.max(0, quota.aiScansLimit - quota.aiScansUsed)} scan{Math.max(0, quota.aiScansLimit - quota.aiScansUsed) !== 1 ? "s" : ""} remaining this month
+                </p>
+              </div>
+            )}
+
+            {/* Bonus scans */}
+            <div className="flex items-center justify-between rounded-xl bg-indigo-50 dark:bg-indigo-500/10 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">Bonus scans</p>
+                <p className="text-xs text-muted-foreground">Never expire · stack on top of monthly allowance</p>
+              </div>
+              <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{quota.bonusScans}</span>
+            </div>
+
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full gap-2 border-indigo-200 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
+              onClick={() => setShowTopup(true)}
+            >
+              <Zap className="h-3.5 w-3.5" />
+              Buy more scans
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* FREE plan — show quota section with topup option even if no bonus scans */}
+      {quota && currentPlan === "FREE" && quota.bonusScans === 0 && (
+        <div className="glass rounded-2xl p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/15 flex items-center justify-center shrink-0">
+              <Sparkles className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground">AI Scan Quota</p>
+              <p className="text-xs text-muted-foreground">Receipt scanning and AI insights</p>
+            </div>
+          </div>
+          <div className="rounded-xl bg-muted/50 px-4 py-3 flex items-center justify-between gap-4 mb-3">
+            <div>
+              <p className="text-sm font-medium text-foreground">No monthly scans on Free plan</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Buy a one-time top-up pack or upgrade to Pro for 20 scans/month.</p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full gap-2 border-indigo-200 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
+            onClick={() => setShowTopup(true)}
+          >
+            <Zap className="h-3.5 w-3.5" />
+            Buy scan top-up
+          </Button>
+        </div>
+      )}
+
+      <ScanTopupDialog open={showTopup} onOpenChange={setShowTopup} currentBonus={quota?.bonusScans ?? 0} />
 
       {/* Danger Zone */}
       <DangerZone />
