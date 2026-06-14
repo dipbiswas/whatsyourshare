@@ -25,11 +25,11 @@ interface ConnectStatus {
   accountId?: string
 }
 
-const PLANS = [
+const PLANS_BASE = [
   {
     key: "FREE",
     label: "Free",
-    price: "$0",
+    priceKey: null as null | "pro" | "family",
     period: "forever",
     desc: "For personal use",
     features: ["Up to 5 groups", "Basic expense splitting", "Manual settlements"],
@@ -40,7 +40,7 @@ const PLANS = [
   {
     key: "PRO",
     label: "Pro",
-    price: "$3.99",
+    priceKey: "pro" as const,
     period: "/mo",
     desc: "For power users",
     features: [
@@ -58,7 +58,7 @@ const PLANS = [
   {
     key: "FAMILY",
     label: "Family",
-    price: "$7.99",
+    priceKey: "family" as const,
     period: "/mo",
     desc: "For families",
     features: [
@@ -79,17 +79,32 @@ const PLAN_COLORS: Record<string, { bg: string; text: string; badge: string }> =
   FAMILY: { bg: "bg-amber-500/80 dark:bg-amber-500/60", text: "text-white", badge: "bg-amber-100 dark:bg-amber-500/30 text-amber-700 dark:text-amber-300" },
 }
 
+function formatPlanPrice(cents: number) {
+  return `$${(cents / 100).toFixed(2)}`
+}
+
 export default function SettingsPage() {
   const { data: session } = useSession()
   const [billing, setBilling] = useState<BillingStatus | null>(null)
   const [connect, setConnect] = useState<ConnectStatus | null>(null)
+  const [planPrices, setPlanPrices] = useState<{ pro: number; family: number } | null>(null)
   const [loadingCheckout, setLoadingCheckout] = useState<string | null>(null)
   const [loadingPortal, setLoadingPortal] = useState(false)
   const [loadingConnect, setLoadingConnect] = useState(false)
 
+  const PLANS = PLANS_BASE.map((p) => ({
+    ...p,
+    price: p.priceKey === null
+      ? "$0"
+      : planPrices
+        ? formatPlanPrice(planPrices[p.priceKey])
+        : "…",
+  }))
+
   useEffect(() => {
     fetch("/api/billing/status").then((r) => r.ok ? r.json() : null).then(setBilling)
     fetch("/api/connect/status").then((r) => r.ok ? r.json() : null).then(setConnect)
+    fetch("/api/billing/plan-prices").then((r) => r.ok ? r.json() : null).then(setPlanPrices)
   }, [])
 
   const handleUpgrade = async (plan: string) => {
