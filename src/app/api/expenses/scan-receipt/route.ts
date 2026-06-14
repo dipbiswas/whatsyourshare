@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { checkScanQuota, deductScan } from "@/lib/scan-quota"
+import { config } from "@/lib/config"
 import Anthropic from "@anthropic-ai/sdk"
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -56,8 +57,9 @@ export async function POST(req: Request) {
   }
 
   try {
+    const aiModel = await config.platform.aiModel()
     const response = await client.messages.create({
-      model: "claude-haiku-4-5",
+      model: aiModel,
       max_tokens: 512,
       system: SYSTEM_PROMPT,
       messages: [

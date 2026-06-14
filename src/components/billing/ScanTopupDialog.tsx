@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { Sparkles, Loader2, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -11,12 +11,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
-const PACKS = [
-  { id: "small", scans: 10, price: "$2.49", perScan: "$0.25", popular: false },
-  { id: "large", scans: 50, price: "$6.99", perScan: "$0.14", popular: true  },
-] as const
+interface PackInfo {
+  scans: number
+  priceCents: number
+}
 
 interface Props {
   open: boolean
@@ -24,9 +25,26 @@ interface Props {
   currentBonus?: number
 }
 
+function formatPrice(cents: number) {
+  return `$${(cents / 100).toFixed(2)}`
+}
+
+function formatPerScan(cents: number, scans: number) {
+  return `$${(cents / scans / 100).toFixed(2)}`
+}
+
 export function ScanTopupDialog({ open, onOpenChange, currentBonus = 0 }: Props) {
   const [selected, setSelected] = useState<"small" | "large">("large")
   const [loading, setLoading] = useState(false)
+  const [packs, setPacks] = useState<{ small: PackInfo; large: PackInfo } | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    fetch("/api/billing/topup/packs")
+      .then((r) => r.json())
+      .then(setPacks)
+      .catch(() => {})
+  }, [open])
 
   async function handlePurchase() {
     setLoading(true)
@@ -37,7 +55,7 @@ export function ScanTopupDialog({ open, onOpenChange, currentBonus = 0 }: Props)
         body: JSON.stringify({ pack: selected }),
       })
       const data = await res.json()
-      if (!res.ok || !data.url) { toast.error("Could not start checkout"); return }
+      if (!res.ok || !data.url) { toast.error(data.error ?? "Could not start checkout"); return }
       window.location.href = data.url
     } catch {
       toast.error("Something went wrong")
@@ -45,6 +63,13 @@ export function ScanTopupDialog({ open, onOpenChange, currentBonus = 0 }: Props)
       setLoading(false)
     }
   }
+
+  const packList = packs ? [
+    { id: "small" as const, ...packs.small, popular: false },
+    { id: "large" as const, ...packs.large, popular: true },
+  ] : null
+
+  const selectedPack = packList?.find((p) => p.id === selected)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -65,7 +90,12 @@ export function ScanTopupDialog({ open, onOpenChange, currentBonus = 0 }: Props)
         </DialogHeader>
 
         <div className="space-y-2 mt-1">
-          {PACKS.map((pack) => (
+          {!packList ? (
+            <>
+              <Skeleton className="h-20 rounded-xl" />
+              <Skeleton className="h-20 rounded-xl" />
+            </>
+          ) : packList.map((pack) => (
             <button
               key={pack.id}
               type="button"
@@ -84,10 +114,10 @@ export function ScanTopupDialog({ open, onOpenChange, currentBonus = 0 }: Props)
               )}
               <div>
                 <p className="text-sm font-semibold text-foreground">{pack.scans} AI scans</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{pack.perScan} per scan</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{formatPerScan(pack.priceCents, pack.scans)} per scan</p>
               </div>
               <div className="text-right shrink-0">
-                <p className="text-base font-bold text-foreground">{pack.price}</p>
+                <p className="text-base font-bold text-foreground">{formatPrice(pack.priceCents)}</p>
                 <p className="text-[10px] text-muted-foreground">one-time</p>
               </div>
             </button>
@@ -96,12 +126,14 @@ export function ScanTopupDialog({ open, onOpenChange, currentBonus = 0 }: Props)
 
         <Button
           onClick={handlePurchase}
-          disabled={loading}
+          disabled={loading || !packList}
           className="w-full mt-1 bg-indigo-600 hover:bg-indigo-700 gap-2"
         >
           {loading
             ? <><Loader2 className="h-4 w-4 animate-spin" /> Redirecting…</>
-            : <><Zap className="h-4 w-4" /> Buy {PACKS.find((p) => p.id === selected)?.scans} scans — {PACKS.find((p) => p.id === selected)?.price}</>
+            : selectedPack
+              ? <><Zap className="h-4 w-4" /> Buy {selectedPack.scans} scans — {formatPrice(selectedPack.priceCents)}</>
+              : "Buy scans"
           }
         </Button>
 

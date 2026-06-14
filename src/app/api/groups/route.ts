@@ -61,8 +61,8 @@ export async function POST(req: Request) {
 
   // Plan enforcement — group creation limit
   const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { plan: true } })
-  const limits = planLimits((user?.plan ?? "FREE") as "FREE" | "PRO" | "FAMILY")
-  if (limits.maxGroups !== Infinity) {
+  const limits = await planLimits((user?.plan ?? "FREE") as "FREE" | "PRO" | "FAMILY")
+  if (limits.maxGroups !== 0) {
     const ownedGroupCount = await prisma.groupMember.count({ where: { userId: session.user.id, role: "ADMIN" } })
     if (ownedGroupCount >= limits.maxGroups) {
       return NextResponse.json(

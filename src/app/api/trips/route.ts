@@ -54,7 +54,7 @@ export async function POST(req: Request) {
   ])
   if (!isMember) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-  const limits = planLimits((user?.plan ?? "FREE") as "FREE" | "PRO" | "FAMILY")
+  const limits = await planLimits((user?.plan ?? "FREE") as "FREE" | "PRO" | "FAMILY")
   if (!limits.canCreateEvents) {
     return NextResponse.json(
       { error: "plan_limit", message: "Events are a Pro feature. Upgrade to create events and trips." },

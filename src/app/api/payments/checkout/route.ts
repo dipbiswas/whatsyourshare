@@ -9,7 +9,8 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
-import { stripe, PLATFORM_FEE_RATE } from "@/lib/stripe"
+import { stripe } from "@/lib/stripe"
+import { config } from "@/lib/config"
 import { z } from "zod"
 
 const schema = z.object({
@@ -44,7 +45,8 @@ export async function POST(req: Request) {
 
   const currency = (trip.fund.currency ?? trip.group.currency ?? "usd").toLowerCase()
   const amountInCents = Math.round(amount * 100)
-  const platformFeeInCents = Math.round(amountInCents * PLATFORM_FEE_RATE)
+  const feeRate = await config.platform.feeRate()
+  const platformFeeInCents = Math.round(amountInCents * feeRate)
 
   const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
 

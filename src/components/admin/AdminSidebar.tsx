@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Users, TrendingUp, BarChart2, ArrowLeft, Shield, ShieldAlert } from "lucide-react"
+import { Users, TrendingUp, BarChart2, ArrowLeft, Shield, ShieldAlert, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const BASE_NAV = [
@@ -11,6 +11,7 @@ const BASE_NAV = [
   { href: "/admin/revenue",    label: "Revenue",    icon: TrendingUp },
   { href: "/admin/usage",      label: "Usage",      icon: BarChart2 },
   { href: "/admin/moderation", label: "Moderation", icon: ShieldAlert, badge: true },
+  { href: "/admin/config",     label: "Config",      icon: Settings },
 ]
 
 interface Props {

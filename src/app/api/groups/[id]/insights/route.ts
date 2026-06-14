@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { checkScanQuota, deductScan } from "@/lib/scan-quota"
+import { config } from "@/lib/config"
 import { calculateGroupBalances } from "@/lib/balance"
 import Anthropic from "@anthropic-ai/sdk"
 
@@ -122,9 +123,14 @@ Return ONLY valid JSON with this exact shape:
 
 Be concise and friendly. Use real names from the data. Only mention categories/amounts that are meaningful.`
 
+  const [aiModel, aiMaxTokens] = await Promise.all([
+    config.platform.aiModel(),
+    config.platform.aiMaxTokens(),
+  ])
+
   const response = await client.messages.create({
-    model: "claude-haiku-4-5",
-    max_tokens: 800,
+    model: aiModel,
+    max_tokens: aiMaxTokens,
     messages: [{ role: "user", content: prompt }],
   })
 

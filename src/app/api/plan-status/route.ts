@@ -15,7 +15,7 @@ export async function GET() {
   })
 
   const plan = (user?.plan ?? "FREE") as "FREE" | "PRO" | "FAMILY"
-  const limits = planLimits(plan)
+  const limits = await planLimits(plan)
   const bonusScans: number = user?.bonusScans ?? 0
 
   const [groupCount, receiptUsage, insightUsage] = await Promise.all([
@@ -35,7 +35,7 @@ export async function GET() {
   return NextResponse.json({
     plan,
     groupCount,
-    maxGroups: limits.maxGroups === Infinity ? null : limits.maxGroups,
+    maxGroups: limits.maxGroups === 0 ? null : limits.maxGroups,
     canCreateEvents: limits.canCreateEvents,
     aiScansUsed: monthlyUsed,
     aiScansLimit: limits.maxAiScans,

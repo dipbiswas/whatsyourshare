@@ -52,6 +52,7 @@ model User {
   createdActionItems       ActionItem[]  @relation("ActionItemCreator")
   reportedFlags            ContentFlag[] @relation("FlagReporter")
   resolvedFlags            ContentFlag[] @relation("FlagResolver")
+  configUpdates            SystemConfig[]
 }
 
 model Account {
@@ -492,6 +493,20 @@ model GroupInvite {
 
   group     Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
   createdBy User  @relation(fields: [createdById], references: [id])
+}
+
+// System configuration — admin-editable key/value store
+model SystemConfig {
+  key         String   @id               // e.g. "platform.fee_rate"
+  value       String                     // JSON-encoded value
+  label       String                     // human-readable label
+  description String?                    // helper text shown in admin UI
+  group       String                     // "pricing" | "plans" | "platform"
+  type        String   @default("number") // "number" | "boolean" | "string"
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+
+  updatedBy   User?    @relation(fields: [updatedById], references: [id])
 }
 
 // Content moderation
