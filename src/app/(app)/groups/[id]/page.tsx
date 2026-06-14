@@ -23,6 +23,11 @@ import {
   Printer,
   Pencil,
   X,
+  MoreHorizontal,
+  Repeat2,
+  ArrowLeftRight,
+  Sparkles,
+  Settings,
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -137,6 +142,8 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [trips, setTrips] = useState<{ id: string; name: string; destination: string | null; coverEmoji: string | null; eventType: string; startDate: string; endDate: string; _count: { days: number } }[]>([])
   const [planStatus, setPlanStatus] = useState<{ plan: string; aiScansUsed: number; aiScansLimit: number } | null>(null)
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false)
+  const [activeGroupTab, setActiveGroupTab] = useState("expenses")
 
   const userId = session?.user.id ?? ""
 
@@ -499,38 +506,96 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* ── RIGHT: TABS ── */}
         <div className="min-w-0">
-      <Tabs defaultValue="expenses">
-        <div className="border-b border-border overflow-x-auto scrollbar-hide">
-          <TabsList className="flex h-auto p-0 gap-0 bg-transparent w-max min-w-full">
-            {[
-              { value: "expenses",    label: "Expenses",    count: group.expenses.length },
-              { value: "recurring",   label: "Recurring",   count: group.recurringExpenses.length },
-              { value: "settlements", label: "Settlements", count: group.settlements.length },
-              { value: "balances",    label: "Balances",    count: null },
-              { value: "trips",       label: "Events",      count: trips.length },
-              { value: "members",     label: "Members",     count: group.members.length },
-              { value: "insights",    label: "AI Insights", count: null },
-              { value: "settings",    label: "Settings",    count: null },
-            ].map(({ value, label, count }) => (
-              <TabsTrigger
-                key={value}
-                value={value}
-                className="group relative px-3 py-2.5 text-sm font-medium rounded-none bg-transparent text-muted-foreground whitespace-nowrap
-                  data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 data-[state=active]:shadow-none
-                  after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-transparent
-                  data-[state=active]:after:bg-indigo-600 dark:data-[state=active]:after:bg-indigo-400
-                  hover:text-foreground transition-colors"
+      {(() => {
+        const ALL_TABS = [
+          { value: "expenses",    label: "Expenses",    count: group.expenses.length,          icon: Receipt },
+          { value: "balances",    label: "Balances",    count: null,                           icon: ArrowLeftRight },
+          { value: "trips",       label: "Events",      count: trips.length,                   icon: Plane },
+          { value: "members",     label: "Members",     count: group.members.length,           icon: Users },
+          { value: "recurring",   label: "Recurring",   count: group.recurringExpenses.length, icon: Repeat2 },
+          { value: "settlements", label: "Settlements", count: group.settlements.length,       icon: ArrowLeftRight },
+          { value: "insights",    label: "AI Insights", count: null,                           icon: Sparkles },
+          { value: "settings",    label: "Settings",    count: null,                           icon: Settings },
+        ]
+        const primaryTabs = ALL_TABS.slice(0, 4)
+        const moreTabs    = ALL_TABS.slice(4)
+        const isMore = moreTabs.some((t) => t.value === activeGroupTab)
+
+        return (
+          <div className="border-b border-border flex items-center">
+            {/* Primary tabs */}
+            <div className="flex">
+              {primaryTabs.map(({ value, label, count }) => {
+                const active = activeGroupTab === value
+                return (
+                  <button
+                    key={value}
+                    onClick={() => setActiveGroupTab(value)}
+                    className={`relative flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px ${
+                      active
+                        ? "text-indigo-600 dark:text-indigo-400 border-indigo-600 dark:border-indigo-400"
+                        : "text-muted-foreground border-transparent hover:text-foreground"
+                    }`}
+                  >
+                    {label}
+                    {count !== null && count > 0 && (
+                      <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold ${active ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300" : "bg-muted text-muted-foreground"}`}>
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* More dropdown */}
+            <div className="relative ml-auto shrink-0">
+              <button
+                onClick={() => setMoreMenuOpen((v) => !v)}
+                className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                  isMore
+                    ? "text-indigo-600 dark:text-indigo-400 border-indigo-600 dark:border-indigo-400"
+                    : "text-muted-foreground border-transparent hover:text-foreground"
+                }`}
               >
-                {label}
-                {count !== null && count > 0 && (
-                  <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground group-data-[state=active]:bg-indigo-100 group-data-[state=active]:text-indigo-700 dark:group-data-[state=active]:bg-indigo-500/20 dark:group-data-[state=active]:text-indigo-300">
-                    {count}
-                  </span>
-                )}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
+                {isMore ? (moreTabs.find((t) => t.value === activeGroupTab)?.label ?? "More") : "More"}
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${moreMenuOpen ? "rotate-180" : ""}`} />
+              </button>
+              {moreMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setMoreMenuOpen(false)} />
+                  <div className="absolute right-0 top-full mt-1 z-20 w-52 rounded-xl border border-border bg-popover shadow-lg overflow-hidden py-1">
+                    {moreTabs.map(({ value, label, count, icon: Icon }) => {
+                      const active = activeGroupTab === value
+                      return (
+                        <button
+                          key={value}
+                          onClick={() => { setActiveGroupTab(value); setMoreMenuOpen(false) }}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm transition-colors ${
+                            active
+                              ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10"
+                              : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                          }`}
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span className="flex-1 text-left">{label}</span>
+                          {count !== null && count > 0 && (
+                            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground">
+                              {count}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )
+      })()}
+
+      <Tabs value={activeGroupTab} onValueChange={setActiveGroupTab}>
 
         {/* Expenses */}
         <TabsContent value="expenses" className="mt-4 space-y-3">
