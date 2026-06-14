@@ -878,7 +878,9 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
               />
               <Select value={newItemAssigneeId} onValueChange={(v) => setNewItemAssigneeId(v ?? "")}>
                 <SelectTrigger className="h-9 w-36 text-xs rounded-xl">
-                  <SelectValue placeholder="Assign to…" />
+                  <span className="truncate text-xs text-left flex-1">
+                    {eventMembers.find((m) => m.userId === newItemAssigneeId)?.user.name ?? <span className="text-muted-foreground">Assign to…</span>}
+                  </span>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="" className="text-xs text-gray-400">Unassigned</SelectItem>
@@ -948,7 +950,9 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                           onValueChange={(val) => assignActionItem(item.id, val === "" ? null : val)}
                         >
                           <SelectTrigger className="h-7 w-32 text-xs border-dashed rounded-lg">
-                            <SelectValue placeholder="Assign…" />
+                            <span className="truncate text-xs text-left flex-1">
+                              {item.assignee?.name ?? <span className="text-muted-foreground">Assign…</span>}
+                            </span>
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="" className="text-xs text-gray-400">Unassigned</SelectItem>
