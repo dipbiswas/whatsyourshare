@@ -65,16 +65,17 @@ export async function POST(req: Request) {
     console.log("[payments/checkout] appUrl:", appUrl, "currency:", currency, "amountInCents:", amountInCents)
 
     // Create or update a PENDING contribution row first
-    const contribution = await prisma.fundContribution.upsert({
-      where: { fundId_userId: { fundId: trip.fund.id, userId: session.user.id } },
-      create: {
-        fundId: trip.fund.id,
-        userId: session.user.id,
-        amount,
-        status: "PENDING",
-      },
-      update: { amount, status: "PENDING" },
+    const existing = await prisma.fundContribution.findFirst({
+      where: { fundId: trip.fund.id, userId: session.user.id },
     })
+    const contribution = existing
+      ? await prisma.fundContribution.update({
+          where: { id: existing.id },
+          data: { amount, status: "PENDING" },
+        })
+      : await prisma.fundContribution.create({
+          data: { fundId: trip.fund.id, userId: session.user.id, amount, status: "PENDING" },
+        })
 
     // Create Stripe Checkout Session
     let checkoutSession: Awaited<ReturnType<typeof stripe.checkout.sessions.create>>
