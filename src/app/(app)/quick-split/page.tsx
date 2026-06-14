@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
   Users, Receipt, Scale, ArrowLeftRight, Plus, X,
-  Check, Settings, ArrowRight, LayoutDashboard, Info,
+  Check, Settings, ArrowRight, LayoutDashboard, Info, Clock,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatCurrency } from "@/lib/balance"
@@ -54,6 +54,15 @@ interface SuggestedSettlement {
   amount: number
 }
 
+interface Expense {
+  id: string
+  description: string
+  amount: number
+  date: string
+  paidBy: { id: string; name: string }
+  splits: { userId: string | null; guestMemberId: string | null; amount: number }[]
+}
+
 export default function QuickSplitPage() {
   const router = useRouter()
 
@@ -63,6 +72,8 @@ export default function QuickSplitPage() {
   const [balances, setBalances] = useState<Balance[]>([])
   const [settlements, setSettlements] = useState<Settlement[]>([])
   const [hasNonEqualSplits, setHasNonEqualSplits] = useState(false)
+  const [expenses, setExpenses] = useState<Expense[]>([])
+  const [loadingBalances, setLoadingBalances] = useState(false)
 
   const [showGroupPopup, setShowGroupPopup] = useState(false)
   const [showMemberPopup, setShowMemberPopup] = useState(false)
@@ -92,6 +103,9 @@ export default function QuickSplitPage() {
 
   function selectGroup(g: Group) {
     setHasNonEqualSplits(false)
+    setExpenses([])
+    setBalances([])
+    setSettlements([])
     setSelectedGroup(g)
     const allParticipants: Participant[] = [
       ...g.members.map((m) => ({ type: "member" as const, userId: m.userId, name: m.user.name })),
@@ -106,8 +120,9 @@ export default function QuickSplitPage() {
   }
 
   const loadBalances = useCallback(async (groupId: string) => {
+    setLoadingBalances(true)
     const res = await fetch(`/api/groups/${groupId}`)
-    if (!res.ok) return
+    if (!res.ok) { setLoadingBalances(false); return }
     const data = await res.json()
 
     // Use the pre-computed balanceMap from the API
@@ -140,6 +155,10 @@ export default function QuickSplitPage() {
     // Detect any expenses with non-EQUAL split types
     const nonEqual = (data.expenses ?? []).some((e: any) => e.splitType && e.splitType !== "EQUAL")
     setHasNonEqualSplits(nonEqual)
+
+    // Store expenses for the list (most recent first, already sorted by API)
+    setExpenses((data.expenses ?? []).slice(0, 10))
+    setLoadingBalances(false)
   }, [])
 
   async function createGroup() {
@@ -417,7 +436,8 @@ export default function QuickSplitPage() {
         {/* Bottom row: Expense form + Balances/Settlements */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-          {/* Add expense */}
+          {/* Left column: add expense + recent expenses */}
+          <div className="space-y-4">
           <div className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-center gap-1.5 mb-4 text-sm font-medium text-foreground">
               <Receipt className="h-4 w-4 text-muted-foreground" /> Add expense
@@ -507,6 +527,33 @@ export default function QuickSplitPage() {
               </button>
             </div>
           </div>
+
+          {/* Recent expenses */}
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center gap-1.5 mb-3 text-sm font-medium text-foreground">
+              <Clock className="h-4 w-4 text-muted-foreground" /> Recent expenses
+            </div>
+            {loadingBalances ? (
+              <p className="text-xs text-muted-foreground">Loading…</p>
+            ) : expenses.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No expenses yet. Add one above.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {expenses.map((e) => (
+                  <div key={e.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/40">
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-sm text-foreground truncate">{e.description}</span>
+                      <span className="text-[11px] text-muted-foreground">paid by {e.paidBy?.name ?? "—"}</span>
+                    </div>
+                    <span className="text-sm font-semibold tabular-nums text-foreground ml-3 shrink-0">
+                      {formatCurrency(e.amount, selectedGroup?.currency ?? "USD")}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          </div> {/* end left column */}
 
           {/* Balances + Settlements */}
           <div className="space-y-4">
