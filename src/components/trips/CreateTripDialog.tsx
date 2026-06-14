@@ -1,13 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Plus } from "lucide-react"
+import { Plus, Check } from "lucide-react"
 import { format, addDays } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+
+interface GroupMember {
+  userId: string
+  user: { id: string; name: string; avatar: string | null }
+}
 
 export const EVENT_TYPES = [
   { value: "TRIP",        label: "Trip",        emoji: "✈️",  desc: "Vacation, road trip, getaway" },
@@ -39,6 +45,8 @@ export function CreateTripDialog({ groupId, onCreated, open: controlledOpen, onO
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen
   const setOpen = (v: boolean) => { setInternalOpen(v); onOpenChange?.(v) }
   const [loading, setLoading] = useState(false)
+  const [members, setMembers] = useState<GroupMember[]>([])
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [form, setForm] = useState({
     name: "",
     destination: "",
@@ -47,6 +55,31 @@ export function CreateTripDialog({ groupId, onCreated, open: controlledOpen, onO
     startDate: format(addDays(new Date(), 7), "yyyy-MM-dd"),
     endDate: format(addDays(new Date(), 14), "yyyy-MM-dd"),
   })
+
+  useEffect(() => {
+    if (!open) return
+    fetch(`/api/groups/${groupId}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.members) {
+          setMembers(data.members)
+          setSelectedIds(new Set(data.members.map((m: GroupMember) => m.userId)))
+        }
+      })
+  }, [open, groupId])
+
+  function toggleMember(userId: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(userId)) {
+        if (next.size === 1) return prev
+        next.delete(userId)
+      } else {
+        next.add(userId)
+      }
+      return next
+    })
+  }
 
   function selectType(value: string) {
     const t = EVENT_TYPES.find((e) => e.value === value)!
@@ -58,12 +91,15 @@ export function CreateTripDialog({ groupId, onCreated, open: controlledOpen, onO
     if (!form.name.trim()) { toast.error("Event name is required"); return }
     if (form.endDate < form.startDate) { toast.error("End date must be after start date"); return }
 
+    const allSelected = selectedIds.size === members.length
+    const memberIds = allSelected ? undefined : Array.from(selectedIds)
+
     setLoading(true)
     try {
       const res = await fetch("/api/trips", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, groupId }),
+        body: JSON.stringify({ ...form, groupId, ...(memberIds ? { memberIds } : {}) }),
       })
       if (!res.ok) { toast.error("Failed to create event"); return }
       const trip = await res.json()
@@ -85,7 +121,7 @@ export function CreateTripDialog({ groupId, onCreated, open: controlledOpen, onO
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create an event</DialogTitle>
           </DialogHeader>
@@ -166,6 +202,61 @@ export function CreateTripDialog({ groupId, onCreated, open: controlledOpen, onO
                 />
               </div>
             </div>
+
+            {/* Member picker */}
+            {members.length > 1 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Who&apos;s joining?</Label>
+                  <button
+                    type="button"
+                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                    onClick={() =>
+                      selectedIds.size === members.length
+                        ? setSelectedIds(new Set([members[0].userId]))
+                        : setSelectedIds(new Set(members.map((m) => m.userId)))
+                    }
+                  >
+                    {selectedIds.size === members.length ? "Deselect all" : "Select all"}
+                  </button>
+                </div>
+                <div className="space-y-1.5">
+                  {members.map((m) => {
+                    const selected = selectedIds.has(m.userId)
+                    return (
+                      <button
+                        key={m.userId}
+                        type="button"
+                        onClick={() => toggleMember(m.userId)}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2 rounded-xl border transition-colors text-left",
+                          selected
+                            ? "border-indigo-300 bg-indigo-50 dark:bg-indigo-500/10 dark:border-indigo-500/30"
+                            : "border-border hover:bg-accent"
+                        )}
+                      >
+                        <Avatar className="h-7 w-7 shrink-0">
+                          {m.user.avatar && <AvatarImage src={m.user.avatar} />}
+                          <AvatarFallback className="text-xs bg-indigo-100 text-indigo-700">
+                            {m.user.name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="flex-1 text-sm font-medium text-foreground">{m.user.name}</span>
+                        <div className={cn(
+                          "h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
+                          selected ? "bg-indigo-600 border-indigo-600" : "border-border"
+                        )}>
+                          {selected && <Check className="h-3 w-3 text-white" />}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {selectedIds.size} of {members.length} members joining
+                </p>
+              </div>
+            )}
 
             <DialogFooter>
               <Button variant="outline" type="button" onClick={() => setOpen(false)}>Cancel</Button>

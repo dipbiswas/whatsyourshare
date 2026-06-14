@@ -98,6 +98,7 @@ interface TripDetail {
   unlinkedExpenses: Expense[]
   memberSpend: Record<string, number>
   groupSettlements: { fromUserId: string; toUserId: string; amount: number }[]
+  memberIds: string[] | null
 }
 
 export default function TripDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -202,6 +203,10 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
     </div>
   )
 
+  const eventMembers = trip.memberIds
+    ? trip.group.members.filter((m) => (trip.memberIds as string[]).includes(m.userId))
+    : trip.group.members
+
   const totalDays = differenceInDays(new Date(trip.endDate), new Date(trip.startDate)) + 1
   const totalSpent = trip.days
     .flatMap((d) => d.expenses)
@@ -263,7 +268,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
             <p className="text-xs text-gray-500 uppercase tracking-wide">Per person</p>
             <p className="text-xl font-bold text-gray-900 mt-1">
               {formatCurrency(
-                trip.group.members.length > 0 ? totalSpent / trip.group.members.length : 0,
+                eventMembers.length > 0 ? totalSpent / eventMembers.length : 0,
                 trip.group.currency
               )}
             </p>
@@ -287,7 +292,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
         fund={trip.fund}
         currentUserId={userId}
         isOrganizer={isOrganizer}
-        memberCount={trip.group.members.length}
+        memberCount={eventMembers.length}
         currency={trip.group.currency}
       />
 
@@ -302,7 +307,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {trip.group.members.map((m) => {
+              {eventMembers.map((m) => {
                 const spent = trip.memberSpend[m.userId] ?? 0
                 return (
                   <div key={m.userId} className="flex items-center gap-2.5 p-2.5 rounded-lg bg-gray-50">
@@ -333,10 +338,10 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
         if (allExpenses.length === 0) return null
 
         const nameMap: Record<string, string> = {}
-        for (const m of trip.group.members) nameMap[m.userId] = m.user.name
+        for (const m of eventMembers) nameMap[m.userId] = m.user.name
 
         const balanceMap = calculateGroupBalances(
-          trip.group.members.map((m) => ({ userId: m.userId })),
+          eventMembers.map((m) => ({ userId: m.userId })),
           allExpenses.map((e) => ({
             paidById: e.paidBy.id,
             amount: e.amount,
@@ -358,7 +363,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
             <CardContent className="space-y-4">
               {/* Per-member net balance */}
               <div className="space-y-2">
-                {trip.group.members.map((m) => {
+                {eventMembers.map((m) => {
                   const bal = balanceMap[m.userId] ?? 0
                   const isYou = m.userId === userId
                   return (

@@ -9,6 +9,7 @@ const createSchema = z.object({
   destination: z.string().optional(),
   coverEmoji: z.string().optional(),
   eventType: z.string().default("TRIP"),
+  memberIds: z.array(z.string()).optional(),
   startDate: z.string(),
   endDate: z.string(),
 })
