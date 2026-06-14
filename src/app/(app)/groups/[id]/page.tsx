@@ -21,6 +21,8 @@ import {
   Users,
   Receipt,
   Printer,
+  Pencil,
+  X,
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -458,6 +460,10 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                 </button>
               }
             />
+            <button onClick={() => setOpenDialog("addRecurring")} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border hover:bg-accent text-sm font-medium text-foreground transition-colors">
+              <RefreshCw className="h-4 w-4 shrink-0 text-muted-foreground" />
+              Add Recurring
+            </button>
             <AddSettlementDialog
               groupId={group.id}
               currency={group.currency}
@@ -475,13 +481,9 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
               Add Member
             </button>
-            <button onClick={() => setOpenDialog("addRecurring")} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border hover:bg-accent text-sm font-medium text-foreground transition-colors">
-              <RefreshCw className="h-4 w-4 shrink-0 text-muted-foreground" />
-              Recurring
-            </button>
             <button onClick={() => setOpenDialog("createTrip")} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border hover:bg-accent text-sm font-medium text-foreground transition-colors">
-              <Receipt className="h-4 w-4 shrink-0 text-muted-foreground" />
-              Create Event
+              <Plane className="h-4 w-4 shrink-0 text-muted-foreground" />
+              Add Event
             </button>
           </div>
 
@@ -951,59 +953,52 @@ function MembersTab({
 }) {
   const isShares = group.defaultSplitType === "SHARES"
   const isPercentage = group.defaultSplitType === "PERCENTAGE"
-  const hasInlineEditor = isShares || isPercentage
-  const [editingSharesFor, setEditingSharesFor] = useState<string | null>(null)
-  const [shareInput, setShareInput] = useState("")
-  const [savingShares, setSavingShares] = useState(false)
-  const [togglingRoleFor, setTogglingRoleFor] = useState<string | null>(null)
+  const [expandedMember, setExpandedMember] = useState<string | null>(null)
+  const [editRole, setEditRole] = useState<string>("")
+  const [editShare, setEditShare] = useState<string>("")
+  const [savingMember, setSavingMember] = useState(false)
 
-  async function toggleRole(memberId: string, currentRole: string) {
-    const newRole = currentRole === "ADMIN" ? "MEMBER" : "ADMIN"
-    const label = newRole === "ADMIN" ? "Make admin" : "Remove admin"
-    if (!confirm(`${label} for this member?`)) return
-    setTogglingRoleFor(memberId)
+  function openEdit(m: typeof group.members[0]) {
+    setExpandedMember(m.userId)
+    setEditRole(m.role)
+    setEditShare(String(group.defaultSplitShares?.[m.userId] ?? ""))
+  }
+
+  async function saveMember(memberId: string) {
+    setSavingMember(true)
     try {
-      const res = await fetch(`/api/groups/${group.id}/members`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: memberId, role: newRole }),
-      })
-      if (res.ok) {
-        onGroupChange((g) => g ? {
-          ...g,
-          members: g.members.map((m) => m.userId === memberId ? { ...m, role: newRole } : m)
-        } : g)
-        toast.success(newRole === "ADMIN" ? "Member is now an admin" : "Admin role removed")
-      } else {
-        toast.error("Failed to update role")
+      const member = group.members.find((m) => m.userId === memberId)!
+      // Role change
+      if (editRole !== member.role) {
+        const res = await fetch(`/api/groups/${group.id}/members`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: memberId, role: editRole }),
+        })
+        if (!res.ok) { toast.error("Failed to update role"); return }
+        onGroupChange((g) => g ? { ...g, members: g.members.map((m) => m.userId === memberId ? { ...m, role: editRole } : m) } : g)
       }
+      // Share/percentage change
+      if (isShares || isPercentage) {
+        const val = parseFloat(editShare)
+        if (!isNaN(val) && val >= 0) {
+          const newShares = { ...(group.defaultSplitShares ?? {}), [memberId]: val }
+          const res = await fetch(`/api/groups/${group.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ defaultSplitShares: newShares }),
+          })
+          if (!res.ok) { toast.error("Failed to update share"); return }
+          onGroupChange((g) => g ? { ...g, defaultSplitShares: newShares } : g)
+        }
+      }
+      toast.success("Member updated")
+      setExpandedMember(null)
     } finally {
-      setTogglingRoleFor(null)
+      setSavingMember(false)
     }
   }
 
-  async function saveShare(memberId: string) {
-    const val = parseFloat(shareInput)
-    if (isNaN(val) || val < 0) { toast.error("Enter a valid number"); return }
-    if (isPercentage && val > 100) { toast.error("Percentage cannot exceed 100"); return }
-    setSavingShares(true)
-    try {
-      const newShares = { ...(group.defaultSplitShares ?? {}), [memberId]: val }
-      const res = await fetch(`/api/groups/${group.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ defaultSplitShares: newShares }),
-      })
-      if (!res.ok) { toast.error("Failed to save"); return }
-      onGroupChange((g) => g ? { ...g, defaultSplitShares: newShares } : g)
-      setEditingSharesFor(null)
-      toast.success(isPercentage ? "Percentage updated" : "Share updated")
-    } finally {
-      setSavingShares(false)
-    }
-  }
-
-  // For percentage: show total so user knows if they've hit 100%
   const percentageTotal = isPercentage
     ? group.members.reduce((sum, m) => sum + (group.defaultSplitShares?.[m.userId] ?? 0), 0)
     : 0
@@ -1015,8 +1010,8 @@ function MembersTab({
         const hasBalance = Math.abs(balance) > 0.01
         const canRemove = isAdmin ? m.userId !== userId : m.userId === userId
         const isSelf = m.userId === userId
+        const isExpanded = expandedMember === m.userId
         const currentShare = group.defaultSplitShares?.[m.userId]
-        const isEditing = editingSharesFor === m.userId
 
         return (
           <div key={m.userId}>
@@ -1040,62 +1035,13 @@ function MembersTab({
                   {m.role === "ADMIN" && <span className="text-[10px] text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-500/15 px-1.5 py-0.5 rounded-full font-medium">Admin</span>}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">{m.user.email}</p>
-
-                {/* Shares / Percentage inline editor */}
-                {hasInlineEditor && (
-                  <div className="mt-1.5">
-                    {isEditing ? (
-                      <div className="flex items-center gap-1.5">
-                        <Input
-                          type="number"
-                          min="0"
-                          step={isPercentage ? "0.1" : "1"}
-                          max={isPercentage ? "100" : undefined}
-                          placeholder="0"
-                          value={shareInput}
-                          onChange={(e) => setShareInput(e.target.value)}
-                          className="w-16 h-6 text-xs text-right py-0"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") saveShare(m.userId)
-                            if (e.key === "Escape") setEditingSharesFor(null)
-                          }}
-                        />
-                        <span className="text-xs text-muted-foreground">{isPercentage ? "%" : "shares"}</span>
-                        <button
-                          onClick={() => saveShare(m.userId)}
-                          disabled={savingShares}
-                          className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline disabled:opacity-50"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingSharesFor(null)}
-                          className="text-xs text-muted-foreground hover:text-foreground"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => { setEditingSharesFor(m.userId); setShareInput(String(currentShare ?? "")) }}
-                        className="inline-flex items-center gap-1 text-xs hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group/share"
-                      >
-                        <span className={cn(
-                          "font-medium",
-                          currentShare != null ? "text-foreground" : "text-muted-foreground/50 italic"
-                        )}>
-                          {currentShare != null
-                            ? isPercentage ? `${currentShare}%` : `${currentShare} shares`
-                            : isPercentage ? "Set %" : "Set shares"}
-                        </span>
-                        <span className="text-[10px] opacity-0 group-hover/share:opacity-100 transition-opacity text-indigo-500">✎</span>
-                      </button>
-                    )}
-                  </div>
+                {(isShares || isPercentage) && currentShare != null && (
+                  <p className="text-xs text-muted-foreground/70 mt-0.5">
+                    {isPercentage ? `${currentShare}%` : `${currentShare} shares`}
+                  </p>
                 )}
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <p className={cn("text-sm font-bold tabular-nums",
                   balance > 0.01 ? "text-emerald-600 dark:text-emerald-400"
                   : balance < -0.01 ? "text-rose-500 dark:text-rose-400"
@@ -1103,17 +1049,14 @@ function MembersTab({
                 )}>
                   {balance > 0.01 ? "+" : ""}{formatCurrency(balance, group.currency)}
                 </p>
-                {isAdmin && !isSelf && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 text-[11px] text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
-                    disabled={togglingRoleFor === m.userId}
-                    onClick={() => toggleRole(m.userId, m.role)}
-                  >
-                    {m.role === "ADMIN" ? "Demote" : "Make Admin"}
-                  </Button>
-                )}
+                {/* Edit button — always visible */}
+                <Button
+                  variant="ghost" size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
+                  onClick={() => isExpanded ? setExpandedMember(null) : openEdit(m)}
+                >
+                  {isExpanded ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+                </Button>
                 {canRemove && (
                   hasBalance ? (
                     <span className="text-[10px] text-muted-foreground/50" title="Settle up before removing">
@@ -1121,9 +1064,8 @@ function MembersTab({
                     </span>
                   ) : (
                     <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10"
+                      variant="ghost" size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10"
                       onClick={async () => {
                         if (!confirm(isSelf ? "Leave this group?" : `Remove ${m.user.name} from this group?`)) return
                         const res = await fetch(`/api/groups/${group.id}/members`, {
@@ -1144,12 +1086,66 @@ function MembersTab({
                         }
                       }}
                     >
-                      {isSelf ? "Leave" : "Remove"}
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   )
                 )}
               </div>
             </div>
+
+            {/* Inline edit panel */}
+            {isExpanded && (
+              <div className="mx-4 mb-3 p-3 rounded-xl bg-muted/40 border border-border/60 space-y-3">
+                {isAdmin && !isSelf && (
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Role</p>
+                    <div className="flex gap-2">
+                      {["MEMBER", "ADMIN"].map((r) => (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => setEditRole(r)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors",
+                            editRole === r
+                              ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300"
+                              : "border-border text-muted-foreground hover:bg-accent"
+                          )}
+                        >
+                          {r === "ADMIN" ? "Admin" : "Member"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {(isShares || isPercentage) && (
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                      {isPercentage ? "Split percentage" : "Split shares"}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number" min="0" step={isPercentage ? "0.1" : "1"}
+                        max={isPercentage ? "100" : undefined}
+                        placeholder="0"
+                        value={editShare}
+                        onChange={(e) => setEditShare(e.target.value)}
+                        className="w-24 h-8 text-sm"
+                      />
+                      <span className="text-sm text-muted-foreground">{isPercentage ? "%" : "shares"}</span>
+                    </div>
+                  </div>
+                )}
+                <div className="flex gap-2 pt-1">
+                  <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 h-7 text-xs" disabled={savingMember} onClick={() => saveMember(m.userId)}>
+                    {savingMember ? "Saving…" : "Save"}
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setExpandedMember(null)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )
       })}
