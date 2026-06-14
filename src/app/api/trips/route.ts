@@ -37,7 +37,16 @@ export async function GET(req: Request) {
     orderBy: { startDate: "desc" },
   })
 
-  return NextResponse.json(trips)
+  // Note: memberIds, hideFromNonMembers, createdById are scalar fields included by default
+
+  const userId = session.user.id
+  const visible = trips.filter((t: any) => {
+    if (!t.hideFromNonMembers) return true
+    const memberIds = Array.isArray(t.memberIds) ? (t.memberIds as string[]) : []
+    return memberIds.length === 0 || memberIds.includes(userId) || t.createdById === userId
+  })
+
+  return NextResponse.json(visible)
 }
 
 export async function POST(req: Request) {

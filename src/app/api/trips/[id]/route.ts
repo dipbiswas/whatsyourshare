@@ -65,6 +65,13 @@ export async function GET(
 
   if (!trip) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
+  // Enforce visibility: if hideFromNonMembers, only trip members (or creator) can access
+  if (trip.hideFromNonMembers) {
+    const memberIds = Array.isArray(trip.memberIds) ? (trip.memberIds as string[]) : []
+    const isTripMember = memberIds.length === 0 || memberIds.includes(session.user.id) || trip.createdById === session.user.id
+    if (!isTripMember) return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
+
   // Fetch group settlements so balances can account for them
   const groupSettlements = await prisma.settlement.findMany({
     where: { groupId: trip.groupId },
