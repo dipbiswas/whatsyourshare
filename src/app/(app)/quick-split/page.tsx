@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/utils"
 import { formatCurrency } from "@/lib/balance"
 import { AddSettlementDialog } from "@/components/settlements/AddSettlementDialog"
+import { InteracHelperDialog } from "@/components/settlements/InteracHelperDialog"
 
 interface Group {
   id: string
@@ -22,7 +23,7 @@ interface Group {
 
 interface Member {
   userId: string
-  user: { id: string; name: string; avatar: string | null }
+  user: { id: string; name: string; email: string; avatar: string | null }
 }
 
 interface Guest {
@@ -742,21 +743,40 @@ export default function QuickSplitPage() {
                         {formatCurrency(s.amount, selectedGroup?.currency ?? "USD")}
                       </span>
                       {selectedGroup && (
-                        <AddSettlementDialog
-                          groupId={selectedGroup.id}
-                          currency={selectedGroup.currency}
-                          members={selectedGroup.members}
-                          currentUserId={currentUserId}
-                          suggestedTo={s.to}
-                          suggestedAmount={s.amount}
-                          onCreated={() => loadBalances(selectedGroup.id)}
-                          compact
-                          trigger={
-                            <button className="text-[11px] border border-border rounded-md px-2 py-0.5 text-muted-foreground hover:bg-muted transition-colors ml-1">
-                              Settle
-                            </button>
-                          }
-                        />
+                        <div className="flex items-center gap-1 shrink-0">
+                          {selectedGroup.currency.toUpperCase() === "CAD" && (
+                            <InteracHelperDialog
+                              amount={s.amount}
+                              currency={selectedGroup.currency}
+                              toName={s.toName}
+                              toEmail={selectedGroup.members.find((m) => m.userId === s.to)?.user.email ?? ""}
+                              groupName={selectedGroup.name}
+                              onSent={async () => {
+                                await fetch("/api/settlements", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ groupId: selectedGroup.id, toUserId: s.to, amount: s.amount, note: "Interac e-Transfer" }),
+                                })
+                                loadBalances(selectedGroup.id)
+                              }}
+                            />
+                          )}
+                          <AddSettlementDialog
+                            groupId={selectedGroup.id}
+                            currency={selectedGroup.currency}
+                            members={selectedGroup.members}
+                            currentUserId={currentUserId}
+                            suggestedTo={s.to}
+                            suggestedAmount={s.amount}
+                            onCreated={() => loadBalances(selectedGroup.id)}
+                            compact
+                            trigger={
+                              <button className="text-[11px] border border-border rounded-md px-2 py-0.5 text-muted-foreground hover:bg-muted transition-colors ml-1">
+                                Settle
+                              </button>
+                            }
+                          />
+                        </div>
                       )}
                     </div>
                   ))}
