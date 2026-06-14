@@ -494,10 +494,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               }
             />
             <button
-              onClick={() => {
-                if (planStatus?.plan === "FREE") { toast.error("Recurring expenses are a Pro feature. Upgrade to Pro to use them."); return }
-                setOpenDialog("addRecurring")
-              }}
+              onClick={() => setOpenDialog("addRecurring")}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border hover:bg-accent text-sm font-medium text-foreground transition-colors"
             >
               <RefreshCw className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -1066,6 +1063,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
         groupId={group.id}
         currency={group.currency}
         members={group.members}
+        canCreate={planStatus?.plan !== "FREE"}
         open={openDialog === "addRecurring"}
         onOpenChange={(v) => !v && setOpenDialog(null)}
         onCreated={(r) => {
@@ -1199,6 +1197,11 @@ function MembersTab({
                 </p>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
+                {canRemove && hasBalance && (
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium" title="Settle up before removing">
+                    Unsettled
+                  </span>
+                )}
                 <p className={cn("text-sm font-bold tabular-nums",
                   balance > 0.01 ? "text-emerald-600 dark:text-emerald-400"
                   : balance < -0.01 ? "text-rose-500 dark:text-rose-400"
@@ -1215,11 +1218,7 @@ function MembersTab({
                   {isExpanded ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
                 </Button>
                 {canRemove && (
-                  hasBalance ? (
-                    <span className="text-[10px] text-muted-foreground/50" title="Settle up before removing">
-                      Unsettled
-                    </span>
-                  ) : (
+                  hasBalance ? null : (
                     <Button
                       variant="ghost" size="icon"
                       className="h-7 w-7 text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10"

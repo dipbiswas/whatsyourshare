@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { toast } from "sonner"
-import { RefreshCw } from "lucide-react"
+import { RefreshCw, Zap } from "lucide-react"
 import { format, addDays } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,6 +26,7 @@ interface Props {
   groupId: string
   currency: string
   members?: Member[]
+  canCreate?: boolean
   onCreated: (recurring: object) => void
   open?: boolean
   onOpenChange?: (v: boolean) => void
@@ -44,7 +45,7 @@ const SPLIT_TYPES = [
   { value: "EXACT", label: "Exact amounts" },
 ]
 
-export function AddRecurringExpenseDialog({ groupId, currency, members = [], onCreated, open: controlledOpen, onOpenChange }: Props) {
+export function AddRecurringExpenseDialog({ groupId, currency, members = [], canCreate = true, onCreated, open: controlledOpen, onOpenChange }: Props) {
   const [internalOpen, setInternalOpen] = useState(false)
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen
   const setOpen = (v: boolean) => { setInternalOpen(v); onOpenChange?.(v) }
@@ -57,6 +58,14 @@ export function AddRecurringExpenseDialog({ groupId, currency, members = [], onC
     splitType: "EQUAL",
     nextDueDate: format(addDays(new Date(), 1), "yyyy-MM-dd"),
   })
+
+  const [proPrice, setProPrice] = useState<string | null>(null)
+  useEffect(() => {
+    if (!open || canCreate) return
+    fetch("/api/billing/plan-prices").then((r) => r.ok ? r.json() : null).then((p) => {
+      if (p?.pro) setProPrice(`$${(p.pro / 100).toFixed(0)}/month`)
+    })
+  }, [open, canCreate])
 
   // SELECTED: which members are included
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set(members.map((m) => m.userId)))
@@ -185,6 +194,25 @@ export function AddRecurringExpenseDialog({ groupId, currency, members = [], onC
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+            {!canCreate && (
+              <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center shrink-0">
+                    <Zap className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Pro feature</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                      Recurring expenses are available on the Pro plan.
+                    </p>
+                  </div>
+                </div>
+                <button type="button" className="w-full flex items-center justify-center gap-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium py-2 transition-colors">
+                  <Zap className="h-3.5 w-3.5" />
+                  Upgrade to Pro{proPrice ? ` — ${proPrice}` : ""}
+                </button>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Description</Label>
               <Input
@@ -373,7 +401,7 @@ export function AddRecurringExpenseDialog({ groupId, currency, members = [], onC
               <Button variant="outline" type="button" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={loading}>
+              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={loading || !canCreate}>
                 {loading ? "Creating…" : "Create recurring"}
               </Button>
             </DialogFooter>

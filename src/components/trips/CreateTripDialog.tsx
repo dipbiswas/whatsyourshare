@@ -48,6 +48,7 @@ export function CreateTripDialog({ groupId, onCreated, open: controlledOpen, onO
   const [members, setMembers] = useState<GroupMember[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [canCreateEvents, setCanCreateEvents] = useState<boolean | null>(null)
+  const [proPrice, setProPrice] = useState<string | null>(null)
   const [form, setForm] = useState({
     name: "",
     destination: "",
@@ -62,12 +63,14 @@ export function CreateTripDialog({ groupId, onCreated, open: controlledOpen, onO
     Promise.all([
       fetch(`/api/groups/${groupId}`).then((r) => r.ok ? r.json() : null),
       fetch("/api/plan-status").then((r) => r.ok ? r.json() : null),
-    ]).then(([groupData, planData]) => {
+      fetch("/api/billing/plan-prices").then((r) => r.ok ? r.json() : null),
+    ]).then(([groupData, planData, prices]) => {
       if (groupData?.members) {
         setMembers(groupData.members)
         setSelectedIds(new Set(groupData.members.map((m: GroupMember) => m.userId)))
       }
       if (planData) setCanCreateEvents(planData.canCreateEvents)
+      if (prices?.pro) setProPrice(`$${(prices.pro / 100).toFixed(0)}/month`)
     })
   }, [open, groupId])
 
@@ -145,7 +148,7 @@ export function CreateTripDialog({ groupId, onCreated, open: controlledOpen, onO
                 </div>
                 <button type="button" className="w-full flex items-center justify-center gap-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium py-2 transition-colors">
                   <Zap className="h-3.5 w-3.5" />
-                  Upgrade to Pro — $4/month
+                  Upgrade to Pro{proPrice ? ` — ${proPrice}` : ""}
                 </button>
               </div>
             )}
