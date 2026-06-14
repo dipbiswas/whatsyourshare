@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { CreateGroupDialog } from "@/components/groups/CreateGroupDialog"
+import { QuickSplitBanner } from "@/components/layout/QuickSplitBanner"
 import { formatDistanceToNow } from "date-fns"
 
 interface PlanStatus {
@@ -83,6 +84,7 @@ export default function GroupsPage() {
 
   return (
     <div className="p-5 md:p-8 space-y-6 max-w-6xl mr-auto">
+      <QuickSplitBanner />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Groups</h1>
