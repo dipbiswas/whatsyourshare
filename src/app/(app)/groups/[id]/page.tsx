@@ -1037,11 +1037,15 @@ function MembersTab({
                   {m.role === "ADMIN" && <span className="text-[10px] text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-500/15 px-1.5 py-0.5 rounded-full font-medium">Admin</span>}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">{m.user.email}</p>
-                {(isShares || isPercentage) && currentShare != null && (
-                  <p className="text-xs text-muted-foreground/70 mt-0.5">
-                    {isPercentage ? `${currentShare}%` : `${currentShare} shares`}
-                  </p>
-                )}
+                <p className="text-xs text-muted-foreground/60 mt-0.5">
+                  {group.defaultSplitType === "SHARES"
+                    ? currentShare != null ? `${currentShare} shares` : "Shares — not set"
+                    : group.defaultSplitType === "PERCENTAGE"
+                    ? currentShare != null ? `${currentShare}%` : "Percentage — not set"
+                    : group.defaultSplitType === "EXACT"
+                    ? "Exact amount"
+                    : "Equal split"}
+                </p>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <p className={cn("text-sm font-bold tabular-nums",
