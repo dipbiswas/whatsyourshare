@@ -21,14 +21,13 @@ export async function GET() {
   const userId = session.user.id
 
   try {
-    const groups: any[] = await (prisma as any).group.findMany({
+    const groups: any[] = await prisma.group.findMany({
       where: { members: { some: { userId } } },
-      include: {
+      include: ({
         members: { include: { user: { select: { id: true, name: true, email: true, avatar: true } } } },
-        guests: { where: { linkedUserId: null }, select: { id: true, name: true, email: true } },
         _count: { select: { expenses: true } },
         expenses: {
-          select: { paidById: true, amount: true, splits: { select: { userId: true, guestMemberId: true, amount: true } } },
+          select: { paidById: true, amount: true, splits: { select: { userId: true, amount: true } } },
         },
         settlements: {
           select: { fromUserId: true, toUserId: true, amount: true },
@@ -37,22 +36,38 @@ export async function GET() {
           select: { id: true, name: true, coverEmoji: true, eventType: true, startDate: true, endDate: true },
           orderBy: { startDate: "asc" },
         },
-      },
+      } as any),
       orderBy: { updatedAt: "desc" },
     })
 
+    // Fetch guests separately to avoid breaking if GuestMember table doesn't exist yet
+    let guestsByGroup: Record<string, any[]> = {}
+    try {
+      const allGuests = await (prisma as any).guestMember.findMany({
+        where: { groupId: { in: groups.map((g: any) => g.id) }, linkedUserId: null },
+        select: { id: true, name: true, email: true, groupId: true },
+      })
+      for (const g of allGuests) {
+        if (!guestsByGroup[g.groupId]) guestsByGroup[g.groupId] = []
+        guestsByGroup[g.groupId].push(g)
+      }
+    } catch {
+      // GuestMember table may not exist yet — guests default to empty
+    }
+
     const now = new Date()
-    const result = groups.map(({ expenses, settlements, trips, guests, ...g }: any) => {
+    const result = groups.map(({ expenses, settlements, trips, ...g }: any) => {
+      const guests = guestsByGroup[g.id] ?? []
       const balanceMap = calculateGroupBalances(
         g.members.map((m: any) => ({ userId: m.userId })),
         expenses,
         settlements,
-        guests ?? [],
+        guests,
       )
       const myBalance = Math.round((balanceMap[userId] ?? 0) * 100) / 100
       const activeTrips = (trips as any[]).filter((t: any) => new Date(t.endDate) >= now)
       const isOwner = g.createdById === userId
-      return { ...g, guests: guests ?? [], myBalance, activeTrips, isOwner }
+      return { ...g, guests, myBalance, activeTrips, isOwner }
     })
 
     return NextResponse.json(result)
