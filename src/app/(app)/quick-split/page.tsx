@@ -48,6 +48,16 @@ interface Settlement {
   amount: number
 }
 
+interface RecordedSettlement {
+  id: string
+  fromName: string
+  toName: string
+  amount: number
+  date: string
+  currency: string
+  paymentMethod: string
+}
+
 interface SuggestedSettlement {
   from: string
   fromName: string
@@ -80,6 +90,7 @@ export default function QuickSplitPage() {
   const [participants, setParticipants] = useState<Participant[]>([])
   const [balances, setBalances] = useState<Balance[]>([])
   const [settlements, setSettlements] = useState<Settlement[]>([])
+  const [recordedSettlements, setRecordedSettlements] = useState<RecordedSettlement[]>([])
   const [hasNonEqualSplits, setHasNonEqualSplits] = useState(false)
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loadingBalances, setLoadingBalances] = useState(false)
@@ -135,6 +146,7 @@ export default function QuickSplitPage() {
     setExpenses([])
     setBalances([])
     setSettlements([])
+    setRecordedSettlements([])
     setSelectedGroup(g)
     const allParticipants: Participant[] = [
       ...g.members.map((m) => ({ type: "member" as const, userId: m.userId, name: m.user.name })),
@@ -180,6 +192,18 @@ export default function QuickSplitPage() {
       amount: Math.round(s.amount * 100) / 100,
     }))
     setSettlements(settles)
+
+    // Recorded settlement history
+    const recorded: RecordedSettlement[] = (data.settlements ?? []).map((s: any) => ({
+      id: s.id,
+      fromName: s.fromUser?.name ?? "Unknown",
+      toName: s.toUser?.name ?? "Unknown",
+      amount: s.amount,
+      date: s.date ?? s.createdAt,
+      currency: s.currency,
+      paymentMethod: s.paymentMethod,
+    }))
+    setRecordedSettlements(recorded)
 
     // Detect any expenses with non-EQUAL split types
     const nonEqual = (data.expenses ?? []).some((e: any) => e.splitType && e.splitType !== "EQUAL")
@@ -703,10 +727,12 @@ export default function QuickSplitPage() {
               <div className="flex items-center gap-1.5 mb-3 text-sm font-medium text-foreground">
                 <ArrowLeftRight className="h-4 w-4 text-muted-foreground" /> Settlements
               </div>
+
+              {/* Pending */}
               {settlements.length === 0 ? (
-                <p className="text-xs text-muted-foreground">All settled up!</p>
+                <p className="text-xs text-muted-foreground mb-3">All settled up!</p>
               ) : (
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 mb-3">
                   {settlements.map((s, i) => (
                     <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/40 text-sm">
                       <span className="text-foreground font-medium">{s.fromName}</span>
@@ -735,6 +761,30 @@ export default function QuickSplitPage() {
                     </div>
                   ))}
                 </div>
+              )}
+
+              {/* History */}
+              {recordedSettlements.length > 0 && (
+                <>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1.5">History</p>
+                  <div className="space-y-1.5">
+                    {recordedSettlements.map((s) => (
+                      <div key={s.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/40 text-sm">
+                        <span className="text-foreground font-medium">{s.fromName}</span>
+                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                        <span className="text-foreground font-medium">{s.toName}</span>
+                        <div className="ml-auto text-right">
+                          <p className="text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums">
+                            {formatCurrency(s.amount, s.currency)}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {new Date(s.date).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           </div>
