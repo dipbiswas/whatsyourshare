@@ -1,0 +1,713 @@
+"use client"
+
+import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import {
+  Users, Receipt, Scale, ArrowLeftRight, Plus, X,
+  Check, Settings, ArrowRight, LayoutDashboard, Info,
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+import { formatCurrency } from "@/lib/balance"
+
+interface Group {
+  id: string
+  name: string
+  currency: string
+  members: Member[]
+  guests: Guest[]
+}
+
+interface Member {
+  userId: string
+  user: { id: string; name: string; avatar: string | null }
+}
+
+interface Guest {
+  id: string
+  name: string
+  email?: string | null
+}
+
+type Participant = { type: "member"; userId: string; name: string } | { type: "guest"; guestId: string; name: string }
+
+interface Balance {
+  key: string
+  name: string
+  amount: number
+  isGuest: boolean
+}
+
+interface Settlement {
+  from: string
+  fromName: string
+  to: string
+  toName: string
+  amount: number
+}
+
+export default function QuickSplitPage() {
+  const router = useRouter()
+
+  const [groups, setGroups] = useState<Group[]>([])
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
+  const [participants, setParticipants] = useState<Participant[]>([])
+  const [balances, setBalances] = useState<Balance[]>([])
+  const [settlements, setSettlements] = useState<Settlement[]>([])
+
+  const [showGroupPopup, setShowGroupPopup] = useState(false)
+  const [showMemberPopup, setShowMemberPopup] = useState(false)
+  const [showGuestForm, setShowGuestForm] = useState(false)
+  const [newGroupName, setNewGroupName] = useState("")
+  const [creatingGroup, setCreatingGroup] = useState(false)
+  const [guestName, setGuestName] = useState("")
+  const [guestEmail, setGuestEmail] = useState("")
+  const [addingGuest, setAddingGuest] = useState(false)
+  const [addMemberEmail, setAddMemberEmail] = useState("")
+  const [addingMember, setAddingMember] = useState(false)
+
+  const [expenseDesc, setExpenseDesc] = useState("")
+  const [expenseAmount, setExpenseAmount] = useState("")
+  const [expensePaidBy, setExpensePaidBy] = useState("")
+  const [selectedForSplit, setSelectedForSplit] = useState<Set<string>>(new Set())
+  const [addingExpense, setAddingExpense] = useState(false)
+
+  const [switching, setSwitching] = useState(false)
+
+  useEffect(() => {
+    fetch("/api/groups").then((r) => r.ok ? r.json() : []).then((data) => {
+      setGroups(data)
+      if (data.length > 0) selectGroup(data[0])
+    })
+  }, [])
+
+  function selectGroup(g: Group) {
+    setSelectedGroup(g)
+    const allParticipants: Participant[] = [
+      ...g.members.map((m) => ({ type: "member" as const, userId: m.userId, name: m.user.name })),
+      ...(g.guests ?? []).map((guest) => ({ type: "guest" as const, guestId: guest.id, name: guest.name })),
+    ]
+    setParticipants(allParticipants)
+    const keys = new Set(allParticipants.map((p) => p.type === "member" ? p.userId : `guest_${p.guestId}`))
+    setSelectedForSplit(keys)
+    setExpensePaidBy(g.members[0]?.userId ?? "")
+    loadBalances(g.id)
+    setShowGroupPopup(false)
+  }
+
+  const loadBalances = useCallback(async (groupId: string) => {
+    const res = await fetch(`/api/groups/${groupId}`)
+    if (!res.ok) return
+    const data = await res.json()
+
+    const memberMap: Record<string, string> = {}
+    data.members.forEach((m: Member) => { memberMap[m.userId] = m.user.name })
+    const guestMap: Record<string, string> = {}
+    ;(data.guests ?? []).forEach((g: Guest) => { guestMap[`guest_${g.id}`] = `${g.name} (guest)` })
+
+    const balanceMap: Record<string, number> = {}
+    for (const exp of data.expenses ?? []) {
+      for (const s of exp.splits ?? []) {
+        const key = s.userId ?? (s.guestMemberId ? `guest_${s.guestMemberId}` : null)
+        if (!key) continue
+        balanceMap[key] = (balanceMap[key] ?? 0) - s.amount
+      }
+      const paidKey = exp.paidById
+      balanceMap[paidKey] = (balanceMap[paidKey] ?? 0) + exp.amount
+    }
+    for (const s of data.settlements ?? []) {
+      balanceMap[s.fromUserId] = (balanceMap[s.fromUserId] ?? 0) + s.amount
+      balanceMap[s.toUserId] = (balanceMap[s.toUserId] ?? 0) - s.amount
+    }
+
+    const allKeys = new Set([...Object.keys(memberMap), ...Object.keys(guestMap)])
+    const bals: Balance[] = Array.from(allKeys).map((key) => ({
+      key,
+      name: memberMap[key] ?? guestMap[key] ?? key,
+      amount: Math.round((balanceMap[key] ?? 0) * 100) / 100,
+      isGuest: key.startsWith("guest_"),
+    }))
+    setBalances(bals)
+
+    // compute settlements (greedy)
+    const pos = bals.filter((b) => b.amount > 0.01).map((b) => ({ ...b })).sort((a, b) => b.amount - a.amount)
+    const neg = bals.filter((b) => b.amount < -0.01).map((b) => ({ ...b })).sort((a, b) => a.amount - b.amount)
+    const settles: Settlement[] = []
+    let i = 0, j = 0
+    while (i < neg.length && j < pos.length) {
+      const amt = Math.min(-neg[i].amount, pos[j].amount)
+      if (amt > 0.005) {
+        settles.push({ from: neg[i].key, fromName: neg[i].name, to: pos[j].key, toName: pos[j].name, amount: Math.round(amt * 100) / 100 })
+      }
+      neg[i].amount += amt
+      pos[j].amount -= amt
+      if (Math.abs(neg[i].amount) < 0.005) i++
+      if (Math.abs(pos[j].amount) < 0.005) j++
+    }
+    setSettlements(settles)
+  }, [])
+
+  async function createGroup() {
+    if (!newGroupName.trim()) return
+    setCreatingGroup(true)
+    try {
+      const res = await fetch("/api/groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newGroupName.trim(), currency: "USD" }),
+      })
+      if (!res.ok) { toast.error("Failed to create group"); return }
+      const g = await res.json()
+      const fullGroup: Group = { ...g, guests: [] }
+      setGroups((prev) => [fullGroup, ...prev])
+      selectGroup(fullGroup)
+      setNewGroupName("")
+    } finally {
+      setCreatingGroup(false)
+    }
+  }
+
+  async function addGuest() {
+    if (!guestName.trim() || !selectedGroup) return
+    setAddingGuest(true)
+    try {
+      const res = await fetch(`/api/groups/${selectedGroup.id}/guests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: guestName.trim(), email: guestEmail.trim() || undefined }),
+      })
+      if (!res.ok) { toast.error("Failed to add guest"); return }
+      const guest = await res.json()
+      const newGuest: Guest = { id: guest.id, name: guest.name, email: guest.email }
+      const updated = { ...selectedGroup, guests: [...(selectedGroup.guests ?? []), newGuest] }
+      setSelectedGroup(updated)
+      setGroups((prev) => prev.map((g) => g.id === updated.id ? updated : g))
+      const newP: Participant = { type: "guest", guestId: newGuest.id, name: newGuest.name }
+      setParticipants((prev) => [...prev, newP])
+      setSelectedForSplit((prev) => new Set([...prev, `guest_${newGuest.id}`]))
+      setGuestName("")
+      setGuestEmail("")
+      setShowGuestForm(false)
+      toast.success(`${newGuest.name} added as guest`)
+    } finally {
+      setAddingGuest(false)
+    }
+  }
+
+  async function addMember() {
+    if (!addMemberEmail.trim() || !selectedGroup) return
+    setAddingMember(true)
+    try {
+      const res = await fetch(`/api/groups/${selectedGroup.id}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: addMemberEmail.trim() }),
+      })
+      if (!res.ok) { const d = await res.json(); toast.error(d.error ?? "Failed to add member"); return }
+      const member = await res.json()
+      const updated = { ...selectedGroup, members: [...selectedGroup.members, member] }
+      setSelectedGroup(updated)
+      setGroups((prev) => prev.map((g) => g.id === updated.id ? updated : g))
+      const newP: Participant = { type: "member", userId: member.userId, name: member.user.name }
+      setParticipants((prev) => [...prev, newP])
+      setSelectedForSplit((prev) => new Set([...prev, member.userId]))
+      setAddMemberEmail("")
+      toast.success(`${member.user.name} added`)
+    } finally {
+      setAddingMember(false)
+    }
+  }
+
+  function toggleSplit(key: string) {
+    setSelectedForSplit((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) {
+        if (next.size === 1) return prev
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }
+
+  const splitParticipants = participants.filter((p) => {
+    const key = p.type === "member" ? p.userId : `guest_${p.guestId}`
+    return selectedForSplit.has(key)
+  })
+  const splitAmount = parseFloat(expenseAmount) || 0
+  const perPerson = splitParticipants.length > 0 ? Math.round((splitAmount / splitParticipants.length) * 100) / 100 : 0
+
+  async function addExpense() {
+    if (!selectedGroup) { toast.error("Select a group first"); return }
+    if (!expenseDesc.trim()) { toast.error("Enter a description"); return }
+    if (!splitAmount || splitAmount <= 0) { toast.error("Enter a valid amount"); return }
+    if (!expensePaidBy) { toast.error("Select who paid"); return }
+    if (splitParticipants.length === 0) { toast.error("Select at least one person to split with"); return }
+
+    setAddingExpense(true)
+    try {
+      const splits = splitParticipants.map((p) => {
+        if (p.type === "member") return { userId: p.userId, amount: perPerson }
+        return { guestMemberId: p.guestId, amount: perPerson }
+      })
+
+      const res = await fetch("/api/expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          groupId: selectedGroup.id,
+          description: expenseDesc.trim(),
+          amount: splitAmount,
+          paidById: expensePaidBy,
+          category: "General",
+          splitType: "EQUAL",
+          splits,
+        }),
+      })
+      if (!res.ok) { toast.error("Failed to add expense"); return }
+      toast.success("Expense added!")
+      setExpenseDesc("")
+      setExpenseAmount("")
+      await loadBalances(selectedGroup.id)
+    } finally {
+      setAddingExpense(false)
+    }
+  }
+
+  async function markSettled(settlement: Settlement) {
+    if (!selectedGroup) return
+    const res = await fetch(`/api/groups/${selectedGroup.id}/settlements`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fromUserId: settlement.from, toUserId: settlement.to, amount: settlement.amount }),
+    })
+    if (!res.ok) { toast.error("Failed to record settlement"); return }
+    toast.success("Settlement recorded!")
+    await loadBalances(selectedGroup.id)
+  }
+
+  async function switchToFull() {
+    setSwitching(true)
+    await fetch("/api/user/ui-mode", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ uiMode: "FULL" }),
+    })
+    router.push("/dashboard")
+  }
+
+  const allParticipants = selectedGroup ? participants : []
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+
+        {/* Mode banner */}
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3">
+          <div className="flex items-start gap-2.5">
+            <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">Quick Split</span> — fast and simple.{" "}
+              <button
+                onClick={switchToFull}
+                disabled={switching}
+                className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+              >
+                Switch to Full View
+              </button>{" "}
+              for trips, recurring expenses, AI insights, and more.
+            </p>
+          </div>
+          <LayoutDashboard className="h-4 w-4 text-muted-foreground shrink-0" />
+        </div>
+
+        {/* Top row: Group + Members */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          {/* Group card */}
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center gap-1.5 mb-3 text-sm font-medium text-foreground">
+              <Users className="h-4 w-4 text-muted-foreground" /> Group
+            </div>
+            {selectedGroup ? (
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-base font-semibold text-foreground">{selectedGroup.name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {selectedGroup.members.length} member{selectedGroup.members.length !== 1 ? "s" : ""}
+                    {(selectedGroup.guests?.length ?? 0) > 0 && ` · ${selectedGroup.guests.length} guest${selectedGroup.guests.length !== 1 ? "s" : ""}`}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowGroupPopup(true)}
+                  className="text-xs text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 rounded-lg px-3 py-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"
+                >
+                  Change
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowGroupPopup(true)}
+                className="w-full flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border py-4 text-sm text-muted-foreground hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+              >
+                <Plus className="h-4 w-4" /> Select or create a group
+              </button>
+            )}
+          </div>
+
+          {/* Members card */}
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                <Users className="h-4 w-4 text-muted-foreground" /> Members
+              </div>
+              {selectedGroup && (
+                <button
+                  onClick={() => setShowMemberPopup(true)}
+                  className="text-xs text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 rounded-lg px-3 py-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors flex items-center gap-1"
+                >
+                  <Settings className="h-3 w-3" /> Manage
+                </button>
+              )}
+            </div>
+            {allParticipants.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Select a group to see members.</p>
+            ) : (
+              <>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {allParticipants.map((p) => {
+                    const key = p.type === "member" ? p.userId : `guest_${p.guestId}`
+                    const selected = selectedForSplit.has(key)
+                    return (
+                      <span
+                        key={key}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
+                          p.type === "guest"
+                            ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30"
+                            : selected
+                            ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30"
+                            : "bg-muted text-muted-foreground border border-border"
+                        )}
+                      >
+                        {p.name}
+                        {p.type === "guest" && <span className="text-[9px] opacity-70">guest</span>}
+                      </span>
+                    )
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {selectedForSplit.size} of {allParticipants.length} selected for next expense
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom row: Expense form + Balances/Settlements */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          {/* Add expense */}
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center gap-1.5 mb-4 text-sm font-medium text-foreground">
+              <Receipt className="h-4 w-4 text-muted-foreground" /> Add expense
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Description</label>
+                <input
+                  type="text"
+                  placeholder="Dinner, cab, groceries…"
+                  value={expenseDesc}
+                  onChange={(e) => setExpenseDesc(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Amount ({selectedGroup?.currency ?? "USD"})</label>
+                <input
+                  type="number"
+                  placeholder="0.00"
+                  value={expenseAmount}
+                  onChange={(e) => setExpenseAmount(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Paid by</label>
+                <select
+                  value={expensePaidBy}
+                  onChange={(e) => setExpensePaidBy(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                >
+                  {selectedGroup?.members.map((m) => (
+                    <option key={m.userId} value={m.userId}>{m.user.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                  <p className="text-[11px] text-muted-foreground">Split equally — tap to include/exclude</p>
+                </div>
+                <div className="space-y-1.5">
+                  {allParticipants.map((p) => {
+                    const key = p.type === "member" ? p.userId : `guest_${p.guestId}`
+                    const included = selectedForSplit.has(key)
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => toggleSplit(key)}
+                        className={cn(
+                          "w-full flex items-center justify-between px-3 py-2 rounded-lg border text-sm transition-colors",
+                          included
+                            ? "border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10"
+                            : "border-border bg-muted/30 opacity-50"
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={cn(
+                            "h-4 w-4 rounded flex items-center justify-center flex-shrink-0",
+                            included ? "bg-indigo-600" : "border border-border"
+                          )}>
+                            {included && <Check className="h-2.5 w-2.5 text-white" />}
+                          </div>
+                          <span className={included ? "text-foreground" : "text-muted-foreground"}>{p.name}</span>
+                          {p.type === "guest" && (
+                            <span className="text-[9px] bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 rounded-full px-1.5 py-0.5">guest</span>
+                          )}
+                        </div>
+                        <span className={included ? "text-sm text-muted-foreground tabular-nums" : "text-sm text-muted-foreground/40 tabular-nums"}>
+                          {included && splitAmount > 0 ? formatCurrency(perPerson, selectedGroup?.currency ?? "USD") : "—"}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <button
+                onClick={addExpense}
+                disabled={addingExpense}
+                className="w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-medium py-2.5 transition-colors mt-1"
+              >
+                {addingExpense ? "Adding…" : "Add expense"}
+              </button>
+            </div>
+          </div>
+
+          {/* Balances + Settlements */}
+          <div className="space-y-4">
+            <div className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-center gap-1.5 mb-3 text-sm font-medium text-foreground">
+                <Scale className="h-4 w-4 text-muted-foreground" /> Balances
+              </div>
+              {balances.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No balances yet.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {balances.map((b) => (
+                    <div key={b.key} className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/40">
+                      <div className="flex items-center gap-2 text-sm text-foreground">
+                        <div className={cn(
+                          "h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-semibold flex-shrink-0",
+                          b.isGuest
+                            ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400"
+                            : "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400"
+                        )}>
+                          {b.name[0].toUpperCase()}
+                        </div>
+                        {b.name}
+                        {b.isGuest && <span className="text-[9px] bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 rounded-full px-1.5 py-0.5">guest</span>}
+                      </div>
+                      <span className={cn(
+                        "text-sm font-semibold tabular-nums",
+                        b.amount > 0.01 ? "text-emerald-600 dark:text-emerald-400"
+                        : b.amount < -0.01 ? "text-rose-500 dark:text-rose-400"
+                        : "text-muted-foreground/50"
+                      )}>
+                        {b.amount > 0.01 ? "+" : ""}{formatCurrency(b.amount, selectedGroup?.currency ?? "USD")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-center gap-1.5 mb-3 text-sm font-medium text-foreground">
+                <ArrowLeftRight className="h-4 w-4 text-muted-foreground" /> Settlements
+              </div>
+              {settlements.length === 0 ? (
+                <p className="text-xs text-muted-foreground">All settled up!</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {settlements.map((s, i) => (
+                    <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/40 text-sm">
+                      <span className="text-foreground font-medium">{s.fromName}</span>
+                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                      <span className="text-foreground font-medium">{s.toName}</span>
+                      <span className="ml-auto text-indigo-600 dark:text-indigo-400 font-semibold tabular-nums">
+                        {formatCurrency(s.amount, selectedGroup?.currency ?? "USD")}
+                      </span>
+                      <button
+                        onClick={() => markSettled(s)}
+                        className="text-[11px] border border-border rounded-md px-2 py-0.5 text-muted-foreground hover:bg-muted transition-colors ml-1"
+                      >
+                        Settled
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Group popup */}
+      {showGroupPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowGroupPopup(false)}>
+          <div className="w-full max-w-sm bg-card border border-border rounded-2xl p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-foreground">Select or create a group</h2>
+              <button onClick={() => setShowGroupPopup(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="space-y-1.5 mb-4 max-h-48 overflow-y-auto">
+              {groups.map((g) => (
+                <button
+                  key={g.id}
+                  onClick={() => selectGroup(g)}
+                  className={cn(
+                    "w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors",
+                    selectedGroup?.id === g.id
+                      ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30"
+                      : "bg-muted/40 text-foreground hover:bg-muted border border-transparent"
+                  )}
+                >
+                  {g.name}
+                  {selectedGroup?.id === g.id && <Check className="h-3.5 w-3.5" />}
+                </button>
+              ))}
+            </div>
+            <div className="border-t border-border pt-4">
+              <p className="text-xs text-muted-foreground mb-2">Create new group</p>
+              <input
+                type="text"
+                placeholder="Group name"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && createGroup()}
+                className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+              />
+              <div className="flex gap-2">
+                <button onClick={createGroup} disabled={creatingGroup || !newGroupName.trim()} className="flex-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm py-2 transition-colors">
+                  {creatingGroup ? "Creating…" : "Create"}
+                </button>
+                <button onClick={() => setShowGroupPopup(false)} className="px-4 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Members popup */}
+      {showMemberPopup && selectedGroup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => { setShowMemberPopup(false); setShowGuestForm(false) }}>
+          <div className="w-full max-w-sm bg-card border border-border rounded-2xl p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-foreground">Manage members</h2>
+              <button onClick={() => { setShowMemberPopup(false); setShowGuestForm(false) }} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+            </div>
+
+            <div className="space-y-1.5 mb-3">
+              {allParticipants.map((p) => {
+                const key = p.type === "member" ? p.userId : `guest_${p.guestId}`
+                const included = selectedForSplit.has(key)
+                return (
+                  <button
+                    key={key}
+                    onClick={() => toggleSplit(key)}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/40 hover:bg-muted transition-colors"
+                  >
+                    <div className={cn(
+                      "h-4 w-4 rounded flex items-center justify-center flex-shrink-0 border",
+                      included ? "bg-indigo-600 border-indigo-600" : "border-border"
+                    )}>
+                      {included && <Check className="h-2.5 w-2.5 text-white" />}
+                    </div>
+                    <span className="text-sm text-foreground flex-1 text-left">{p.name}</span>
+                    {p.type === "guest" && <span className="text-[10px] bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 rounded-full px-1.5 py-0.5">guest</span>}
+                  </button>
+                )
+              })}
+            </div>
+
+            {!showGuestForm ? (
+              <button
+                onClick={() => setShowGuestForm(true)}
+                className="w-full flex items-center gap-2 px-3 py-2 border border-dashed border-border rounded-lg text-xs text-muted-foreground hover:border-indigo-300 hover:text-indigo-600 transition-colors mb-3"
+              >
+                <Plus className="h-3.5 w-3.5" /> Add a guest (no account needed)
+              </button>
+            ) : (
+              <div className="border border-border rounded-lg p-3 mb-3 space-y-2">
+                <input
+                  type="text"
+                  placeholder="Guest name *"
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                />
+                <input
+                  type="email"
+                  placeholder="Email (optional — links account later)"
+                  value={guestEmail}
+                  onChange={(e) => setGuestEmail(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                />
+                <div className="flex gap-2">
+                  <button onClick={addGuest} disabled={addingGuest || !guestName.trim()} className="flex-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs py-1.5 transition-colors">
+                    {addingGuest ? "Adding…" : "Add guest"}
+                  </button>
+                  <button onClick={() => setShowGuestForm(false)} className="px-3 rounded-lg border border-border text-xs text-muted-foreground hover:bg-muted transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="border-t border-border pt-3">
+              <p className="text-xs text-muted-foreground mb-2">Add existing member by email</p>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  placeholder="email@example.com"
+                  value={addMemberEmail}
+                  onChange={(e) => setAddMemberEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addMember()}
+                  className="flex-1 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                />
+                <button onClick={addMember} disabled={addingMember || !addMemberEmail.trim()} className="rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm px-3 transition-colors">
+                  {addingMember ? "…" : "Add"}
+                </button>
+              </div>
+            </div>
+
+            <button
+              onClick={() => { setShowMemberPopup(false); setShowGuestForm(false) }}
+              className="w-full mt-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm py-2 transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

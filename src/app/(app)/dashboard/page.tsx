@@ -1,4 +1,5 @@
 import { auth } from "@/auth"
+import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { calculateGroupBalances, formatCurrency } from "@/lib/balance"
 import { planLimits, currentMonth } from "@/lib/plan"
@@ -10,6 +11,7 @@ import { OnboardingCard } from "@/components/dashboard/OnboardingCard"
 import { format } from "date-fns"
 import Link from "next/link"
 import { ArrowUpRight } from "lucide-react"
+import { QuickSplitBanner } from "@/components/layout/QuickSplitBanner"
 
 const CATEGORY_COLORS: Record<string, string> = {
   Food: "bg-orange-400",
@@ -103,6 +105,13 @@ function getGreeting(timezone?: string) {
 export default async function DashboardPage() {
   const session = await auth()
   if (!session?.user.id) return null
+
+  const modeCheck = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { uiMode: true },
+  })
+  if ((modeCheck as any)?.uiMode === "QUICK_SPLIT") redirect("/quick-split")
+
   const data = await getDashboardData(session.user.id)
   const firstName = session.user.name?.split(" ")[0] ?? "there"
 
@@ -127,6 +136,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="p-5 md:p-8 space-y-6 max-w-6xl mr-auto">
+      <QuickSplitBanner />
       {/* Header */}
       <div>
         <p className="text-sm text-muted-foreground font-medium">{greeting}</p>

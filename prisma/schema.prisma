@@ -30,6 +30,7 @@ model User {
   planExpiresAt         DateTime?
   bonusScans            Int       @default(0)
   isAdmin               Boolean   @default(false)
+  uiMode                String    @default("QUICK_SPLIT")
   // Phase 8 — Virtual card cardholder
   stripeCardholderId    String?
 
