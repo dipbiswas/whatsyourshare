@@ -568,7 +568,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                     </button>
                     <div className="text-right shrink-0">
                       <p className="font-bold text-foreground text-sm tabular-nums">{formatCurrency(expense.amount, expense.currency)}</p>
-                      <div className="flex items-center justify-end gap-0.5 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-end gap-0.5 mt-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         {isAdmin && group.workspaceType === "TEAM" && expense.approvalStatus === "PENDING_APPROVAL" && (
                           <>
                             <Button variant="ghost" size="icon" className="h-6 w-6 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-500/10" disabled={approvingId === expense.id} onClick={() => approveExpense(expense.id, "APPROVE")}>
@@ -641,7 +641,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                       <p className="font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(s.amount, s.currency)}</p>
                       <Button
                         variant="ghost" size="icon"
-                        className="h-7 w-7 opacity-0 group-hover/row:opacity-100 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                        className="h-7 w-7 md:opacity-0 md:group-hover/row:opacity-100 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
                         disabled={deletingId === s.id}
                         onClick={() => deleteSettlement(s.id)}
                       >
@@ -689,7 +689,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                       </div>
                       <Button
                         variant="ghost" size="icon"
-                        className="h-7 w-7 opacity-0 group-hover/row:opacity-100 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                        className="h-7 w-7 md:opacity-0 md:group-hover/row:opacity-100 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
                         disabled={deletingId === r.id}
                         onClick={() => deleteRecurring(r.id)}
                       >
@@ -745,7 +745,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                   </Link>
                   <Button
                     variant="ghost" size="icon"
-                    className="h-7 w-7 opacity-0 group-hover/trip:opacity-100 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all shrink-0"
+                    className="h-7 w-7 md:opacity-0 md:group-hover/trip:opacity-100 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all shrink-0"
                     disabled={deletingId === t.id}
                     onClick={(e) => { e.preventDefault(); deleteTrip(t.id, t.name) }}
                   >
