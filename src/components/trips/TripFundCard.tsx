@@ -2,14 +2,15 @@
 
 import { useState } from "react"
 import { toast } from "sonner"
-import { Wallet, Check, Loader2, ExternalLink, Smartphone } from "lucide-react"
+import { Wallet, Check, Loader2, ExternalLink, Smartphone, Info, ArrowDownToLine } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { InteracFundDialog } from "@/components/trips/InteracFundDialog"
 import { formatCurrency } from "@/lib/balance"
 import { useConfig } from "@/lib/useConfig"
@@ -69,6 +70,7 @@ export function TripFundCard({
   const [setupOpen, setSetupOpen] = useState(false)
   const [contributeOpen, setContributeOpen] = useState(false)
   const [interacOpen, setInteracOpen] = useState(false)
+  const [disbursementOpen, setDisbursementOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [setupForm, setSetupForm] = useState({
     targetAmount: fund ? String(fund.targetAmount) : "",
@@ -77,6 +79,10 @@ export function TripFundCard({
   const [contributeAmount, setContributeAmount] = useState(
     fund ? String(Math.ceil(fund.targetAmount / memberCount)) : ""
   )
+  const [disbursementForm, setDisbursementForm] = useState({
+    method: isCAD ? "Interac e-Transfer" : "Bank transfer",
+    details: "",
+  })
 
   const paidContributions = fund?.contributions.filter((c) => c.status === "PAID") ?? []
   const totalCollected = paidContributions.reduce((s, c) => s + c.amount, 0)
@@ -145,6 +151,30 @@ export function TripFundCard({
     }
   }
 
+  async function handleDisbursementRequest(e: React.FormEvent) {
+    e.preventDefault()
+    if (!disbursementForm.details.trim()) { toast.error("Please enter your payment details"); return }
+
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/trips/${tripId}/fund/disburse`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          method: disbursementForm.method,
+          details: disbursementForm.details,
+          totalCollected,
+          currency: fund?.currency,
+        }),
+      })
+      if (!res.ok) { toast.error("Failed to send request"); return }
+      setDisbursementOpen(false)
+      toast.success("Disbursement request sent! We'll transfer the funds within 2–3 business days.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (!fund) {
     if (!isOrganizer) return null
     return (
@@ -190,12 +220,13 @@ export function TripFundCard({
                 <div className="rounded-lg bg-indigo-50 border border-indigo-100 p-3 text-xs text-indigo-700">
                   <p className="font-medium mb-1">💳 How payments work</p>
                   <p>
-                    Members can pay via{stripeEnabled ? " Stripe" : ""}
+                    Members pay via{stripeEnabled ? " Stripe" : ""}
                     {stripeEnabled && isCAD ? " or" : ""}
                     {isCAD ? " Interac e-Transfer" : ""}.
-                    {stripeEnabled && !isCAD && " A 1.5% platform fee applies to Stripe payments."}
-                    {stripeEnabled && isCAD && " Stripe charges a 1.5% platform fee; Interac is free."}
-                    {!stripeEnabled && isCAD && " Interac is free."}
+                    Funds are held securely by WhatsYourShare. Once you&apos;re ready,
+                    you can request a disbursement and we&apos;ll transfer the total to you
+                    within 2–3 business days.
+                    {stripeEnabled && " A 1.5% platform fee applies to Stripe payments."}
                   </p>
                 </div>
               )}
@@ -288,7 +319,7 @@ export function TripFundCard({
             ))}
           </div>
 
-          {/* Contribute CTAs */}
+          {/* Contribute CTAs (members) */}
           {fund.status === "COLLECTING" && !iHavePaid && (
             <div className={`grid gap-2 ${stripeEnabled && isCAD ? "grid-cols-2" : stripeEnabled || isCAD ? "grid-cols-1" : "hidden"}`}>
               {stripeEnabled && (
@@ -312,49 +343,161 @@ export function TripFundCard({
               )}
             </div>
           )}
+
           {iHavePaid && (
             <div className="flex items-center gap-2 text-sm text-emerald-700 font-medium">
               <Check className="h-4 w-4" />
               You&apos;ve contributed {formatCurrency(myContribution!.amount, fund.currency)}
             </div>
           )}
+
+          {/* How it works — info banner for members who haven't paid */}
+          {fund.status === "COLLECTING" && !iHavePaid && stripeEnabled && (
+            <div className="flex gap-2 rounded-lg bg-blue-50 border border-blue-100 p-3 text-xs text-blue-700">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <p>
+                Payments are collected securely by WhatsYourShare and held until the organizer
+                is ready. The organizer will receive the total once they request a disbursement.
+                A 1.5% platform fee applies.
+              </p>
+            </div>
+          )}
+
+          {/* Organizer disbursement section */}
+          {isOrganizer && fund.status === "COLLECTING" && totalCollected > 0 && (
+            <div className="border-t border-emerald-200 pt-3 space-y-2">
+              <p className="text-xs text-emerald-800 font-medium">Ready to receive the funds?</p>
+              <p className="text-xs text-gray-500">
+                {formatCurrency(totalCollected, fund.currency)} is currently held by WhatsYourShare.
+                Request a disbursement and we&apos;ll transfer it to you within 2–3 business days.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                onClick={() => setDisbursementOpen(true)}
+              >
+                <ArrowDownToLine className="h-4 w-4" />
+                Request Disbursement
+              </Button>
+            </div>
+          )}
+
+          {isOrganizer && fund.status === "DISBURSED" && (
+            <div className="flex items-center gap-2 text-sm text-gray-500 border-t border-emerald-200 pt-3">
+              <Check className="h-4 w-4 text-emerald-500" />
+              Funds have been disbursed to the organizer.
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Stripe contribute dialog */}
-      {stripeEnabled && <Dialog open={contributeOpen} onOpenChange={setContributeOpen}>
+      {stripeEnabled && (
+        <Dialog open={contributeOpen} onOpenChange={setContributeOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Contribute to {tripName} fund</DialogTitle>
+              <DialogDescription className="text-xs text-gray-500 pt-1">
+                Your payment is collected securely by WhatsYourShare and held until
+                the organizer requests disbursement.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleStripeContribute} className="space-y-4 mt-2">
+              <div className="space-y-1.5">
+                <Label>Amount ({fund.currency})</Label>
+                <Input
+                  type="number" min="1" step="0.01"
+                  value={contributeAmount}
+                  onChange={(e) => setContributeAmount(e.target.value)}
+                  required
+                />
+                <p className="text-xs text-gray-400">
+                  Suggested: {formatCurrency(fund.targetAmount / memberCount, fund.currency)} per person
+                </p>
+              </div>
+              <div className="rounded-lg bg-gray-50 border p-3 text-xs text-gray-500 space-y-2">
+                <div className="flex justify-between">
+                  <span>Your contribution</span>
+                  <span>{formatCurrency(parseFloat(contributeAmount || "0"), fund.currency)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Platform fee (1.5%)</span>
+                  <span>{formatCurrency(parseFloat(contributeAmount || "0") * 0.015, fund.currency)}</span>
+                </div>
+                <div className="flex justify-between font-medium text-gray-700 border-t pt-2">
+                  <span>Total charged</span>
+                  <span>{formatCurrency(parseFloat(contributeAmount || "0") * 1.015, fund.currency)}</span>
+                </div>
+              </div>
+              <div className="flex gap-2 rounded-lg bg-amber-50 border border-amber-100 p-3 text-xs text-amber-700">
+                <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <p>
+                  You&apos;ll be redirected to Stripe&apos;s secure checkout.
+                  Funds are held by WhatsYourShare — not sent directly to the organizer.
+                </p>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => setContributeOpen(false)}>Cancel</Button>
+                <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 gap-2" disabled={loading}>
+                  {loading ? <><Loader2 className="h-4 w-4 animate-spin" />Redirecting…</> : "Pay with Stripe →"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Disbursement request dialog (organizer only) */}
+      <Dialog open={disbursementOpen} onOpenChange={setDisbursementOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Contribute to {tripName} fund</DialogTitle>
+            <DialogTitle>Request Disbursement</DialogTitle>
+            <DialogDescription className="text-xs text-gray-500 pt-1">
+              We&apos;ll transfer {formatCurrency(totalCollected, fund.currency)} to you within
+              2–3 business days after receiving your request.
+            </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleStripeContribute} className="space-y-4 mt-2">
+          <form onSubmit={handleDisbursementRequest} className="space-y-4 mt-2">
+            <div className="rounded-lg bg-emerald-50 border border-emerald-100 p-3 text-xs text-emerald-800 space-y-1">
+              <p className="font-medium">Amount to be disbursed</p>
+              <p className="text-lg font-bold">{formatCurrency(totalCollected, fund.currency)}</p>
+              <p className="text-emerald-600">
+                from {paidContributions.length} contribution{paidContributions.length !== 1 ? "s" : ""}
+              </p>
+            </div>
             <div className="space-y-1.5">
-              <Label>Amount ({fund.currency})</Label>
+              <Label>Transfer method</Label>
               <Input
-                type="number" min="1" step="0.01"
-                value={contributeAmount}
-                onChange={(e) => setContributeAmount(e.target.value)}
+                value={disbursementForm.method}
+                onChange={(e) => setDisbursementForm((f) => ({ ...f, method: e.target.value }))}
+                placeholder="e.g. Interac e-Transfer, Bank transfer"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Your payment details</Label>
+              <Textarea
+                rows={3}
+                value={disbursementForm.details}
+                onChange={(e) => setDisbursementForm((f) => ({ ...f, details: e.target.value }))}
+                placeholder={isCAD
+                  ? "e.g. Interac email: you@email.com"
+                  : "e.g. Bank: RBC, Account: 12345, Transit: 00123"}
                 required
               />
               <p className="text-xs text-gray-400">
-                Suggested: {formatCurrency(fund.targetAmount / memberCount, fund.currency)} per person
-              </p>
-            </div>
-            <div className="rounded-lg bg-gray-50 border p-3 text-xs text-gray-500 space-y-1">
-              <p>You&apos;ll be redirected to Stripe&apos;s secure checkout. A 1.5% platform fee is included.</p>
-              <p className="font-medium text-gray-700">
-                Total charged: {formatCurrency(parseFloat(contributeAmount || "0") * 1.015, fund.currency)}
+                This is sent securely to the WhatsYourShare admin to process your transfer.
               </p>
             </div>
             <DialogFooter>
-              <Button variant="outline" type="button" onClick={() => setContributeOpen(false)}>Cancel</Button>
-              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 gap-2" disabled={loading}>
-                {loading ? <><Loader2 className="h-4 w-4 animate-spin" />Redirecting…</> : "Pay with Stripe →"}
+              <Button variant="outline" type="button" onClick={() => setDisbursementOpen(false)}>Cancel</Button>
+              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700" disabled={loading}>
+                {loading ? "Sending…" : "Send Request"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
-      </Dialog>}
+      </Dialog>
 
       {/* Interac contribute dialog (CAD only) */}
       {isCAD && (
