@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Sparkles, TrendingUp, ArrowRightLeft, AlertTriangle, Loader2, Zap, RefreshCw, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScanTopupDialog } from "@/components/billing/ScanTopupDialog"
@@ -65,6 +65,20 @@ export function InsightsTab({ groupId, canUseAI, aiScansUsed, aiScansLimit, bonu
   const [used, setUsed] = useState(aiScansUsed)
   const [bonus, setBonus] = useState(initialBonus)
   const [showTopup, setShowTopup] = useState(false)
+  const [prices, setPrices] = useState<{ pro: number; small: number } | null>(null)
+
+  useEffect(() => {
+    if (!canUseAI) {
+      Promise.all([
+        fetch("/api/billing/plan-prices").then((r) => r.ok ? r.json() : null),
+        fetch("/api/billing/topup/packs").then((r) => r.ok ? r.json() : null),
+      ]).then(([planData, packsData]) => {
+        if (planData && packsData) {
+          setPrices({ pro: planData.pro, small: packsData.small.priceCents })
+        }
+      })
+    }
+  }, [canUseAI])
 
   const onFreePlan = !canUseAI
   const monthlyExhausted = onFreePlan || used >= aiScansLimit
@@ -156,13 +170,15 @@ export function InsightsTab({ groupId, canUseAI, aiScansUsed, aiScansLimit, bonu
           </div>
           <div className="flex gap-2">
             <button className="flex-1 flex items-center justify-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium py-2 rounded-lg transition-colors">
-              <Zap className="h-3 w-3" /> Upgrade to Pro — $4/mo
+              <Zap className="h-3 w-3" />
+              {prices ? `Upgrade to Pro — $${(prices.pro / 100).toFixed(2)}/mo` : "Upgrade to Pro"}
             </button>
             <button
               onClick={() => setShowTopup(true)}
               className="flex-1 flex items-center justify-center gap-1.5 bg-background hover:bg-accent border border-border text-foreground/80 text-xs font-medium py-2 rounded-lg transition-colors"
             >
-              <ShoppingCart className="h-3 w-3" /> Buy scans from $2.49
+              <ShoppingCart className="h-3 w-3" />
+              {prices ? `Buy scans from $${(prices.small / 100).toFixed(2)}` : "Buy scans"}
             </button>
           </div>
         </div>
