@@ -2,8 +2,9 @@
 ALTER TABLE "ExpenseSplit" ADD COLUMN "guestMemberId" TEXT;
 ALTER TABLE "ExpenseSplit" ALTER COLUMN "userId" DROP NOT NULL;
 
--- Drop old unique constraint (it was on non-nullable userId)
+-- Drop old unique constraint and index (it was on non-nullable userId)
 ALTER TABLE "ExpenseSplit" DROP CONSTRAINT IF EXISTS "ExpenseSplit_expenseId_userId_key";
+DROP INDEX IF EXISTS "ExpenseSplit_expenseId_userId_key";
 
 -- Recreate unique constraint as partial (only when userId is not null)
 CREATE UNIQUE INDEX "ExpenseSplit_expenseId_userId_key" ON "ExpenseSplit"("expenseId", "userId") WHERE "userId" IS NOT NULL;
