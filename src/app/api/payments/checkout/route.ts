@@ -48,7 +48,8 @@ export async function POST(req: Request) {
   const feeRate = await config.platform.feeRate()
   const platformFeeInCents = Math.round(amountInCents * feeRate)
 
-  const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
+  const appUrl = process.env.NEXTAUTH_URL
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
 
   // Create or update a PENDING contribution row first
   const contribution = await prisma.fundContribution.upsert({
