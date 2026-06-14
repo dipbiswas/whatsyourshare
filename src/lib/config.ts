@@ -33,6 +33,7 @@ export const config = {
     aiModel:       () => get("platform.ai_model")       as Promise<string>,
     aiMaxTokens:   () => get("platform.ai_max_tokens")  as Promise<number>,
     stripeEnabled: () => get("platform.stripe_enabled") as Promise<boolean>,
+    adminEmail:    () => get("platform.admin_email")    as Promise<string>,
   },
   pricing: {
     topupSmall: () => Promise.all([
