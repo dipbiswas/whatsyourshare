@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
+import { mergeGuestProfiles } from "@/lib/guest-merge"
 
 const schema = z.object({
   name: z.string().min(2),
@@ -36,6 +37,9 @@ export async function POST(req: Request) {
     },
     select: { id: true, name: true, email: true },
   })
+
+  // Merge any guest profiles that used this email
+  mergeGuestProfiles(user.id, email).catch(() => {})
 
   return NextResponse.json(user, { status: 201 })
 }

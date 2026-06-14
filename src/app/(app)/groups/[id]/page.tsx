@@ -36,6 +36,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AddExpenseDialog } from "@/components/expenses/AddExpenseDialog"
 import { EditExpenseDialog } from "@/components/expenses/EditExpenseDialog"
@@ -59,10 +60,19 @@ interface Member {
   user: { id: string; name: string; email: string; avatar: string | null }
 }
 
+interface GuestMember {
+  id: string
+  name: string
+  email: string | null
+  linkedUserId: string | null
+}
+
 interface Split {
-  userId: string
+  userId: string | null
+  guestMemberId: string | null
   amount: number
-  user: { id: string; name: string }
+  user: { id: string; name: string } | null
+  guest: { id: string; name: string } | null
 }
 
 interface Expense {
@@ -112,6 +122,7 @@ interface GroupDetail {
   defaultSplitType: string
   defaultSplitShares: Record<string, number> | null
   members: Member[]
+  guests: GuestMember[]
   expenses: Expense[]
   settlements: Settlement[]
   recurringExpenses: RecurringExpense[]
@@ -526,7 +537,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           { value: "expenses",    label: "Expenses",    count: group.expenses.length,          icon: Receipt },
           { value: "balances",    label: "Balances",    count: null,                           icon: ArrowLeftRight },
           { value: "trips",       label: "Events",      count: trips.length,                   icon: Plane },
-          { value: "members",     label: "Members",     count: group.members.length,           icon: Users },
+          { value: "members",     label: "Members",     count: group.members.length + (group.guests?.length ?? 0), icon: Users },
           { value: "recurring",   label: "Recurring",   count: group.recurringExpenses.length, icon: Repeat2 },
           { value: "settlements", label: "Settlements", count: group.settlements.length,       icon: ArrowLeftRight },
           { value: "insights",    label: "AI Insights", count: null,                           icon: Sparkles },
@@ -673,7 +684,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                             </Button>
                           </>
                         )}
-                        <EditExpenseDialog expense={expense} members={group.members} currency={group.currency} onUpdated={() => refreshGroup()} />
+                        <EditExpenseDialog expense={expense as any} members={group.members} currency={group.currency} onUpdated={() => refreshGroup()} />
                         <Button variant="ghost" size="icon" className="h-6 w-6 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10" onClick={() => deleteExpense(expense.id)}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -683,12 +694,16 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                   {expandedExpenses.has(expense.id) && expense.splits.length > 0 && (
                     <div className="px-4 pb-3">
                       <div className="rounded-xl bg-muted/40 border border-border/60 overflow-hidden">
-                        {expense.splits.map((s, i) => (
-                          <div key={s.userId} className={cn("flex items-center justify-between px-3 py-2 text-xs", i > 0 && "border-t border-border/40")}>
-                            <span className="text-muted-foreground">{s.user.name}{s.userId === userId ? " (you)" : ""}</span>
-                            <span className="font-semibold text-foreground tabular-nums">{formatCurrency(s.amount, group.currency)}</span>
-                          </div>
-                        ))}
+                        {expense.splits.map((s, i) => {
+                          const displayName = s.user?.name ?? s.guest?.name ?? "Guest"
+                          const isMe = s.userId === userId
+                          return (
+                            <div key={s.userId ?? s.guestMemberId} className={cn("flex items-center justify-between px-3 py-2 text-xs", i > 0 && "border-t border-border/40")}>
+                              <span className="text-muted-foreground">{displayName}{isMe ? " (you)" : ""}{s.guestMemberId && <span className="ml-1 text-amber-600 dark:text-amber-400">(guest)</span>}</span>
+                              <span className="font-semibold text-foreground tabular-nums">{formatCurrency(s.amount, group.currency)}</span>
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
                   )}
@@ -872,22 +887,27 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
         {/* Balances */}
         <TabsContent value="balances" className="mt-4">
           <div className="space-y-3">
-            {group.members.map((m) => {
-              const balance = group.balanceMap[m.userId] ?? 0
-              const maxBalance = Math.max(...group.members.map((mm) => Math.abs(group.balanceMap[mm.userId] ?? 0)), 1)
+            {[
+              ...group.members.map((m) => ({ key: m.userId, name: m.user.name + (m.userId === userId ? " (you)" : ""), balanceKey: m.userId, isGuest: false })),
+              ...(group.guests ?? []).map((g) => ({ key: `guest_${g.id}`, name: `${g.name} (guest)`, balanceKey: `guest_${g.id}`, isGuest: true })),
+            ].map(({ key, name, balanceKey, isGuest }) => {
+              const balance = group.balanceMap[balanceKey] ?? 0
+              const allBalances = [
+                ...group.members.map((mm) => Math.abs(group.balanceMap[mm.userId] ?? 0)),
+                ...(group.guests ?? []).map((g) => Math.abs(group.balanceMap[`guest_${g.id}`] ?? 0)),
+              ]
+              const maxBalance = Math.max(...allBalances, 1)
               const barWidth = Math.round((Math.abs(balance) / maxBalance) * 100)
               return (
-                <div key={m.userId} className="glass rounded-xl p-4">
+                <div key={key} className="glass rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2.5">
                     <div className="flex items-center gap-2">
                       <Avatar className="h-7 w-7 shrink-0">
-                        <AvatarFallback className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300">
-                          {m.user.name.charAt(0).toUpperCase()}
+                        <AvatarFallback className={cn("text-[10px] font-bold", isGuest ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300" : "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300")}>
+                          {name.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm font-semibold text-foreground">
-                        {m.user.name}{m.userId === userId && " (you)"}
-                      </span>
+                      <span className="text-sm font-semibold text-foreground">{name}</span>
                     </div>
                     <div className="text-right">
                       <p className={cn("text-sm font-bold tabular-nums",
@@ -1029,6 +1049,10 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           setGroup((g) => g ? { ...g, members: [...g.members, member as Member] } : g)
           setOpenDialog(null)
         }}
+        onGuestAdded={(guest) => {
+          setGroup((g) => g ? { ...g, guests: [...(g.guests ?? []), guest as GuestMember] } : g)
+          setOpenDialog(null)
+        }}
       />
       <AddRecurringExpenseDialog
         groupId={group.id}
@@ -1124,6 +1148,7 @@ function MembersTab({
     : 0
 
   return (
+    <>
     <div className="glass rounded-2xl overflow-hidden">
       {group.members.map((m, idx) => {
         const balance = group.balanceMap[m.userId] ?? 0
@@ -1307,6 +1332,144 @@ function MembersTab({
         </div>
       )}
     </div>
+
+    {/* Guests section */}
+
+    {(group.guests?.length ?? 0) > 0 && (
+      <div className="mt-4">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">
+          Guests
+        </p>
+        <div className="glass rounded-2xl overflow-hidden">
+          {(group.guests ?? []).map((g, idx) => {
+            const balance = group.balanceMap[`guest_${g.id}`] ?? 0
+            return (
+              <div key={g.id}>
+                {idx > 0 && <div className="h-px bg-border/60 mx-4" />}
+                <div className="flex items-center gap-3 px-4 py-3 hover:bg-accent/40 transition-colors">
+                  <Avatar className="h-8 w-8 shrink-0">
+                    <AvatarFallback className="text-xs font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                      {g.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-semibold text-foreground truncate">{g.name}</p>
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30">
+                        Guest
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {g.email ?? "No email · splits managed by admin"}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {Math.abs(balance) > 0.01 ? (
+                      <p className={cn("text-xs font-semibold tabular-nums",
+                        balance > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500 dark:text-rose-400"
+                      )}>
+                        {balance > 0 ? "+" : ""}{formatCurrency(balance, group.currency)}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground/50">Settled</p>
+                    )}
+                  </div>
+                  {isAdmin && (
+                    <GuestActionMenu guest={g} groupId={group.id} onGroupChange={onGroupChange} />
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )}
+    </>
+  )
+}
+
+function GuestActionMenu({
+  guest,
+  groupId,
+  onGroupChange,
+}: {
+  guest: GuestMember
+  groupId: string
+  onGroupChange: React.Dispatch<React.SetStateAction<GroupDetail | null>>
+}) {
+  const [editOpen, setEditOpen] = useState(false)
+  const [name, setName] = useState(guest.name)
+  const [email, setEmail] = useState(guest.email ?? "")
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  async function save() {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/groups/${groupId}/guests/${guest.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email: email || "" }),
+      })
+      if (!res.ok) { toast.error("Failed to update guest"); return }
+      const updated = await res.json()
+      onGroupChange((g) => g ? { ...g, guests: g.guests.map((gg) => gg.id === guest.id ? updated : gg) } : g)
+      toast.success("Guest updated")
+      setEditOpen(false)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function remove() {
+    if (!confirm(`Remove ${guest.name} from this group? Their historical splits will remain.`)) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/groups/${groupId}/guests/${guest.id}`, { method: "DELETE" })
+      if (!res.ok) { toast.error("Failed to remove guest"); return }
+      onGroupChange((g) => g ? { ...g, guests: g.guests.filter((gg) => gg.id !== guest.id) } : g)
+      toast.success(`${guest.name} removed`)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <>
+      <div className="flex items-center gap-1 shrink-0">
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditOpen(true)}>
+          <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+        </Button>
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" disabled={deleting} onClick={remove}>
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Edit guest</DialogTitle>
+            <DialogDescription>Update {guest.name}&apos;s name or add an email so they can link an account later.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-1">
+            <div className="space-y-1.5">
+              <Label>Name</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Email <span className="text-muted-foreground text-xs font-normal">(optional)</span></Label>
+              <Input type="email" placeholder="For future account linking" value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter className="mt-2">
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button className="bg-indigo-600 hover:bg-indigo-700" disabled={saving || !name.trim()} onClick={save}>
+              {saving ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 

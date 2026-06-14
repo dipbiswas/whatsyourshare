@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
-import { calculateGroupBalances, simplifyDebts, annotateTransfers } from "@/lib/balance"
+import { calculateGroupBalances, simplifyDebts, annotateTransfers, guestKey } from "@/lib/balance"
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -14,6 +14,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     where: { id, members: { some: { userId: session.user.id } } },
     include: ({
       members: { include: { user: { select: { id: true, name: true, email: true, avatar: true } } } },
+      guests: { where: { linkedUserId: null }, orderBy: { createdAt: "asc" as const } },
       expenses: {
         where: {
           OR: [
@@ -24,7 +25,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         },
         include: {
           paidBy: { select: { id: true, name: true, avatar: true } },
-          splits: { include: { user: { select: { id: true, name: true } } } },
+          splits: { include: { user: { select: { id: true, name: true } }, guest: ({ select: { id: true, name: true } } as any) } },
           trip: { select: { id: true, name: true, hideFromNonMembers: true, memberIds: true } },
         },
         orderBy: { date: "desc" },
@@ -56,15 +57,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const nameMap: Record<string, string> = {}
   for (const m of group.members) nameMap[m.userId] = m.user.name
+  for (const g of group.guests ?? []) nameMap[guestKey(g.id)] = `${g.name} (guest)`
 
   const balanceMap = calculateGroupBalances(
     group.members.map((m: any) => ({ userId: m.userId })),
     visibleExpenses.map((e: any) => ({
       paidById: e.paidById,
       amount: e.amount,
-      splits: e.splits.map((s: any) => ({ userId: s.userId, amount: s.amount })),
+      splits: e.splits.map((s: any) => ({ userId: s.userId ?? null, guestMemberId: s.guestMemberId ?? null, amount: s.amount })),
     })),
-    group.settlements.map((s: any) => ({ fromUserId: s.fromUserId, toUserId: s.toUserId, amount: s.amount }))
+    group.settlements.map((s: any) => ({ fromUserId: s.fromUserId, toUserId: s.toUserId, amount: s.amount })),
+    group.guests ?? []
   )
 
   const suggestedSettlements = simplifyDebts(balanceMap, nameMap)
@@ -74,7 +77,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     description: e.description,
     date: e.date.toISOString(),
     paidById: e.paidById,
-    splits: e.splits.map((s: any) => ({ userId: s.userId, amount: s.amount })),
+    splits: e.splits.map((s: any) => ({ userId: s.userId ?? null, guestMemberId: s.guestMemberId ?? null, amount: s.amount })),
   }))
 
   const annotatedSettlements = annotateTransfers(suggestedSettlements, expensesForAnnotation, nameMap)

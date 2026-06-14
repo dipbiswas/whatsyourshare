@@ -7,9 +7,10 @@ import { checkAndFlag } from "@/lib/moderation"
 import { z } from "zod"
 
 const splitSchema = z.object({
-  userId: z.string(),
+  userId: z.string().optional(),
+  guestMemberId: z.string().optional(),
   amount: z.number().positive(),
-})
+}).refine((d) => d.userId || d.guestMemberId, { message: "Each split must have a userId or guestMemberId" })
 
 const expenseSchema = z.object({
   groupId: z.string(),
@@ -71,11 +72,11 @@ export async function POST(req: Request) {
       ...(guestPayeeName ? { guestPayeeName } : {}),
       ...(tripDayId ? { tripDayId } : {}),
       ...(tripId ? { tripId } : {}),
-      splits: { createMany: { data: splits } },
+      splits: { createMany: { data: splits.map((s) => ({ userId: s.userId ?? null, guestMemberId: s.guestMemberId ?? null, amount: s.amount })) } },
     },
     include: {
       paidBy: { select: { id: true, name: true, avatar: true } },
-      splits: { include: { user: { select: { id: true, name: true } } } },
+      splits: { include: { user: { select: { id: true, name: true } }, guest: ({ select: { id: true, name: true } } as any) } },
     },
   })
 

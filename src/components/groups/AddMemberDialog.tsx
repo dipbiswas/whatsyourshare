@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { toast } from "sonner"
-import { UserPlus, Copy, Check, Mail, Users, Search, X, ChevronRight } from "lucide-react"
+import { UserPlus, Copy, Check, Mail, Users, Search, X, ChevronRight, UserRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { AddGuestDialog, type GuestMember } from "@/components/groups/AddGuestDialog"
 
 interface Friend {
   id: string
@@ -27,6 +28,7 @@ interface Props {
   groupId: string
   existingMemberIds?: string[]
   onAdded: (member: object) => void
+  onGuestAdded?: (guest: GuestMember) => void
   /** Current group default split type — drives whether split value input is shown */
   defaultSplitType?: string
   /** Current per-member split values — so we can update them after adding */
@@ -62,12 +64,14 @@ export function AddMemberDialog({
   groupId,
   existingMemberIds = [],
   onAdded,
+  onGuestAdded,
   defaultSplitType = "EQUAL",
   defaultSplitShares,
   onSplitShiftUpdated,
   open: controlledOpen,
   onOpenChange,
 }: Props) {
+  const [showGuestDialog, setShowGuestDialog] = useState(false)
   const [internalOpen, setInternalOpen] = useState(false)
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen
   const setOpen = (v: boolean) => { setInternalOpen(v); onOpenChange?.(v) }
@@ -394,6 +398,21 @@ export function AddMemberDialog({
                       </Button>
                     </DialogFooter>
                   </form>
+
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs text-muted-foreground">or</span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => { setOpen(false); setShowGuestDialog(true) }}
+                    className="w-full flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground border border-dashed border-border rounded-xl py-2.5 hover:border-indigo-400/60 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"
+                  >
+                    <UserRound className="h-4 w-4" />
+                    Add a guest (no account needed)
+                  </button>
                 </div>
               )}
             </>
@@ -431,6 +450,12 @@ export function AddMemberDialog({
           )}
         </DialogContent>
       </Dialog>
+      <AddGuestDialog
+        groupId={groupId}
+        open={showGuestDialog}
+        onOpenChange={setShowGuestDialog}
+        onAdded={(guest) => onGuestAdded?.(guest as GuestMember)}
+      />
     </>
   )
 }

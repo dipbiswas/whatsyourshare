@@ -46,7 +46,8 @@
       "mcp__Claude_in_Chrome__navigate",
       "mcp__Claude_in_Chrome__browser_batch",
       "Bash(xargs sed -i '' 's/violet-/indigo-/g')",
-      "Bash(xargs sed -i '' 's/#7c3aed/#4f46e5/g; s/#6d28d9/#4338ca/g; s/#5b21b6/#3730a3/g')"
+      "Bash(xargs sed -i '' 's/#7c3aed/#4f46e5/g; s/#6d28d9/#4338ca/g; s/#5b21b6/#3730a3/g')",
+      "Bash(ls /private/tmp/claude-501/ | wc -l && du -sh /private/tmp/claude-501/)"
     ]
   }
 }

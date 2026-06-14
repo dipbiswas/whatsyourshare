@@ -19,18 +19,25 @@ export interface AnnotatedTransfer extends BalanceTransfer {
   hasRerouting: boolean // true when simplified debt crosses people who never shared an expense
 }
 
+// Guest keys use "guest_<id>" prefix to avoid collision with user IDs
+export function guestKey(guestId: string) { return `guest_${guestId}` }
+export function isGuestKey(key: string) { return key.startsWith("guest_") }
+
 export function calculateGroupBalances(
   members: { userId: string }[],
-  expenses: { paidById: string; amount: number; splits: { userId: string; amount: number }[] }[],
-  settlements: { fromUserId: string; toUserId: string; amount: number }[]
+  expenses: { paidById: string; amount: number; splits: { userId?: string | null; guestMemberId?: string | null; amount: number }[] }[],
+  settlements: { fromUserId: string; toUserId: string; amount: number }[],
+  guests?: { id: string }[]
 ): Record<string, number> {
   const balance: Record<string, number> = {}
   for (const m of members) balance[m.userId] = 0
+  for (const g of guests ?? []) balance[guestKey(g.id)] = 0
 
   for (const e of expenses) {
     balance[e.paidById] = (balance[e.paidById] ?? 0) + e.amount
     for (const s of e.splits) {
-      balance[s.userId] = (balance[s.userId] ?? 0) - s.amount
+      const key = s.userId ?? (s.guestMemberId ? guestKey(s.guestMemberId) : null)
+      if (key) balance[key] = (balance[key] ?? 0) - s.amount
     }
   }
 
@@ -90,7 +97,7 @@ export function annotateTransfers(
     description: string
     date: string
     paidById: string
-    splits: { userId: string; amount: number }[]
+    splits: { userId?: string | null; guestMemberId?: string | null; amount: number }[]
   }[],
   nameMap: Record<string, string>
 ): AnnotatedTransfer[] {
@@ -98,7 +105,7 @@ export function annotateTransfers(
     const reasons: DebtReason[] = []
     for (const e of expenses) {
       if (e.paidById !== t.to) continue
-      const split = e.splits.find((s) => s.userId === t.from)
+      const split = e.splits.find((s) => (s.userId ?? (s.guestMemberId ? guestKey(s.guestMemberId) : null)) === t.from)
       if (split) {
         reasons.push({
           expenseId: e.id,

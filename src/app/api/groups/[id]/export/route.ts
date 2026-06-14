@@ -64,7 +64,7 @@ export async function GET(
       const dateStr = format(new Date(e.date), "MM/dd/yyyy")
       lines.push(`TRNS\tEXPENSE\t${dateStr}\tExpenses:${e.category}\t${e.paidBy.name}\t-${e.amount.toFixed(2)}\t${e.description}`)
       for (const s of e.splits) {
-        lines.push(`SPL\tEXPENSE\t${dateStr}\tAccounts Payable\t${s.user.name}\t${s.amount.toFixed(2)}`)
+        lines.push(`SPL\tEXPENSE\t${dateStr}\tAccounts Payable\t${s.user?.name ?? s.guestMemberId ?? "Guest"}\t${s.amount.toFixed(2)}`)
       }
       lines.push("ENDTRNS")
     }
@@ -81,7 +81,7 @@ export async function GET(
     ["Date", "Description", "Category", "Amount", "Currency", "Paid By", "Split With", "Approval Status"].join(","),
   ]
   for (const e of expenses) {
-    const splitWith = e.splits.map((s) => s.user.name).join("; ")
+    const splitWith = e.splits.map((s) => s.user?.name ?? s.guestMemberId ?? "Guest").join("; ")
     rows.push([
       format(new Date(e.date), "yyyy-MM-dd"),
       `"${e.description.replace(/"/g, '""')}"`,

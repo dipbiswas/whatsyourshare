@@ -24,9 +24,10 @@ export async function GET() {
     where: { members: { some: { userId } } },
     include: ({
       members: { include: { user: { select: { id: true, name: true, email: true, avatar: true } } } },
+      guests: { where: { linkedUserId: null }, select: { id: true, name: true, email: true } },
       _count: { select: { expenses: true } },
       expenses: {
-        select: { paidById: true, amount: true, splits: { select: { userId: true, amount: true } } },
+        select: { paidById: true, amount: true, splits: { select: { userId: true, guestMemberId: true, amount: true } } },
       },
       settlements: {
         select: { fromUserId: true, toUserId: true, amount: true },
@@ -40,16 +41,17 @@ export async function GET() {
   })
 
   const now = new Date()
-  const result = groups.map(({ expenses, settlements, trips, ...g }) => {
+  const result = groups.map(({ expenses, settlements, trips, guests, ...g }) => {
     const balanceMap = calculateGroupBalances(
       g.members.map((m: any) => ({ userId: m.userId })),
       expenses,
       settlements,
+      guests,
     )
     const myBalance = Math.round((balanceMap[userId] ?? 0) * 100) / 100
     const activeTrips = (trips as any[]).filter((t) => new Date(t.endDate) >= now)
     const isOwner = g.createdById === userId
-    return { ...g, myBalance, activeTrips, isOwner }
+    return { ...g, guests, myBalance, activeTrips, isOwner }
   })
 
   return NextResponse.json(result)

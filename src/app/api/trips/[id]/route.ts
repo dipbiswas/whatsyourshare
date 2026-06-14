@@ -87,7 +87,7 @@ export async function GET(
   const memberSpend: Record<string, number> = {}
   for (const e of allLinkedExpenses) {
     for (const s of e.splits) {
-      memberSpend[s.user.id] = (memberSpend[s.user.id] ?? 0) + s.amount
+      if (s.user) memberSpend[s.user.id] = (memberSpend[s.user.id] ?? 0) + s.amount
     }
   }
 
@@ -105,7 +105,7 @@ export async function GET(
   // Include event expenses in per-member spend
   for (const e of eventExpenses) {
     for (const s of e.splits) {
-      memberSpend[s.user.id] = (memberSpend[s.user.id] ?? 0) + s.amount
+      if (s.user) memberSpend[s.user.id] = (memberSpend[s.user.id] ?? 0) + s.amount
     }
   }
 

@@ -94,7 +94,7 @@ export async function POST(req: Request) {
       const entry = groupMap.get(g.id)!
       entry.spent += e.amount
       // User's share for this expense
-      const myShare = e.splits.find((s: { userId: string }) => s.userId === user.id)?.amount ?? 0
+      const myShare = e.splits.find((s: { userId: string | null }) => s.userId === user.id)?.amount ?? 0
       const iPaid = e.paidById === user.id ? e.amount : 0
       entry.balance += iPaid - myShare
     }
@@ -109,7 +109,7 @@ export async function POST(req: Request) {
     // Top categories (user's share only)
     const catMap: Record<string, { amount: number; currency: string }> = {}
     for (const e of expenses) {
-      const myShare = e.splits.find((s: { userId: string }) => s.userId === user.id)?.amount ?? 0
+      const myShare = e.splits.find((s: { userId: string | null }) => s.userId === user.id)?.amount ?? 0
       if (myShare === 0) continue
       const key = e.category
       if (!catMap[key]) catMap[key] = { amount: 0, currency: e.currency }
