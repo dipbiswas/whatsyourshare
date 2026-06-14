@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { toast } from "sonner"
-import { Wallet, Check, Loader2, Plus, ExternalLink } from "lucide-react"
+import { Wallet, Check, Loader2, ExternalLink, Smartphone } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { InteracFundDialog } from "@/components/trips/InteracFundDialog"
 import { formatCurrency } from "@/lib/balance"
 
 interface Contribution {
@@ -38,6 +39,8 @@ interface Props {
   isOrganizer: boolean
   memberCount: number
   currency: string
+  organizerName: string
+  organizerEmail: string
 }
 
 const EVENT_LABEL: Record<string, string> = {
@@ -54,11 +57,16 @@ export function TripFundCard({
   isOrganizer,
   memberCount,
   currency,
+  organizerName,
+  organizerEmail,
 }: Props) {
   const label = EVENT_LABEL[eventType] ?? "event"
+  const isCAD = currency.toUpperCase() === "CAD"
+
   const [fund, setFund] = useState<Fund | null>(initialFund)
   const [setupOpen, setSetupOpen] = useState(false)
   const [contributeOpen, setContributeOpen] = useState(false)
+  const [interacOpen, setInteracOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [setupForm, setSetupForm] = useState({
     targetAmount: fund ? String(fund.targetAmount) : "",
@@ -72,6 +80,11 @@ export function TripFundCard({
   const totalCollected = paidContributions.reduce((s, c) => s + c.amount, 0)
   const myContribution = fund?.contributions.find((c) => c.user.id === currentUserId)
   const iHavePaid = myContribution?.status === "PAID"
+
+  async function refreshFund() {
+    const updated = await fetch(`/api/trips/${tripId}/fund`).then((r) => r.json())
+    setFund(updated)
+  }
 
   async function handleSetup(e: React.FormEvent) {
     e.preventDefault()
@@ -90,9 +103,7 @@ export function TripFundCard({
         }),
       })
       if (!res.ok) { toast.error("Failed to set up fund"); return }
-      // Refresh fund data
-      const updated = await fetch(`/api/trips/${tripId}/fund`).then((r) => r.json())
-      setFund(updated)
+      await refreshFund()
       setSetupOpen(false)
       toast.success("Fund set up!")
     } finally {
@@ -100,7 +111,7 @@ export function TripFundCard({
     }
   }
 
-  async function handleContribute(e: React.FormEvent) {
+  async function handleStripeContribute(e: React.FormEvent) {
     e.preventDefault()
     const amt = parseFloat(contributeAmount)
     if (!amt || amt <= 0) { toast.error("Enter a valid amount"); return }
@@ -113,8 +124,10 @@ export function TripFundCard({
         body: JSON.stringify({ tripId, amount: amt }),
       })
       if (!res.ok) {
-        const err = await res.json()
-        toast.error(err.error ?? "Payment failed")
+        const text = await res.text()
+        let message = "Payment failed"
+        try { message = JSON.parse(text).error ?? message } catch { /* non-JSON */ }
+        toast.error(message)
         return
       }
       const { url } = await res.json()
@@ -167,7 +180,11 @@ export function TripFundCard({
               </div>
               <div className="rounded-lg bg-indigo-50 border border-indigo-100 p-3 text-xs text-indigo-700">
                 <p className="font-medium mb-1">💳 How payments work</p>
-                <p>Members pay via Stripe. A 1.5% platform fee applies to each contribution. Funds are tracked here and you disburse them when ready.</p>
+                <p>
+                  Members can pay via Stripe or{isCAD ? " Interac e-Transfer" : " card"}.
+                  {!isCAD && " A 1.5% platform fee applies to Stripe payments."}
+                  {isCAD && " Stripe charges a 1.5% platform fee; Interac is free."}
+                </p>
               </div>
               <DialogFooter>
                 <Button variant="outline" type="button" onClick={() => setSetupOpen(false)}>Cancel</Button>
@@ -258,15 +275,27 @@ export function TripFundCard({
             ))}
           </div>
 
-          {/* Contribute CTA */}
+          {/* Contribute CTAs */}
           {fund.status === "COLLECTING" && !iHavePaid && (
-            <Button
-              className="w-full bg-emerald-600 hover:bg-emerald-700 gap-2"
-              onClick={() => setContributeOpen(true)}
-            >
-              <ExternalLink className="h-4 w-4" />
-              Contribute to fund
-            </Button>
+            <div className={`grid gap-2 ${isCAD ? "grid-cols-2" : "grid-cols-1"}`}>
+              <Button
+                className="w-full bg-emerald-600 hover:bg-emerald-700 gap-2"
+                onClick={() => setContributeOpen(true)}
+              >
+                <ExternalLink className="h-4 w-4" />
+                {isCAD ? "Pay via Stripe" : "Contribute to fund"}
+              </Button>
+              {isCAD && (
+                <Button
+                  variant="outline"
+                  className="w-full border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 gap-2"
+                  onClick={() => setInteracOpen(true)}
+                >
+                  <Smartphone className="h-4 w-4" />
+                  Pay via Interac
+                </Button>
+              )}
+            </div>
           )}
           {iHavePaid && (
             <div className="flex items-center gap-2 text-sm text-emerald-700 font-medium">
@@ -277,13 +306,13 @@ export function TripFundCard({
         </CardContent>
       </Card>
 
-      {/* Contribute dialog */}
+      {/* Stripe contribute dialog */}
       <Dialog open={contributeOpen} onOpenChange={setContributeOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Contribute to {tripName} fund</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleContribute} className="space-y-4 mt-2">
+          <form onSubmit={handleStripeContribute} className="space-y-4 mt-2">
             <div className="space-y-1.5">
               <Label>Amount ({fund.currency})</Label>
               <Input
@@ -311,6 +340,21 @@ export function TripFundCard({
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Interac contribute dialog (CAD only) */}
+      {isCAD && (
+        <InteracFundDialog
+          open={interacOpen}
+          onOpenChange={setInteracOpen}
+          amount={parseFloat(contributeAmount) || fund.targetAmount / memberCount}
+          currency={fund.currency}
+          tripId={tripId}
+          tripName={tripName}
+          organizerName={organizerName}
+          organizerEmail={organizerEmail}
+          onConfirmed={() => refreshFund()}
+        />
+      )}
 
       {/* Edit fund dialog */}
       {isOrganizer && (

@@ -28,6 +28,8 @@ model User {
   stripeSubscriptionId  String?
   plan                  UserPlan  @default(FREE)
   planExpiresAt         DateTime?
+  bonusScans            Int       @default(0)
+  isAdmin               Boolean   @default(false)
   // Phase 8 — Virtual card cardholder
   stripeCardholderId    String?
 
@@ -44,6 +46,7 @@ model User {
   fundContributions        FundContribution[]
   cardTransactions         CardTransaction[]
   pushSubscriptions        PushSubscription[]
+  usageRecords             UsageRecord[]
   createdInvites           GroupInvite[]
   assignedActionItems      ActionItem[]  @relation("ActionItemAssignee")
   createdActionItems       ActionItem[]  @relation("ActionItemCreator")
@@ -273,7 +276,8 @@ model Trip {
   destination String?
   coverEmoji  String?   @default("✈️")
   eventType   String    @default("TRIP")
-  memberIds   Json?
+  memberIds           Json?
+  hideFromNonMembers  Boolean   @default(false)
   startDate   DateTime
   endDate     DateTime
   createdById String
@@ -447,6 +451,19 @@ model RecurringExpense {
   group             Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
   createdBy         User      @relation(fields: [createdById], references: [id])
   generatedExpenses Expense[]
+}
+
+model UsageRecord {
+  id        String   @id @default(cuid())
+  userId    String
+  feature   String   // e.g. "receipt_scan"
+  month     String   // "YYYY-MM"
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, feature, month])
 }
 
 model PushSubscription {

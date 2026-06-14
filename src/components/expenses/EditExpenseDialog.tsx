@@ -125,17 +125,23 @@ export function EditExpenseDialog({ expense, members, currency: groupCurrency, o
     if (splitType === "EQUAL") {
       const each = Math.round((amount / members.length) * 100) / 100
       splits = members.map((m) => ({ userId: m.userId, amount: each }))
+      const diff = Math.round((amount - splits.reduce((s, x) => s + x.amount, 0)) * 100) / 100
+      if (diff !== 0) splits[0] = { ...splits[0], amount: Math.round((splits[0].amount + diff) * 100) / 100 }
 
     } else if (splitType === "SELECTED") {
       if (selectedMembers.length === 0) { toast.error("Select at least one member"); return }
       const each = Math.round((amount / selectedMembers.length) * 100) / 100
       splits = selectedMembers.map((m) => ({ userId: m.userId, amount: each }))
+      const diff = Math.round((amount - splits.reduce((s, x) => s + x.amount, 0)) * 100) / 100
+      if (diff !== 0) splits[0] = { ...splits[0], amount: Math.round((splits[0].amount + diff) * 100) / 100 }
 
     } else if (splitType === "SHARES") {
       if (totalShares === 0) { toast.error("Enter at least one share"); return }
       splits = members
         .map((m) => ({ userId: m.userId, amount: Math.round((amount * (parseFloat(shares[m.userId] ?? "0") || 0) / totalShares) * 100) / 100 }))
         .filter((s) => s.amount > 0)
+      const diff = Math.round((amount - splits.reduce((s, x) => s + x.amount, 0)) * 100) / 100
+      if (diff !== 0) splits[0] = { ...splits[0], amount: Math.round((splits[0].amount + diff) * 100) / 100 }
       apiSplitType = "PERCENTAGE"
 
     } else if (splitType === "PERCENTAGE") {
@@ -144,6 +150,8 @@ export function EditExpenseDialog({ expense, members, currency: groupCurrency, o
         userId: m.userId,
         amount: Math.round((amount * (parseFloat(pctSplits[m.userId] ?? "0") / 100)) * 100) / 100,
       }))
+      const diff = Math.round((amount - splits.reduce((s, x) => s + x.amount, 0)) * 100) / 100
+      if (diff !== 0) splits[0] = { ...splits[0], amount: Math.round((splits[0].amount + diff) * 100) / 100 }
 
     } else {
       splits = members.map((m) => ({ userId: m.userId, amount: parseFloat(exactSplits[m.userId] ?? "0") }))

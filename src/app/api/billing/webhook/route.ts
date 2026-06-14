@@ -27,19 +27,29 @@ export async function POST(req: Request) {
   switch (event.type) {
     case "checkout.session.completed": {
       const cs = event.data.object as Stripe.Checkout.Session
-      if (cs.mode !== "subscription") break
       const userId = cs.metadata?.userId
-      const planKey = cs.metadata?.plan ?? "PRO"
       if (!userId) break
-      const subscriptionId = cs.subscription as string
-      await prisma.user.update({
-        where: { id: userId },
-        data: {
-          plan: PLAN_MAP[planKey] ?? "PRO",
-          stripeSubscriptionId: subscriptionId,
-          planExpiresAt: null, // managed by subscription renewal
-        },
-      })
+
+      if (cs.mode === "subscription") {
+        const planKey = cs.metadata?.plan ?? "PRO"
+        const subscriptionId = cs.subscription as string
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            plan: PLAN_MAP[planKey] ?? "PRO",
+            stripeSubscriptionId: subscriptionId,
+            planExpiresAt: null,
+          },
+        })
+      } else if (cs.mode === "payment" && cs.metadata?.type === "scan_topup") {
+        const scans = parseInt(cs.metadata.scans ?? "0", 10)
+        if (scans > 0) {
+          await (prisma.user.update as any)({
+            where: { id: userId },
+            data: { bonusScans: { increment: scans } },
+          })
+        }
+      }
       break
     }
 

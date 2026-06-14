@@ -61,7 +61,9 @@ export async function POST(req: Request) {
   })
 
   // Create Stripe Checkout Session
-  const checkoutSession = await stripe.checkout.sessions.create({
+  let checkoutSession: Awaited<ReturnType<typeof stripe.checkout.sessions.create>>
+  try {
+    checkoutSession = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
     mode: "payment",
     line_items: [
@@ -89,6 +91,11 @@ export async function POST(req: Request) {
     success_url: `${appUrl}/trips/${tripId}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl}/trips/${tripId}?payment=cancelled`,
   })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Stripe error"
+    console.error("[payments/checkout] Stripe error:", message)
+    return NextResponse.json({ error: message }, { status: 502 })
+  }
 
   // Store the Stripe session ID on the contribution
   await prisma.fundContribution.update({

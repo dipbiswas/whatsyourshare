@@ -1,0 +1,1 @@
+ALTER TABLE "Trip" ADD COLUMN "hideFromNonMembers" BOOLEAN NOT NULL DEFAULT false;

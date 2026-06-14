@@ -42,6 +42,7 @@ import { CreateTripDialog } from "@/components/trips/CreateTripDialog"
 import { Plane } from "lucide-react"
 import { ExpensePolicyCard } from "@/components/groups/ExpensePolicyCard"
 import { GroupCardCard } from "@/components/cards/GroupCardCard"
+import { InsightsTab } from "@/components/groups/InsightsTab"
 import { InteracHelperDialog } from "@/components/settlements/InteracHelperDialog"
 import { formatCurrency } from "@/lib/balance"
 import { cn } from "@/lib/utils"
@@ -73,6 +74,7 @@ interface Expense {
   paidBy: { id: string; name: string; avatar: string | null }
   guestPayeeName?: string | null
   splits: Split[]
+  trip?: { id: string; name: string } | null
 }
 
 interface RecurringExpense {
@@ -134,6 +136,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
   const [openDialog, setOpenDialog] = useState<"addMember" | "addRecurring" | "createTrip" | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [trips, setTrips] = useState<{ id: string; name: string; destination: string | null; coverEmoji: string | null; eventType: string; startDate: string; endDate: string; _count: { days: number } }[]>([])
+  const [planStatus, setPlanStatus] = useState<{ plan: string; aiScansUsed: number; aiScansLimit: number } | null>(null)
 
   const userId = session?.user.id ?? ""
 
@@ -155,6 +158,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
   useEffect(() => {
     refreshGroup().finally(() => setLoading(false))
     fetch(`/api/trips?groupId=${id}`).then((r) => r.ok ? r.json() : []).then(setTrips)
+    fetch("/api/plan-status").then((r) => r.ok ? r.json() : null).then((d) => { if (d) setPlanStatus(d) })
   }, [id, router])
 
   async function approveExpense(expenseId: string, action: "APPROVE" | "REJECT") {
@@ -368,21 +372,23 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                           <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 tabular-nums">{formatCurrency(s.amount, group.currency)}</p>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
-                          <InteracHelperDialog
-                            amount={s.amount}
-                            currency={group.currency}
-                            toName={s.toName}
-                            toEmail={group.members.find((m) => m.userId === s.to)?.user.email ?? ""}
-                            groupName={group.name}
-                            onSent={async () => {
-                              await fetch("/api/settlements", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ groupId: group.id, toUserId: s.to, amount: s.amount, note: "Interac e-Transfer" }),
-                              })
-                              refreshGroup()
-                            }}
-                          />
+                          {group.currency.toUpperCase() === "CAD" && (
+                            <InteracHelperDialog
+                              amount={s.amount}
+                              currency={group.currency}
+                              toName={s.toName}
+                              toEmail={group.members.find((m) => m.userId === s.to)?.user.email ?? ""}
+                              groupName={group.name}
+                              onSent={async () => {
+                                await fetch("/api/settlements", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ groupId: group.id, toUserId: s.to, amount: s.amount, note: "Interac e-Transfer" }),
+                                })
+                                refreshGroup()
+                              }}
+                            />
+                          )}
                           <AddSettlementDialog
                             groupId={group.id}
                             currency={group.currency}
@@ -503,6 +509,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               { value: "balances",    label: "Balances",    count: null },
               { value: "trips",       label: "Events",      count: trips.length },
               { value: "members",     label: "Members",     count: group.members.length },
+              { value: "insights",    label: "AI Insights", count: null },
               { value: "settings",    label: "Settings",    count: null },
             ].map(({ value, label, count }) => (
               <TabsTrigger
@@ -551,6 +558,11 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="font-semibold text-foreground text-sm truncate">{expense.description}</p>
+                          {expense.trip && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-indigo-600 bg-indigo-50 dark:bg-indigo-500/15 dark:text-indigo-400 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
+                              <Plane className="h-2.5 w-2.5" />{expense.trip.name}
+                            </span>
+                          )}
                           {expense.visibility === "PAYERS_ONLY" && <EyeOff className="h-3 w-3 text-amber-500 shrink-0" />}
                           {expense.approvalStatus === "PENDING_APPROVAL" && (
                             <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-orange-600 bg-orange-100 dark:bg-orange-500/15 dark:text-orange-400 px-1.5 py-0.5 rounded-full shrink-0">
@@ -822,6 +834,17 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               )
             })}
           </div>
+        </TabsContent>
+
+        {/* AI Insights */}
+        <TabsContent value="insights">
+          <InsightsTab
+            groupId={group.id}
+            canUseAI={planStatus?.plan !== "FREE"}
+            aiScansUsed={planStatus?.aiScansUsed ?? 0}
+            aiScansLimit={planStatus?.aiScansLimit ?? 20}
+            bonusScans={(planStatus as any)?.bonusScans ?? 0}
+          />
         </TabsContent>
 
         {/* Settings */}

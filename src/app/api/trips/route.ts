@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
+import { planLimits } from "@/lib/plan"
 import { z } from "zod"
 
 const createSchema = z.object({
@@ -46,10 +47,19 @@ export async function POST(req: Request) {
   const parsed = createSchema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
 
-  const isMember = await prisma.groupMember.findFirst({
-    where: { groupId: parsed.data.groupId, userId: session.user.id },
-  })
+  const [isMember, user] = await Promise.all([
+    prisma.groupMember.findFirst({ where: { groupId: parsed.data.groupId, userId: session.user.id } }),
+    prisma.user.findUnique({ where: { id: session.user.id }, select: { plan: true } }),
+  ])
   if (!isMember) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+
+  const limits = planLimits((user?.plan ?? "FREE") as "FREE" | "PRO" | "FAMILY")
+  if (!limits.canCreateEvents) {
+    return NextResponse.json(
+      { error: "plan_limit", message: "Events are a Pro feature. Upgrade to create events and trips." },
+      { status: 403 },
+    )
+  }
 
   const { startDate, endDate, ...rest } = parsed.data
 

@@ -97,7 +97,7 @@ interface TripDetail {
   startDate: string
   endDate: string
   createdById: string
-  createdBy: { id: string; name: string }
+  createdBy: { id: string; name: string; email: string }
   group: {
     id: string
     name: string
@@ -110,6 +110,7 @@ interface TripDetail {
   memberSpend: Record<string, number>
   groupSettlements: { fromUserId: string; toUserId: string; amount: number }[]
   memberIds: string[] | null
+  hideFromNonMembers: boolean
   eventExpenses: Expense[]
 }
 
@@ -208,6 +209,8 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
   const [newItemAssigneeId, setNewItemAssigneeId] = useState("")
   const [addingItem, setAddingItem] = useState(false)
   const [donePromptItemId, setDonePromptItemId] = useState<string | null>(null)
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [editingItemTitle, setEditingItemTitle] = useState("")
 
   async function createActionItem() {
     const title = newItemTitle.trim()
@@ -246,6 +249,21 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
     if (!res.ok) { toast.error("Failed to delete"); return }
     setActionItems((prev) => prev.filter((i) => i.id !== itemId))
     if (donePromptItemId === itemId) setDonePromptItemId(null)
+  }
+
+  async function saveActionItemTitle(itemId: string) {
+    const title = editingItemTitle.trim()
+    setEditingItemId(null)
+    if (!title) return
+    const res = await fetch(`/api/trips/${id}/action-items/${itemId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title }),
+    })
+    if (res.ok) {
+      const updated = await res.json()
+      setActionItems((prev) => prev.map((i) => i.id === itemId ? { ...i, title: updated.title } : i))
+    }
   }
 
   async function cycleActionItemStatus(item: ActionItem) {
@@ -347,6 +365,25 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
     .flatMap((d) => d.expenses)
     .reduce((s, e) => s + e.amount, 0)
   const isOrganizer = trip.createdById === userId
+  const isTripMember = trip.memberIds
+    ? (trip.memberIds as string[]).includes(userId)
+    : true
+
+  async function toggleHideFromNonMembers() {
+    const next = !trip.hideFromNonMembers
+    setTrip((t) => t ? { ...t, hideFromNonMembers: next } : t)
+    const res = await fetch(`/api/trips/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hideFromNonMembers: next }),
+    })
+    if (!res.ok) {
+      setTrip((t) => t ? { ...t, hideFromNonMembers: !next } : t)
+      toast.error("Failed to update visibility")
+    } else {
+      toast.success(next ? "Expenses hidden from non-members" : "Expenses visible to all group members")
+    }
+  }
 
   return (
     <div className="p-8 space-y-6 max-w-4xl">
@@ -439,7 +476,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
           <CardContent className="pt-4 pb-3">
             <p className="text-xs text-gray-500 uppercase tracking-wide">Expenses</p>
             <p className="text-xl font-bold text-gray-900 mt-1">
-              {trip.days.flatMap((d) => d.expenses).length}
+              {trip.days.flatMap((d) => d.expenses).length + trip.eventExpenses.length}
             </p>
           </CardContent>
         </Card>
@@ -511,6 +548,30 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
         </CardContent>
       </Card>
 
+      {/* Expense visibility toggle — only when trip has fewer members than group */}
+      {trip.memberIds && (trip.memberIds as string[]).length < trip.group.members.length && isTripMember && (
+        <div className="glass rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-foreground">Hide expenses from non-members</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {trip.hideFromNonMembers
+                ? "Event expenses are only visible to trip members in the group view"
+                : "Event expenses are visible to everyone in the group"}
+            </p>
+          </div>
+          <button
+            role="switch"
+            aria-checked={trip.hideFromNonMembers}
+            onClick={toggleHideFromNonMembers}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+              trip.hideFromNonMembers ? "bg-indigo-600" : "bg-muted"
+            }`}
+          >
+            <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform ${trip.hideFromNonMembers ? "translate-x-5" : "translate-x-0"}`} />
+          </button>
+        </div>
+      )}
+
       {/* Trip Fund */}
       <TripFundCard
         tripId={trip.id}
@@ -521,12 +582,14 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
         isOrganizer={isOrganizer}
         memberCount={eventMembers.length}
         currency={trip.group.currency}
+        organizerName={trip.createdBy.name}
+        organizerEmail={trip.createdBy.email}
       />
       </div>
 
       {/* Per-person breakdown + Balances side by side */}
       {(() => {
-        const allExpenses = trip.days.flatMap((d) => d.expenses)
+        const allExpenses = [...trip.days.flatMap((d) => d.expenses), ...trip.eventExpenses]
         const hasSpend = Object.keys(trip.memberSpend).length > 0
         if (!hasSpend && allExpenses.length === 0) return null
 
@@ -929,9 +992,29 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                       </button>
 
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium leading-snug ${item.status === "DONE" ? "line-through text-gray-400" : "text-gray-900"}`}>
-                          {item.title}
-                        </p>
+                        {editingItemId === item.id ? (
+                          <input
+                            autoFocus
+                            value={editingItemTitle}
+                            onChange={(e) => setEditingItemTitle(e.target.value)}
+                            onBlur={() => saveActionItemTitle(item.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") { e.preventDefault(); saveActionItemTitle(item.id) }
+                              if (e.key === "Escape") setEditingItemId(null)
+                            }}
+                            className="w-full text-sm font-medium bg-transparent border-b border-indigo-400 outline-none pb-0.5"
+                          />
+                        ) : (
+                          <p
+                            className={`text-sm font-medium leading-snug hidden md:block cursor-text ${item.status === "DONE" ? "line-through text-gray-400" : "text-gray-900"}`}
+                            onClick={() => { setEditingItemId(item.id); setEditingItemTitle(item.title) }}
+                          >
+                            {item.title}
+                          </p>
+                          <p className={`text-sm font-medium leading-snug md:hidden ${item.status === "DONE" ? "line-through text-gray-400" : "text-gray-900"}`}>
+                            {item.title}
+                          </p>
+                        )}
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className={`text-xs font-medium ${
                             item.status === "OPEN" ? "text-gray-400" :
@@ -969,6 +1052,15 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                         </Select>
                       </div>
 
+                      {editingItemId !== item.id && (
+                        <button
+                          onClick={() => { setEditingItemId(item.id); setEditingItemTitle(item.title) }}
+                          className="md:opacity-0 md:group-hover:opacity-100 p-1 rounded hover:bg-indigo-50 text-indigo-400 hover:text-indigo-600 transition-all shrink-0"
+                          title="Edit"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       <button
                         onClick={() => deleteActionItem(item.id)}
                         className="md:opacity-0 md:group-hover:opacity-100 p-1 rounded hover:bg-red-50 text-red-400 hover:text-red-600 transition-all shrink-0"

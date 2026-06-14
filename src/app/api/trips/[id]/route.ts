@@ -11,6 +11,7 @@ const patchSchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   memberIds: z.array(z.string()).nullable().optional(),
+  hideFromNonMembers: z.boolean().optional(),
 })
 
 export async function GET(
@@ -57,7 +58,8 @@ export async function GET(
           },
         },
       },
-      createdBy: { select: { id: true, name: true } },
+      createdBy: { select: { id: true, name: true, email: true } },
+      // hideFromNonMembers is a scalar field, included by default
     },
   })
 
@@ -100,6 +102,13 @@ export async function GET(
     orderBy: { date: "desc" },
   })
 
+  // Include event expenses in per-member spend
+  for (const e of eventExpenses) {
+    for (const s of e.splits) {
+      memberSpend[s.user.id] = (memberSpend[s.user.id] ?? 0) + s.amount
+    }
+  }
+
   return NextResponse.json({ ...trip, unlinkedExpenses, memberSpend, groupSettlements, eventExpenses })
   } catch (err) {
     console.error("[GET /api/trips/[id]] error:", err)
@@ -119,18 +128,31 @@ export async function PATCH(
   const parsed = patchSchema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
 
+  const { hideFromNonMembers, startDate, endDate, ...organizerFields } = parsed.data
+
+  // hideFromNonMembers can be toggled by any trip member; other fields require organizer
+  const hasOrganizerFields = Object.keys(organizerFields).length > 0
+
   const trip = await prisma.trip.findFirst({
-    where: { id, createdById: session.user.id },
+    where: hasOrganizerFields
+      ? { id, createdById: session.user.id }
+      : { id, group: { members: { some: { userId: session.user.id } } } },
   })
   if (!trip) return NextResponse.json({ error: "Not found or forbidden" }, { status: 404 })
 
-  const { startDate, endDate, ...rest } = parsed.data
+  // Verify user is a trip member when toggling hideFromNonMembers
+  if (hideFromNonMembers !== undefined) {
+    const memberIds = Array.isArray(trip.memberIds) ? (trip.memberIds as string[]) : []
+    const isTripMember = memberIds.length === 0 || memberIds.includes(session.user.id) || trip.createdById === session.user.id
+    if (!isTripMember) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updated = await (prisma.trip.update as any)({
     where: { id },
     data: {
-      ...rest,
+      ...organizerFields,
+      ...(hideFromNonMembers !== undefined ? { hideFromNonMembers } : {}),
       ...(startDate ? { startDate: new Date(startDate) } : {}),
       ...(endDate ? { endDate: new Date(endDate) } : {}),
     },

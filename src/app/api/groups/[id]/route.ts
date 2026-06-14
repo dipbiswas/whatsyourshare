@@ -25,6 +25,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         include: {
           paidBy: { select: { id: true, name: true, avatar: true } },
           splits: { include: { user: { select: { id: true, name: true } } } },
+          trip: { select: { id: true, name: true, hideFromNonMembers: true, memberIds: true } },
         },
         orderBy: { date: "desc" },
       },
@@ -44,12 +45,21 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   if (!group) return NextResponse.json({ error: "Group not found" }, { status: 404 })
 
+  // Filter out event expenses hidden from non-members
+  const visibleExpenses = group.expenses.filter((e) => {
+    if (!e.trip?.hideFromNonMembers) return true
+    const memberIds = Array.isArray(e.trip.memberIds) ? (e.trip.memberIds as string[]) : []
+    // No memberIds set = open to all trip members; fall back to allowing it
+    if (memberIds.length === 0) return true
+    return memberIds.includes(session.user.id)
+  })
+
   const nameMap: Record<string, string> = {}
   for (const m of group.members) nameMap[m.userId] = m.user.name
 
   const balanceMap = calculateGroupBalances(
     group.members.map((m) => ({ userId: m.userId })),
-    group.expenses.map((e) => ({
+    visibleExpenses.map((e) => ({
       paidById: e.paidById,
       amount: e.amount,
       splits: e.splits.map((s) => ({ userId: s.userId, amount: s.amount })),
@@ -59,7 +69,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const suggestedSettlements = simplifyDebts(balanceMap, nameMap)
 
-  const expensesForAnnotation = group.expenses.map((e) => ({
+  const expensesForAnnotation = visibleExpenses.map((e) => ({
     id: e.id,
     description: e.description,
     date: e.date.toISOString(),
@@ -69,7 +79,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const annotatedSettlements = annotateTransfers(suggestedSettlements, expensesForAnnotation, nameMap)
 
-  return NextResponse.json({ ...group, balanceMap, suggestedSettlements: annotatedSettlements })
+  // Strip internal trip fields before sending to client
+  const clientExpenses = visibleExpenses.map(({ trip, ...e }) => ({
+    ...e,
+    trip: trip ? { id: trip.id, name: trip.name } : null,
+  }))
+
+  return NextResponse.json({ ...group, expenses: clientExpenses, balanceMap, suggestedSettlements: annotatedSettlements })
   } catch (err) {
     console.error("[GET /api/groups/[id]] error:", err)
     return NextResponse.json({ error: String(err) }, { status: 500 })

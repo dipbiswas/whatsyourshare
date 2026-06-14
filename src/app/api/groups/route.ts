@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { calculateGroupBalances } from "@/lib/balance"
+import { planLimits } from "@/lib/plan"
 import { z } from "zod"
 
 const createSchema = z.object({
@@ -56,6 +57,19 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  // Plan enforcement — group creation limit
+  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { plan: true } })
+  const limits = planLimits((user?.plan ?? "FREE") as "FREE" | "PRO" | "FAMILY")
+  if (limits.maxGroups !== Infinity) {
+    const ownedGroupCount = await prisma.groupMember.count({ where: { userId: session.user.id, role: "ADMIN" } })
+    if (ownedGroupCount >= limits.maxGroups) {
+      return NextResponse.json(
+        { error: "plan_limit", message: `Free plan is limited to ${limits.maxGroups} groups. Upgrade to Pro for unlimited groups.` },
+        { status: 403 },
+      )
+    }
+  }
 
   const body = await req.json()
   const parsed = createSchema.safeParse(body)

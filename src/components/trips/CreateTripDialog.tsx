@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Plus, Check } from "lucide-react"
+import { Plus, Check, Zap } from "lucide-react"
 import { format, addDays } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -47,6 +47,7 @@ export function CreateTripDialog({ groupId, onCreated, open: controlledOpen, onO
   const [loading, setLoading] = useState(false)
   const [members, setMembers] = useState<GroupMember[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [canCreateEvents, setCanCreateEvents] = useState<boolean | null>(null)
   const [form, setForm] = useState({
     name: "",
     destination: "",
@@ -58,14 +59,16 @@ export function CreateTripDialog({ groupId, onCreated, open: controlledOpen, onO
 
   useEffect(() => {
     if (!open) return
-    fetch(`/api/groups/${groupId}`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (data?.members) {
-          setMembers(data.members)
-          setSelectedIds(new Set(data.members.map((m: GroupMember) => m.userId)))
-        }
-      })
+    Promise.all([
+      fetch(`/api/groups/${groupId}`).then((r) => r.ok ? r.json() : null),
+      fetch("/api/plan-status").then((r) => r.ok ? r.json() : null),
+    ]).then(([groupData, planData]) => {
+      if (groupData?.members) {
+        setMembers(groupData.members)
+        setSelectedIds(new Set(groupData.members.map((m: GroupMember) => m.userId)))
+      }
+      if (planData) setCanCreateEvents(planData.canCreateEvents)
+    })
   }, [open, groupId])
 
   function toggleMember(userId: string) {
@@ -127,6 +130,25 @@ export function CreateTripDialog({ groupId, onCreated, open: controlledOpen, onO
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4 mt-1">
+            {canCreateEvents === false && (
+              <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center shrink-0">
+                    <Zap className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Pro feature</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                      Events, trips, itineraries, and trip funds are available on the Pro plan.
+                    </p>
+                  </div>
+                </div>
+                <button type="button" className="w-full flex items-center justify-center gap-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium py-2 transition-colors">
+                  <Zap className="h-3.5 w-3.5" />
+                  Upgrade to Pro — $4/month
+                </button>
+              </div>
+            )}
             {/* Type picker */}
             <div className="space-y-1.5">
               <Label>Event type</Label>
@@ -260,7 +282,7 @@ export function CreateTripDialog({ groupId, onCreated, open: controlledOpen, onO
 
             <DialogFooter>
               <Button variant="outline" type="button" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={loading}>
+              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={loading || canCreateEvents === false}>
                 {loading ? "Creating…" : "Create event"}
               </Button>
             </DialogFooter>

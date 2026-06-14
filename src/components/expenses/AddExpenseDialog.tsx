@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { toast } from "sonner"
 import { format } from "date-fns"
-import { Plus, Eye, EyeOff, Camera, Loader2, Check } from "lucide-react"
+import { Plus, Eye, EyeOff, Camera, Loader2, Check, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -51,6 +51,16 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
   const [loading, setLoading] = useState(false)
   const [scanning, setScanning] = useState(false)
   const [splitType, setSplitType] = useState<SplitType>(defaultSplitType)
+  const [scanStatus, setScanStatus] = useState<{ canScan: boolean; used: number; limit: number } | null>(null)
+
+  useEffect(() => {
+    fetch("/api/plan-status")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => {
+        if (d) setScanStatus({ canScan: d.aiScansLimit > 0 && d.aiScansUsed < d.aiScansLimit, used: d.aiScansUsed, limit: d.aiScansLimit })
+      })
+      .catch(() => {})
+  }, [])
 
   const [form, setForm] = useState({
     description: "",
@@ -144,11 +154,16 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
     if (splitType === "EQUAL") {
       const each = Math.round((amount / members.length) * 100) / 100
       splits = members.map((m) => ({ userId: m.userId, amount: each }))
+      // Assign rounding remainder to first member so splits always sum to total
+      const diff = Math.round((amount - splits.reduce((s, x) => s + x.amount, 0)) * 100) / 100
+      if (diff !== 0) splits[0] = { ...splits[0], amount: Math.round((splits[0].amount + diff) * 100) / 100 }
 
     } else if (splitType === "SELECTED") {
       if (selectedMembers.length === 0) { toast.error("Select at least one member"); return }
       const each = Math.round((amount / selectedMembers.length) * 100) / 100
       splits = selectedMembers.map((m) => ({ userId: m.userId, amount: each }))
+      const diff = Math.round((amount - splits.reduce((s, x) => s + x.amount, 0)) * 100) / 100
+      if (diff !== 0) splits[0] = { ...splits[0], amount: Math.round((splits[0].amount + diff) * 100) / 100 }
 
     } else if (splitType === "SHARES") {
       if (totalShares === 0) { toast.error("Enter at least one share"); return }
@@ -157,6 +172,8 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
         return { userId: m.userId, amount: Math.round((amount * s / totalShares) * 100) / 100 }
       }).filter((s) => s.amount > 0)
       if (splits.length === 0) { toast.error("Enter shares for at least one member"); return }
+      const diff = Math.round((amount - splits.reduce((s, x) => s + x.amount, 0)) * 100) / 100
+      if (diff !== 0) splits[0] = { ...splits[0], amount: Math.round((splits[0].amount + diff) * 100) / 100 }
 
     } else if (splitType === "PERCENTAGE") {
       if (Math.abs(totalPct - 100) > 0.01) {
@@ -167,6 +184,8 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
         userId: m.userId,
         amount: Math.round((amount * (parseFloat(pctSplits[m.userId] ?? "0") / 100)) * 100) / 100,
       }))
+      const diff = Math.round((amount - splits.reduce((s, x) => s + x.amount, 0)) * 100) / 100
+      if (diff !== 0) splits[0] = { ...splits[0], amount: Math.round((splits[0].amount + diff) * 100) / 100 }
 
     } else {
       splits = members.map((m) => ({
@@ -225,7 +244,15 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageBase64: base64, mediaType: "image/jpeg" }),
       })
-      if (!res.ok) { toast.error("Could not read receipt — fill in manually"); return }
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        if (errData.error === "plan_limit" || errData.error === "scan_limit") {
+          toast.error(errData.message ?? "Upgrade required")
+        } else {
+          toast.error("Could not read receipt — fill in manually")
+        }
+        return
+      }
       const data = await res.json()
       setForm((f) => ({
         ...f,
@@ -233,6 +260,9 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
         amount: data.amount ? String(data.amount) : f.amount,
         category: data.category || f.category,
       }))
+      if (data.scansRemaining !== undefined) {
+        setScanStatus((s) => s ? { ...s, used: s.limit - data.scansRemaining, canScan: data.scansRemaining > 0 } : s)
+      }
       toast.success("Receipt scanned! Review the pre-filled values.")
     } catch {
       toast.error("Receipt scan failed — fill in manually")
@@ -288,21 +318,41 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
           </DialogHeader>
 
           {/* Receipt scan */}
-          <label className={cn(
-            "flex items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed px-4 py-3 text-sm cursor-pointer transition-colors",
-            scanning
-              ? "border-indigo-300 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500"
-              : "border-border hover:border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 text-muted-foreground hover:text-indigo-600"
-          )}>
-            {scanning
-              ? <><Loader2 className="h-4 w-4 animate-spin" /> Scanning receipt…</>
-              : <><Camera className="h-4 w-4" /> Scan a receipt to auto-fill</>
-            }
-            <input type="file" accept="image/*" capture="environment" className="hidden"
-              disabled={scanning}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleReceiptScan(f); e.target.value = "" }}
-            />
-          </label>
+          {scanStatus && !scanStatus.canScan ? (
+            <div className={cn(
+              "flex items-center justify-between w-full rounded-xl border px-4 py-3 text-sm",
+              scanStatus.limit === 0
+                ? "border-border bg-muted/40 text-muted-foreground"
+                : "border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400"
+            )}>
+              <span className="flex items-center gap-2">
+                <Camera className="h-4 w-4" />
+                {scanStatus.limit === 0 ? "Receipt scanning (Pro only)" : `Scan limit reached (${scanStatus.used}/${scanStatus.limit})`}
+              </span>
+              <span className="flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+                <Zap className="h-3 w-3" /> Upgrade
+              </span>
+            </div>
+          ) : (
+            <label className={cn(
+              "flex items-center gap-2 w-full rounded-xl border-2 border-dashed px-4 py-3 text-sm cursor-pointer transition-colors",
+              scanning
+                ? "border-indigo-300 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500"
+                : "border-border hover:border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 text-muted-foreground hover:text-indigo-600"
+            )}>
+              {scanning
+                ? <><Loader2 className="h-4 w-4 animate-spin" /> Scanning receipt…</>
+                : <><Camera className="h-4 w-4" /> Scan a receipt to auto-fill</>
+              }
+              {scanStatus && (
+                <span className="ml-auto text-xs text-muted-foreground">{scanStatus.limit - scanStatus.used}/{scanStatus.limit} left</span>
+              )}
+              <input type="file" accept="image/*" capture="environment" className="hidden"
+                disabled={scanning}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleReceiptScan(f); e.target.value = "" }}
+              />
+            </label>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4 mt-1">
             {/* Description */}
