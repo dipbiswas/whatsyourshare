@@ -1,4 +1,4 @@
-INSERT INTO "SystemConfig" (key, value, label, description, "group", type, "createdAt")
+INSERT INTO "SystemConfig" (key, value, label, description, "group", type, "updatedAt")
 VALUES (
   'platform.stripe_enabled',
   'false',
