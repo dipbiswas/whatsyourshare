@@ -1005,15 +1005,17 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                             className="w-full text-sm font-medium bg-transparent border-b border-indigo-400 outline-none pb-0.5"
                           />
                         ) : (
-                          <p
-                            className={`text-sm font-medium leading-snug hidden md:block cursor-text ${item.status === "DONE" ? "line-through text-gray-400" : "text-gray-900"}`}
-                            onClick={() => { setEditingItemId(item.id); setEditingItemTitle(item.title) }}
-                          >
-                            {item.title}
-                          </p>
-                          <p className={`text-sm font-medium leading-snug md:hidden ${item.status === "DONE" ? "line-through text-gray-400" : "text-gray-900"}`}>
-                            {item.title}
-                          </p>
+                          <>
+                            <p
+                              className={`text-sm font-medium leading-snug hidden md:block cursor-text ${item.status === "DONE" ? "line-through text-gray-400" : "text-gray-900"}`}
+                              onClick={() => { setEditingItemId(item.id); setEditingItemTitle(item.title) }}
+                            >
+                              {item.title}
+                            </p>
+                            <p className={`text-sm font-medium leading-snug md:hidden ${item.status === "DONE" ? "line-through text-gray-400" : "text-gray-900"}`}>
+                              {item.title}
+                            </p>
+                          </>
                         )}
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className={`text-xs font-medium ${
