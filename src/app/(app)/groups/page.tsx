@@ -2,12 +2,18 @@
 
 import { useEffect, useState, useMemo } from "react"
 import Link from "next/link"
-import { Users, Receipt, Plus, Search, X, CheckCircle2, TrendingUp, TrendingDown, Crown, UserCheck } from "lucide-react"
+import { Users, Receipt, Plus, Search, X, CheckCircle2, TrendingUp, TrendingDown, Crown, UserCheck, AlertCircle } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { CreateGroupDialog } from "@/components/groups/CreateGroupDialog"
 import { formatDistanceToNow } from "date-fns"
+
+interface PlanStatus {
+  plan: string
+  groupCount: number
+  maxGroups: number | null
+}
 
 const GROUP_ACCENTS = [
   "from-indigo-400 to-indigo-600",
@@ -51,12 +57,17 @@ export default function GroupsPage() {
   const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const [planStatus, setPlanStatus] = useState<PlanStatus | null>(null)
 
   useEffect(() => {
     fetch("/api/groups")
       .then((r) => r.json())
       .then((data) => setGroups(Array.isArray(data) ? data : []))
       .finally(() => setLoading(false))
+    fetch("/api/plan-status")
+      .then((r) => r.json())
+      .then((data) => setPlanStatus(data))
+      .catch(() => {})
   }, [])
 
   const filtered = useMemo(() => {
@@ -79,6 +90,20 @@ export default function GroupsPage() {
         </div>
         <CreateGroupDialog onCreated={(g) => setGroups((prev) => [g as Group, ...prev])} />
       </div>
+
+      {planStatus?.maxGroups !== null && planStatus?.maxGroups !== undefined && planStatus.groupCount >= planStatus.maxGroups && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3">
+          <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Group limit reached</p>
+            <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+              You&apos;ve used {planStatus.groupCount} of {planStatus.maxGroups} groups on your {planStatus.plan} plan.{" "}
+              <Link href="/settings" className="underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-200">Upgrade to Pro</Link> for unlimited groups.
+            </p>
+          </div>
+        </div>
+      )}
+
       {groups.length > 4 && (
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
