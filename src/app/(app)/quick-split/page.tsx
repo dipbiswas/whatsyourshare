@@ -54,6 +54,13 @@ interface SuggestedSettlement {
   amount: number
 }
 
+interface Friend {
+  id: string
+  name: string
+  email: string
+  avatar: string | null
+}
+
 interface Expense {
   id: string
   description: string
@@ -94,13 +101,17 @@ export default function QuickSplitPage() {
 
   const [switching, setSwitching] = useState(false)
   const [defaultCurrency, setDefaultCurrency] = useState("USD")
+  const [friends, setFriends] = useState<Friend[]>([])
+  const [friendSearch, setFriendSearch] = useState("")
 
   useEffect(() => {
     Promise.all([
       fetch("/api/groups").then((r) => r.ok ? r.json() : []),
       fetch("/api/account").then((r) => r.ok ? r.json() : null),
-    ]).then(([groupData, accountData]) => {
+      fetch("/api/friends").then((r) => r.ok ? r.json() : []),
+    ]).then(([groupData, accountData, friendsData]) => {
       if (accountData?.defaultCurrency) setDefaultCurrency(accountData.defaultCurrency)
+      setFriends(friendsData)
       setGroups(groupData)
       if (groupData.length > 0) selectGroup(groupData[0])
     })
@@ -744,11 +755,60 @@ export default function QuickSplitPage() {
             )}
 
             <div className="border-t border-border pt-3">
-              <p className="text-xs text-muted-foreground mb-2">Add existing member by email</p>
+              <p className="text-xs text-muted-foreground mb-2">Add a member</p>
+              {/* Friends picker */}
+              {(() => {
+                const currentIds = new Set(selectedGroup?.members.map((m) => m.userId) ?? [])
+                const available = friends.filter((f) => !currentIds.has(f.id))
+                const filtered = friendSearch.trim()
+                  ? available.filter((f) =>
+                      f.name.toLowerCase().includes(friendSearch.toLowerCase()) ||
+                      f.email.toLowerCase().includes(friendSearch.toLowerCase())
+                    )
+                  : available
+                return available.length > 0 ? (
+                  <div className="mb-3">
+                    <input
+                      type="text"
+                      placeholder="Search friends…"
+                      value={friendSearch}
+                      onChange={(e) => setFriendSearch(e.target.value)}
+                      className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                    />
+                    <div className="max-h-36 overflow-y-auto space-y-1">
+                      {filtered.length === 0 ? (
+                        <p className="text-xs text-muted-foreground px-1">No friends match.</p>
+                      ) : filtered.map((f) => (
+                        <button
+                          key={f.id}
+                          onClick={() => { setAddMemberEmail(f.email); setFriendSearch("") }}
+                          disabled={addMemberEmail === f.email}
+                          className={cn(
+                            "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left transition-colors",
+                            addMemberEmail === f.email
+                              ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300"
+                              : "bg-muted/40 hover:bg-muted text-foreground"
+                          )}
+                        >
+                          <div className="h-6 w-6 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 flex items-center justify-center text-[10px] font-semibold shrink-0">
+                            {f.name[0].toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{f.name}</p>
+                            <p className="text-[11px] text-muted-foreground truncate">{f.email}</p>
+                          </div>
+                          {addMemberEmail === f.email && <Check className="h-3.5 w-3.5 ml-auto shrink-0" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null
+              })()}
+              {/* Email fallback */}
               <div className="flex gap-2">
                 <input
                   type="email"
-                  placeholder="email@example.com"
+                  placeholder="Or add by email…"
                   value={addMemberEmail}
                   onChange={(e) => setAddMemberEmail(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addMember()}
