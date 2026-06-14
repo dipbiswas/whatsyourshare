@@ -97,6 +97,7 @@ export default function QuickSplitPage() {
   const [expenseDesc, setExpenseDesc] = useState("")
   const [expenseAmount, setExpenseAmount] = useState("")
   const [expensePaidBy, setExpensePaidBy] = useState("")
+  const [expenseDate, setExpenseDate] = useState(() => new Date().toISOString().split("T")[0])
   const [selectedForSplit, setSelectedForSplit] = useState<Set<string>>(new Set())
   const [addingExpense, setAddingExpense] = useState(false)
 
@@ -104,6 +105,7 @@ export default function QuickSplitPage() {
   const [editDesc, setEditDesc] = useState("")
   const [editAmount, setEditAmount] = useState("")
   const [editPaidBy, setEditPaidBy] = useState("")
+  const [editDate, setEditDate] = useState("")
   const [savingEdit, setSavingEdit] = useState(false)
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null)
 
@@ -299,6 +301,7 @@ export default function QuickSplitPage() {
           amount: splitAmount,
           paidById: expensePaidBy,
           category: "General",
+          date: expenseDate,
           splitType: "EQUAL",
           splits,
         }),
@@ -330,6 +333,7 @@ export default function QuickSplitPage() {
     setEditDesc(e.description)
     setEditAmount(String(e.amount))
     setEditPaidBy(e.paidBy?.id ?? "")
+    setEditDate(e.date ? e.date.split("T")[0] : new Date().toISOString().split("T")[0])
   }
 
   async function saveEditExpense() {
@@ -347,7 +351,7 @@ export default function QuickSplitPage() {
       const res = await fetch(`/api/expenses/${editingExpense.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description: editDesc.trim(), amount, paidById: editPaidBy, splitType: "EQUAL", splits }),
+        body: JSON.stringify({ description: editDesc.trim(), amount, paidById: editPaidBy, date: editDate, splitType: "EQUAL", splits }),
       })
       if (!res.ok) { toast.error("Failed to update expense"); return }
       toast.success("Expense updated!")
@@ -551,17 +555,28 @@ export default function QuickSplitPage() {
                   className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                 />
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">Paid by</label>
-                <select
-                  value={expensePaidBy}
-                  onChange={(e) => setExpensePaidBy(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                >
-                  {selectedGroup?.members.map((m) => (
-                    <option key={m.userId} value={m.userId}>{m.user.name}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Paid by</label>
+                  <select
+                    value={expensePaidBy}
+                    onChange={(e) => setExpensePaidBy(e.target.value)}
+                    className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                  >
+                    {selectedGroup?.members.map((m) => (
+                      <option key={m.userId} value={m.userId}>{m.user.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Date</label>
+                  <input
+                    type="date"
+                    value={expenseDate}
+                    onChange={(e) => setExpenseDate(e.target.value)}
+                    className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                  />
+                </div>
               </div>
 
               <div>
@@ -631,7 +646,7 @@ export default function QuickSplitPage() {
                   <div key={e.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/40">
                     <div className="flex flex-col min-w-0 flex-1">
                       <span className="text-sm text-foreground truncate">{e.description}</span>
-                      <span className="text-[11px] text-muted-foreground">paid by {e.paidBy?.name ?? "—"}</span>
+                      <span className="text-[11px] text-muted-foreground">paid by {e.paidBy?.name ?? "—"}{e.date ? ` · ${new Date(e.date).toLocaleDateString()}` : ""}</span>
                     </div>
                     <span className="text-sm font-semibold tabular-nums text-foreground shrink-0">
                       {formatCurrency(e.amount, selectedGroup?.currency ?? "USD")}
@@ -952,17 +967,28 @@ export default function QuickSplitPage() {
                   className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                 />
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">Paid by</label>
-                <select
-                  value={editPaidBy}
-                  onChange={(e) => setEditPaidBy(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                >
-                  {selectedGroup.members.map((m) => (
-                    <option key={m.userId} value={m.userId}>{m.user.name}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Paid by</label>
+                  <select
+                    value={editPaidBy}
+                    onChange={(e) => setEditPaidBy(e.target.value)}
+                    className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                  >
+                    {selectedGroup.members.map((m) => (
+                      <option key={m.userId} value={m.userId}>{m.user.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Date</label>
+                  <input
+                    type="date"
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                    className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                  />
+                </div>
               </div>
               <p className="text-[11px] text-muted-foreground">Split will be recalculated equally among the same members.</p>
             </div>
