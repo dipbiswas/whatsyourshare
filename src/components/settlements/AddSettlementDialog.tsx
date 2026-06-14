@@ -50,6 +50,7 @@ export function AddSettlementDialog({
     toUserId: suggestedTo ?? "",
     amount: suggestedAmount?.toFixed(2) ?? "",
     note: "",
+    date: new Date().toISOString().split("T")[0],
   })
 
   // When "paying from" changes, reset "paying to" so they can't be the same
@@ -76,7 +77,7 @@ export function AddSettlementDialog({
       const res = await fetch("/api/settlements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groupId, fromUserId: form.fromUserId, toUserId: form.toUserId, amount, note: form.note }),
+        body: JSON.stringify({ groupId, fromUserId: form.fromUserId, toUserId: form.toUserId, amount, note: form.note, date: form.date }),
       })
       if (!res.ok) {
         toast.error("Failed to record settlement")
@@ -85,7 +86,7 @@ export function AddSettlementDialog({
       toast.success("Settlement recorded!")
       onCreated()
       setOpen(false)
-      setForm({ fromUserId: currentUserId, toUserId: "", amount: "", note: "" })
+      setForm({ fromUserId: currentUserId, toUserId: "", amount: "", note: "", date: new Date().toISOString().split("T")[0] })
     } finally {
       setLoading(false)
     }
@@ -157,6 +158,15 @@ export function AddSettlementDialog({
                 placeholder="0.00"
                 value={form.amount}
                 onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Date</Label>
+              <Input
+                type="date"
+                value={form.date}
+                onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
                 required
               />
             </div>

@@ -282,6 +282,7 @@ model Settlement {
   amount                Float
   currency              String           @default("USD")
   note                  String?
+  date                  DateTime         @default(now())
   paymentMethod         SettlementMethod @default(MANUAL)
   status                SettlementStatus @default(COMPLETED)
   stripeTransferId      String?

@@ -15,6 +15,7 @@ const schema = z.object({
   toUserId: z.string(),
   amount: z.number().positive(),
   note: z.string().max(200).optional(),
+  date: z.string().optional(),
   paymentMethod: z.enum(["MANUAL", "STRIPE_ACH", "STRIPE_INSTANT"]).default("MANUAL"),
 })
 
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
 
-  const { paymentMethod, fromUserId: requestedFromId, ...rest } = parsed.data
+  const { paymentMethod, fromUserId: requestedFromId, date, ...rest } = parsed.data
 
   const isMember = await prisma.groupMember.findFirst({
     where: { groupId: rest.groupId, userId: session.user.id },
@@ -118,6 +119,7 @@ export async function POST(req: Request) {
       currency: group?.currency ?? "USD",
       paymentMethod: "MANUAL",
       status: "COMPLETED",
+      date: date ? new Date(date) : new Date(),
       completedAt: new Date(),
     },
     include: {
