@@ -370,6 +370,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
     : true
 
   async function toggleHideFromNonMembers() {
+    if (!trip) return
     const next = !trip.hideFromNonMembers
     setTrip((t) => t ? { ...t, hideFromNonMembers: next } : t)
     const res = await fetch(`/api/trips/${id}`, {
