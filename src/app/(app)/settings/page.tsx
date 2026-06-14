@@ -26,51 +26,156 @@ interface ConnectStatus {
   accountId?: string
 }
 
+type FeatureItem = { label: string; included: boolean }
+type FeatureGroup = { category: string; items: FeatureItem[] }
+
 const PLANS_BASE = [
   {
     key: "FREE",
     label: "Free",
     priceKey: null as null | "pro" | "family",
     period: "forever",
-    desc: "For personal use",
-    features: ["Up to 5 groups", "Basic expense splitting", "Manual settlements"],
-    cta: null,
-    accent: "border-gray-200",
+    desc: null as string | null,
+    cta: null as string | null,
     highlight: false,
+    featureGroups: [
+      {
+        category: "Groups & Members",
+        items: [
+          { label: "Up to 3 groups", included: true },
+          { label: "Unlimited members", included: true },
+          { label: "All split types", included: true },
+        ],
+      },
+      {
+        category: "Expenses",
+        items: [
+          { label: "Add & edit expenses", included: true },
+          { label: "Settlements", included: true },
+          { label: "Activity feed", included: true },
+          { label: "Recurring expenses", included: false },
+          { label: "Receipt scanning", included: false },
+          { label: "Export", included: false },
+        ],
+      },
+      {
+        category: "Events",
+        items: [
+          { label: "Events / trips", included: false },
+        ],
+      },
+      {
+        category: "Notifications",
+        items: [
+          { label: "Email (expense added)", included: true },
+          { label: "Push notifications", included: false },
+        ],
+      },
+      {
+        category: "AI",
+        items: [
+          { label: "No AI features", included: false },
+        ],
+      },
+    ] as FeatureGroup[],
   },
   {
     key: "PRO",
     label: "Pro",
     priceKey: "pro" as const,
-    period: "/mo",
-    desc: "For power users",
-    features: [
-      "Unlimited groups",
-      "AI receipt scanning",
-      "AI spending insights",
-      "Recurring expenses",
-      "Budget tracking",
-      "Stripe settlements",
-    ],
+    period: "/ month",
+    desc: null as string | null,
     cta: "Upgrade to Pro",
-    accent: "border-indigo-500",
     highlight: true,
+    featureGroups: [
+      {
+        category: "Groups & Members",
+        items: [
+          { label: "Unlimited groups", included: true },
+          { label: "Unlimited members", included: true },
+          { label: "All split types", included: true },
+        ],
+      },
+      {
+        category: "Expenses",
+        items: [
+          { label: "Add & edit expenses", included: true },
+          { label: "Settlements", included: true },
+          { label: "Activity feed", included: true },
+          { label: "Recurring expenses", included: true },
+          { label: "Receipt scanning", included: true },
+          { label: "Export (CSV)", included: true },
+        ],
+      },
+      {
+        category: "Events",
+        items: [
+          { label: "Unlimited events", included: true },
+          { label: "Itinerary & planning", included: true },
+          { label: "Trip fund", included: true },
+          { label: "Action items", included: true },
+        ],
+      },
+      {
+        category: "Notifications",
+        items: [
+          { label: "All email notifications", included: true },
+          { label: "Push notifications", included: true },
+        ],
+      },
+      {
+        category: "AI",
+        items: [
+          { label: "Receipt scanning (20/month)", included: true },
+          { label: "AI insights", included: true },
+        ],
+      },
+    ] as FeatureGroup[],
   },
   {
     key: "FAMILY",
     label: "Family",
     priceKey: "family" as const,
-    period: "/mo",
-    desc: "For families",
-    features: [
-      "Everything in Pro",
-      "Up to 6 members",
-      "Family trip funds",
-      "Priority support",
-    ],
+    period: "/ month",
+    desc: "Up to 6 accounts",
     cta: "Upgrade to Family",
-    accent: "border-amber-400",
     highlight: false,
+    featureGroups: [
+      {
+        category: "Groups & Members",
+        items: [
+          { label: "Unlimited groups", included: true },
+          { label: "Unlimited members", included: true },
+          { label: "All split types", included: true },
+        ],
+      },
+      {
+        category: "Expenses",
+        items: [
+          { label: "Everything in Pro", included: true },
+        ],
+      },
+      {
+        category: "Events",
+        items: [
+          { label: "Everything in Pro", included: true },
+        ],
+      },
+      {
+        category: "Notifications",
+        items: [
+          { label: "All email notifications", included: true },
+          { label: "Push notifications", included: true },
+        ],
+      },
+      {
+        category: "AI",
+        items: [
+          { label: "Receipt scanning (20/month per account)", included: true },
+          { label: "AI insights", included: true },
+        ],
+      },
+    ] as FeatureGroup[],
   },
 ]
 
@@ -102,9 +207,13 @@ export default function SettingsPage() {
       : planPrices
         ? formatPlanPrice(planPrices[p.priceKey])
         : "…",
-    features: p.key === "FREE" && planPrices != null
-      ? [`Up to ${planPrices.freeMaxGroups} groups`, "Basic expense splitting", "Manual settlements"]
-      : p.features,
+    featureGroups: p.key === "FREE" && planPrices != null
+      ? p.featureGroups.map((g) =>
+          g.category === "Groups & Members"
+            ? { ...g, items: [{ label: `Up to ${planPrices.freeMaxGroups} groups`, included: true }, ...g.items.slice(1)] }
+            : g
+        )
+      : p.featureGroups,
   }))
 
   useEffect(() => {
@@ -592,27 +701,45 @@ export default function SettingsPage() {
                   </div>
                 )}
 
-                <div className="mb-3">
-                  <p className="font-bold text-foreground">{plan.label}</p>
-                  <div className="flex items-baseline gap-0.5 mt-0.5">
-                    <p className="text-2xl font-extrabold text-foreground">{plan.price}</p>
+                <div className="mb-4">
+                  <p className="font-bold text-foreground text-base">{plan.label}</p>
+                  <div className="flex items-baseline gap-1 mt-0.5">
+                    <p className="text-3xl font-extrabold text-foreground">{plan.price}</p>
                     <p className="text-xs text-muted-foreground">{plan.period}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{plan.desc}</p>
+                  {plan.desc && <p className="text-xs text-muted-foreground mt-0.5">{plan.desc}</p>}
+                  <div className="mt-3 border-t border-border/60" />
                 </div>
 
-                <ul className="space-y-1.5 mb-4">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-1.5 text-xs text-foreground/70">
-                      <Check className={`h-3 w-3 mt-0.5 shrink-0 ${
-                        plan.key === "PRO" ? "text-indigo-500" :
-                        plan.key === "FAMILY" ? "text-amber-500" :
-                        "text-gray-400"
-                      }`} />
-                      {f}
-                    </li>
+                <div className="space-y-3 mb-4">
+                  {plan.featureGroups.map((group) => (
+                    <div key={group.category}>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-1.5">
+                        {group.category}
+                      </p>
+                      <ul className="space-y-1">
+                        {group.items.map((f) => (
+                          <li key={f.label} className={`flex items-start gap-1.5 text-xs ${f.included ? "text-foreground/80" : "text-muted-foreground/40"}`}>
+                            <div className={`mt-0.5 h-3.5 w-3.5 shrink-0 rounded-sm border flex items-center justify-center ${
+                              f.included
+                                ? plan.key === "PRO" ? "border-indigo-500 bg-indigo-500/10" :
+                                  plan.key === "FAMILY" ? "border-amber-500 bg-amber-500/10" :
+                                  "border-green-500 bg-green-500/10"
+                                : "border-border"
+                            }`}>
+                              {f.included && <Check className={`h-2.5 w-2.5 ${
+                                plan.key === "PRO" ? "text-indigo-500" :
+                                plan.key === "FAMILY" ? "text-amber-500" :
+                                "text-green-500"
+                              }`} />}
+                            </div>
+                            {f.label}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   ))}
-                </ul>
+                </div>
 
                 {plan.cta && !isCurrent && (
                   <Button
