@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { calculateGroupBalances, formatCurrency } from "@/lib/balance"
+import { planLimits, currentMonth } from "@/lib/plan"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { SpendingChart } from "@/components/dashboard/SpendingChart"
 import { InsightsCard } from "@/components/dashboard/InsightsCard"
@@ -111,9 +112,18 @@ export default async function DashboardPage() {
     select: { timezone: true, plan: true, bonusScans: true },
   })
   const greeting = getGreeting(userProfile?.timezone)
-  const isFreePlan = !userProfile?.plan || userProfile.plan === "FREE"
-  const hasBonus = (userProfile?.bonusScans ?? 0) > 0
-  const canSeeInsights = !isFreePlan || hasBonus
+  const plan = (userProfile?.plan ?? "FREE") as "FREE" | "PRO" | "FAMILY"
+  const bonusScans: number = userProfile?.bonusScans ?? 0
+  const isFreePlan = plan === "FREE"
+  const limits = await planLimits(plan)
+  const insightUsage = await (prisma as any).usageRecord.findUnique({
+    where: { userId_feature_month: { userId: session.user.id, feature: "ai_insight", month: currentMonth() } },
+    select: { count: true },
+  })
+  const monthlyUsed: number = insightUsage?.count ?? 0
+  const monthlyRemaining = Math.max(0, limits.maxAiScans - monthlyUsed)
+  const aiScansRemaining = isFreePlan ? bonusScans : monthlyRemaining + bonusScans
+  const canSeeInsights = !isFreePlan || bonusScans > 0
 
   return (
     <div className="p-5 md:p-8 space-y-6 max-w-6xl mr-auto">
@@ -191,7 +201,7 @@ export default async function DashboardPage() {
 
       {/* Insights */}
       {data.insightsGroup && canSeeInsights && (
-        <InsightsCard groupId={data.insightsGroup.id} groupName={data.insightsGroup.name} />
+        <InsightsCard groupId={data.insightsGroup.id} groupName={data.insightsGroup.name} aiScansRemaining={aiScansRemaining} />
       )}
     </div>
   )
