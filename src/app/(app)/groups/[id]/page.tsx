@@ -826,7 +826,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Settings */}
         <TabsContent value="settings" className="mt-4 space-y-4">
-          <GroupCardCard groupId={group.id} isAdmin={!!isAdmin} />
+
           {group.workspaceType === "TEAM" && <ExpensePolicyCard groupId={group.id} />}
 
           {/* Inline group editor */}
