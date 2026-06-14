@@ -50,6 +50,8 @@ model User {
   createdInvites           GroupInvite[]
   assignedActionItems      ActionItem[]  @relation("ActionItemAssignee")
   createdActionItems       ActionItem[]  @relation("ActionItemCreator")
+  reportedFlags            ContentFlag[] @relation("FlagReporter")
+  resolvedFlags            ContentFlag[] @relation("FlagResolver")
 }
 
 model Account {
@@ -490,4 +492,37 @@ model GroupInvite {
 
   group     Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
   createdBy User  @relation(fields: [createdById], references: [id])
+}
+
+// Content moderation
+enum FlagStatus {
+  PENDING
+  DISMISSED
+  ACTIONED
+}
+
+enum FlagEntityType {
+  EXPENSE
+  GROUP
+  TRIP
+  ACTION_ITEM
+  RECURRING_EXPENSE
+}
+
+model ContentFlag {
+  id           String         @id @default(cuid())
+  entityType   FlagEntityType
+  entityId     String
+  entitySnap   String         // snapshot of the flagged text at flag time
+  reason       String         // e.g. "profanity", "spam", "harassment"
+  autoFlagged  Boolean        @default(true)
+  reportedById String?        // null = auto-flagged
+  status       FlagStatus     @default(PENDING)
+  resolvedById String?
+  resolvedAt   DateTime?
+  resolveNote  String?
+  createdAt    DateTime       @default(now())
+
+  reportedBy   User?  @relation("FlagReporter", fields: [reportedById], references: [id])
+  resolvedBy   User?  @relation("FlagResolver", fields: [resolvedById], references: [id])
 }

@@ -1,14 +1,16 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Users, TrendingUp, BarChart2, ArrowLeft, Shield } from "lucide-react"
+import { Users, TrendingUp, BarChart2, ArrowLeft, Shield, ShieldAlert } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const NAV = [
-  { href: "/admin/users",   label: "Users",   icon: Users },
-  { href: "/admin/revenue", label: "Revenue", icon: TrendingUp },
-  { href: "/admin/usage",   label: "Usage",   icon: BarChart2 },
+const BASE_NAV = [
+  { href: "/admin/users",      label: "Users",      icon: Users },
+  { href: "/admin/revenue",    label: "Revenue",    icon: TrendingUp },
+  { href: "/admin/usage",      label: "Usage",      icon: BarChart2 },
+  { href: "/admin/moderation", label: "Moderation", icon: ShieldAlert, badge: true },
 ]
 
 interface Props {
@@ -17,6 +19,14 @@ interface Props {
 
 export function AdminSidebar({ user }: Props) {
   const pathname = usePathname()
+  const [pendingFlags, setPendingFlags] = useState<number | null>(null)
+
+  useEffect(() => {
+    fetch("/api/admin/moderation/count")
+      .then((r) => r.json())
+      .then((d) => setPendingFlags(d.count ?? 0))
+      .catch(() => {})
+  }, [])
 
   return (
     <aside className="w-56 shrink-0 flex flex-col border-r border-border bg-background h-full">
@@ -33,8 +43,9 @@ export function AdminSidebar({ user }: Props) {
 
       {/* Nav */}
       <nav className="flex-1 px-2 py-3 space-y-0.5">
-        {NAV.map(({ href, label, icon: Icon }) => {
+        {BASE_NAV.map(({ href, label, icon: Icon, badge }) => {
           const active = pathname.startsWith(href)
+          const showBadge = badge && pendingFlags !== null && pendingFlags > 0
           return (
             <Link
               key={href}
@@ -47,7 +58,12 @@ export function AdminSidebar({ user }: Props) {
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              {label}
+              <span className="flex-1">{label}</span>
+              {showBadge && (
+                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-rose-500 text-white">
+                  {pendingFlags! > 99 ? "99+" : pendingFlags}
+                </span>
+              )}
             </Link>
           )
         })}

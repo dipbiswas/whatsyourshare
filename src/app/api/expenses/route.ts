@@ -3,6 +3,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { sendPushToGroup } from "@/lib/push"
 import { notifyUser, sendExpenseNotificationEmail } from "@/lib/email"
+import { checkAndFlag } from "@/lib/moderation"
 import { z } from "zod"
 
 const splitSchema = z.object({
@@ -107,6 +108,9 @@ export async function POST(req: Request) {
       })
     ).catch(() => {})
   }
+
+  // Fire-and-forget moderation check
+  checkAndFlag("EXPENSE", expense.id, expense.description, session.user.id).catch(() => {})
 
   return NextResponse.json(expense, { status: 201 })
 }

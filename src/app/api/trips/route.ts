@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { planLimits } from "@/lib/plan"
+import { checkAndFlag } from "@/lib/moderation"
 import { z } from "zod"
 
 const createSchema = z.object({
@@ -76,6 +77,8 @@ export async function POST(req: Request) {
       _count: { select: { days: true } },
     },
   })
+
+  checkAndFlag("TRIP", trip.id, trip.name, session.user.id).catch(() => {})
 
   return NextResponse.json(trip, { status: 201 })
 }

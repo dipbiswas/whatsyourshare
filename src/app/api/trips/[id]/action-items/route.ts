@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
+import { checkAndFlag } from "@/lib/moderation"
 import { z } from "zod"
 
 const createSchema = z.object({
@@ -74,6 +75,8 @@ export async function POST(
       expense: { select: { id: true, description: true, amount: true, currency: true } },
     },
   })
+
+  checkAndFlag("ACTION_ITEM", item.id, item.title, session.user.id).catch(() => {})
 
   return NextResponse.json(item, { status: 201 })
 }

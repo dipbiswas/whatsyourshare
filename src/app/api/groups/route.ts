@@ -3,6 +3,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { calculateGroupBalances } from "@/lib/balance"
 import { planLimits } from "@/lib/plan"
+import { checkAndFlag } from "@/lib/moderation"
 import { z } from "zod"
 
 const createSchema = z.object({
@@ -87,6 +88,9 @@ export async function POST(req: Request) {
       _count: { select: { expenses: true } },
     },
   })
+
+  const snapText = [group.name, (group as any).description].filter(Boolean).join(" — ")
+  checkAndFlag("GROUP", group.id, snapText, session.user.id).catch(() => {})
 
   return NextResponse.json(group, { status: 201 })
 }
