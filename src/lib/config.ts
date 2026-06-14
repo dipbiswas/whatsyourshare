@@ -44,8 +44,10 @@ export const config = {
       get("pricing.topup_large.price_cents")    as Promise<number>,
       get("pricing.topup_large.stripe_price_id")as Promise<string>,
     ]).then(([scans, priceCents, stripeId]) => ({ scans, priceCents, stripeId })),
-    planPro:    () => get("pricing.plan_pro.price_cents")    as Promise<number>,
-    planFamily: () => get("pricing.plan_family.price_cents") as Promise<number>,
+    planPro:          () => get("pricing.plan_pro.price_cents")        as Promise<number>,
+    planFamily:       () => get("pricing.plan_family.price_cents")     as Promise<number>,
+    planProStripeId:  () => get("pricing.plan_pro.stripe_price_id")    as Promise<string>,
+    planFamilyStripeId: () => get("pricing.plan_family.stripe_price_id") as Promise<string>,
   },
   plans: {
     free: () => Promise.all([

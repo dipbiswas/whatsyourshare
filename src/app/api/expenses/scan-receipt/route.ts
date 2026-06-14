@@ -57,10 +57,13 @@ export async function POST(req: Request) {
   }
 
   try {
-    const aiModel = await config.platform.aiModel()
+    const [aiModel, aiMaxTokens] = await Promise.all([
+      config.platform.aiModel(),
+      config.platform.aiMaxTokens(),
+    ])
     const response = await client.messages.create({
       model: aiModel,
-      max_tokens: 512,
+      max_tokens: aiMaxTokens,
       system: SYSTEM_PROMPT,
       messages: [
         {

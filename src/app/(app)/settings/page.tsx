@@ -87,7 +87,7 @@ export default function SettingsPage() {
   const { data: session } = useSession()
   const [billing, setBilling] = useState<BillingStatus | null>(null)
   const [connect, setConnect] = useState<ConnectStatus | null>(null)
-  const [planPrices, setPlanPrices] = useState<{ pro: number; family: number } | null>(null)
+  const [planPrices, setPlanPrices] = useState<{ pro: number; family: number; freeMaxGroups: number } | null>(null)
   const [loadingCheckout, setLoadingCheckout] = useState<string | null>(null)
   const [loadingPortal, setLoadingPortal] = useState(false)
   const [loadingConnect, setLoadingConnect] = useState(false)
@@ -99,6 +99,9 @@ export default function SettingsPage() {
       : planPrices
         ? formatPlanPrice(planPrices[p.priceKey])
         : "…",
+    features: p.key === "FREE" && planPrices != null
+      ? [`Up to ${planPrices.freeMaxGroups} groups`, "Basic expense splitting", "Manual settlements"]
+      : p.features,
   }))
 
   useEffect(() => {

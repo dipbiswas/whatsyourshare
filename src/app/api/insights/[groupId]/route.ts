@@ -3,6 +3,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import Anthropic from "@anthropic-ai/sdk"
 import { subDays, subMonths, format } from "date-fns"
+import { config } from "@/lib/config"
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -82,9 +83,14 @@ export async function GET(
       .map((e) => ({ description: e.description, amount: e.amount.toFixed(2), category: e.category })),
   }
 
+  const [aiModel, aiMaxTokens] = await Promise.all([
+    config.platform.aiModel(),
+    config.platform.aiMaxTokens(),
+  ])
+
   const response = await client.messages.create({
-    model: "claude-haiku-4-5",
-    max_tokens: 400,
+    model: aiModel,
+    max_tokens: aiMaxTokens,
     messages: [
       {
         role: "user",

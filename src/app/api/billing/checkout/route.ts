@@ -7,12 +7,8 @@ import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { stripe } from "@/lib/stripe"
+import { config } from "@/lib/config"
 import { z } from "zod"
-
-const PRICE_IDS: Record<string, string> = {
-  PRO: process.env.STRIPE_PRICE_PRO ?? "price_pro_placeholder",
-  FAMILY: process.env.STRIPE_PRICE_FAMILY ?? "price_family_placeholder",
-}
 
 const schema = z.object({
   plan: z.enum(["PRO", "FAMILY"]),
@@ -48,10 +44,16 @@ export async function POST(req: Request) {
     })
   }
 
+  const stripeId = parsed.data.plan === "PRO"
+    ? await config.pricing.planProStripeId().then((id) => id || process.env.STRIPE_PRICE_PRO || "")
+    : await config.pricing.planFamilyStripeId().then((id) => id || process.env.STRIPE_PRICE_FAMILY || "")
+
+  if (!stripeId) return NextResponse.json({ error: "Stripe price ID not configured for this plan" }, { status: 503 })
+
   const checkoutSession = await stripe.checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
-    line_items: [{ price: PRICE_IDS[parsed.data.plan], quantity: 1 }],
+    line_items: [{ price: stripeId, quantity: 1 }],
     success_url: `${origin}/settings?billing=success`,
     cancel_url: `${origin}/settings?billing=cancelled`,
     metadata: { userId: session.user.id, plan: parsed.data.plan },

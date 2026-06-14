@@ -27,9 +27,11 @@ INSERT INTO "SystemConfig" ("key","value","label","description","group","type","
   ('pricing.topup_large.scans',       '50',    'Large pack — scans',         'Number of bonus scans in the large top-up pack',        'pricing',  'number',  NOW()),
   ('pricing.topup_large.price_cents', '699',   'Large pack — price (cents)', 'Display price in cents; must match Stripe price object', 'pricing',  'number',  NOW()),
   ('pricing.topup_large.stripe_price_id', '""','Large pack — Stripe price ID','Stripe price ID for the large top-up pack',            'pricing',  'string',  NOW()),
-  -- Subscription display prices (informational — actual billing is in Stripe)
-  ('pricing.plan_pro.price_cents',    '999',   'Pro plan — display price (cents)',    'Shown in upgrade prompts; billing is in Stripe', 'pricing', 'number', NOW()),
-  ('pricing.plan_family.price_cents', '1499',  'Family plan — display price (cents)', 'Shown in upgrade prompts; billing is in Stripe', 'pricing', 'number', NOW()),
+  -- Subscription prices and Stripe price IDs
+  ('pricing.plan_pro.price_cents',         '999',  'Pro plan — display price (cents)',    'Shown in upgrade prompts; billing is in Stripe',    'pricing', 'number', NOW()),
+  ('pricing.plan_family.price_cents',      '1499', 'Family plan — display price (cents)', 'Shown in upgrade prompts; billing is in Stripe',    'pricing', 'number', NOW()),
+  ('pricing.plan_pro.stripe_price_id',     '""',   'Pro plan — Stripe price ID',          'Stripe recurring price ID for the Pro subscription', 'pricing', 'string', NOW()),
+  ('pricing.plan_family.stripe_price_id',  '""',   'Family plan — Stripe price ID',       'Stripe recurring price ID for the Family subscription','pricing','string', NOW()),
   -- FREE plan limits
   ('plans.free.max_groups',       '3',     'Free — max groups',        'Max groups a Free user can own',                        'plans',    'number',  NOW()),
   ('plans.free.max_ai_scans',     '0',     'Free — monthly AI scans',  'Monthly AI scan allowance for Free users (0 = none)',   'plans',    'number',  NOW()),
