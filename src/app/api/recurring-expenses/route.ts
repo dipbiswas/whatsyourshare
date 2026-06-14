@@ -59,6 +59,14 @@ export async function POST(req: Request) {
   })
   if (!isMember) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
+  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { plan: true } })
+  if ((user?.plan ?? "FREE") === "FREE") {
+    return NextResponse.json(
+      { error: "plan_limit", message: "Recurring expenses are a Pro feature. Upgrade to Pro to use them." },
+      { status: 403 }
+    )
+  }
+
   const recurring = await prisma.recurringExpense.create({
     data: {
       ...rest,

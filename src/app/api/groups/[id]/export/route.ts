@@ -25,6 +25,14 @@ export async function GET(
   const isMember = await prisma.groupMember.findFirst({ where: { groupId, userId: session.user.id } })
   if (!isMember) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
+  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { plan: true } })
+  if ((user?.plan ?? "FREE") === "FREE") {
+    return NextResponse.json(
+      { error: "plan_limit", message: "CSV export is a Pro feature. Upgrade to Pro to export expenses." },
+      { status: 403 }
+    )
+  }
+
   const group = await prisma.group.findUnique({ where: { id: groupId } })
 
   const expenses = await prisma.expense.findMany({

@@ -314,10 +314,12 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
             className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg px-2.5 py-1.5 hover:bg-accent transition-colors">
             <Printer className="h-3.5 w-3.5" />Print
           </a>
-          <a href={`/api/groups/${group.id}/export?format=csv`} download
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg px-2.5 py-1.5 hover:bg-accent transition-colors">
-            <Download className="h-3.5 w-3.5" />Export
-          </a>
+          {planStatus?.plan !== "FREE" && (
+            <a href={`/api/groups/${group.id}/export?format=csv`} download
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg px-2.5 py-1.5 hover:bg-accent transition-colors">
+              <Download className="h-3.5 w-3.5" />Export
+            </a>
+          )}
         </div>
       </div>
 
@@ -473,10 +475,12 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                 </button>
               }
             />
-            <button onClick={() => setOpenDialog("addRecurring")} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border hover:bg-accent text-sm font-medium text-foreground transition-colors">
-              <RefreshCw className="h-4 w-4 shrink-0 text-muted-foreground" />
-              Add Recurring
-            </button>
+            {planStatus?.plan !== "FREE" && (
+              <button onClick={() => setOpenDialog("addRecurring")} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border hover:bg-accent text-sm font-medium text-foreground transition-colors">
+                <RefreshCw className="h-4 w-4 shrink-0 text-muted-foreground" />
+                Add Recurring
+              </button>
+            )}
             <AddSettlementDialog
               groupId={group.id}
               currency={group.currency}
@@ -736,7 +740,15 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Recurring */}
         <TabsContent value="recurring" className="mt-4">
-          {group.recurringExpenses.length === 0 ? (
+          {planStatus?.plan === "FREE" ? (
+            <div className="text-center py-16">
+              <div className="mx-auto h-14 w-14 rounded-2xl bg-amber-50 dark:bg-amber-500/15 flex items-center justify-center mb-3">
+                <RefreshCw className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+              </div>
+              <p className="text-sm font-semibold text-foreground">Recurring expenses — Pro feature</p>
+              <p className="text-xs text-muted-foreground mt-1">Upgrade to Pro to auto-split bills every week, month, or quarter.</p>
+            </div>
+          ) : group.recurringExpenses.length === 0 ? (
             <div className="text-center py-16">
               <div className="mx-auto h-14 w-14 rounded-2xl bg-indigo-50 dark:bg-indigo-500/15 flex items-center justify-center mb-3">
                 <RefreshCw className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
@@ -933,14 +945,21 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                 <p className="text-xs text-muted-foreground">Download expense records</p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <a href={`/api/groups/${group.id}/export?format=csv`} download className="inline-flex items-center gap-1.5 text-sm font-medium border border-border rounded-lg px-3 py-2 hover:bg-accent transition-colors text-foreground/80">
-                <Download className="h-3.5 w-3.5 text-muted-foreground" />CSV
-              </a>
-              <a href={`/api/groups/${group.id}/export?format=qbo`} download className="inline-flex items-center gap-1.5 text-sm font-medium border border-border rounded-lg px-3 py-2 hover:bg-accent transition-colors text-foreground/80">
-                <Download className="h-3.5 w-3.5 text-muted-foreground" />QuickBooks (IIF)
-              </a>
-            </div>
+            {planStatus?.plan === "FREE" ? (
+              <div className="rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 px-4 py-3">
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Pro feature</p>
+                <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">Upgrade to Pro to export expenses as CSV or QuickBooks files.</p>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                <a href={`/api/groups/${group.id}/export?format=csv`} download className="inline-flex items-center gap-1.5 text-sm font-medium border border-border rounded-lg px-3 py-2 hover:bg-accent transition-colors text-foreground/80">
+                  <Download className="h-3.5 w-3.5 text-muted-foreground" />CSV
+                </a>
+                <a href={`/api/groups/${group.id}/export?format=qbo`} download className="inline-flex items-center gap-1.5 text-sm font-medium border border-border rounded-lg px-3 py-2 hover:bg-accent transition-colors text-foreground/80">
+                  <Download className="h-3.5 w-3.5 text-muted-foreground" />QuickBooks (IIF)
+                </a>
+              </div>
+            )}
           </div>
 
           {isAdmin && (
