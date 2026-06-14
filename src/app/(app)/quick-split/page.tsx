@@ -93,11 +93,16 @@ export default function QuickSplitPage() {
   const [addingExpense, setAddingExpense] = useState(false)
 
   const [switching, setSwitching] = useState(false)
+  const [defaultCurrency, setDefaultCurrency] = useState("USD")
 
   useEffect(() => {
-    fetch("/api/groups").then((r) => r.ok ? r.json() : []).then((data) => {
-      setGroups(data)
-      if (data.length > 0) selectGroup(data[0])
+    Promise.all([
+      fetch("/api/groups").then((r) => r.ok ? r.json() : []),
+      fetch("/api/account").then((r) => r.ok ? r.json() : null),
+    ]).then(([groupData, accountData]) => {
+      if (accountData?.defaultCurrency) setDefaultCurrency(accountData.defaultCurrency)
+      setGroups(groupData)
+      if (groupData.length > 0) selectGroup(groupData[0])
     })
   }, [])
 
@@ -168,7 +173,7 @@ export default function QuickSplitPage() {
       const res = await fetch("/api/groups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newGroupName.trim(), currency: "USD" }),
+        body: JSON.stringify({ name: newGroupName.trim(), currency: defaultCurrency }),
       })
       if (!res.ok) { toast.error("Failed to create group"); return }
       const g = await res.json()
