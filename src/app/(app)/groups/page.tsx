@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react"
 import Link from "next/link"
-import { Users, Receipt, Plus, Search, X, CheckCircle2, TrendingUp, TrendingDown } from "lucide-react"
+import { Users, Receipt, Plus, Search, X, CheckCircle2, TrendingUp, TrendingDown, Crown, UserCheck } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
@@ -44,6 +44,7 @@ interface Group {
   updatedAt: string
   myBalance: number
   activeTrips: ActiveTrip[]
+  isOwner: boolean
 }
 
 export default function GroupsPage() {
@@ -65,6 +66,9 @@ export default function GroupsPage() {
       g.name.toLowerCase().includes(q) || g.description?.toLowerCase().includes(q)
     )
   }, [groups, search])
+
+  const myGroups = filtered.filter((g) => g.isOwner)
+  const memberGroups = filtered.filter((g) => !g.isOwner)
 
   return (
     <div className="p-5 md:p-8 space-y-6 max-w-6xl mr-auto">
@@ -116,8 +120,19 @@ export default function GroupsPage() {
       )}
 
       {!loading && filtered.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((group, idx) => {
+        <div className="space-y-8">
+          {[
+            { label: "My Groups", icon: Crown, groups: myGroups, showCreate: true },
+            { label: "Member of", icon: UserCheck, groups: memberGroups, showCreate: false },
+          ].filter((s) => s.groups.length > 0 || s.showCreate).map((section) => (
+            <div key={section.label}>
+              <div className="flex items-center gap-2 mb-3">
+                <section.icon className="h-4 w-4 text-muted-foreground" />
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{section.label}</h2>
+                <span className="text-xs text-muted-foreground/60">({section.groups.length})</span>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {section.groups.map((group, idx) => {
             const accent = GROUP_ACCENTS[idx % GROUP_ACCENTS.length]
             return (
               <Link key={group.id} href={`/groups/${group.id}`}>
@@ -220,18 +235,23 @@ export default function GroupsPage() {
             )
           })}
 
-          {/* Create new group card */}
-          <CreateGroupDialog
-            onCreated={(g) => setGroups((prev) => [g as Group, ...prev])}
-            trigger={
-              <div className="glass rounded-2xl border-2 border-dashed border-border hover:border-indigo-400/50 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all duration-200 h-full min-h-[176px] flex flex-col items-center justify-center gap-2 cursor-pointer">
-                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center">
-                  <Plus className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <p className="text-sm font-medium text-muted-foreground">New group</p>
+                {/* Create new group card — only in My Groups section */}
+                {section.showCreate && (
+                  <CreateGroupDialog
+                    onCreated={(g) => setGroups((prev) => [g as Group, ...prev])}
+                    trigger={
+                      <div className="glass rounded-2xl border-2 border-dashed border-border hover:border-indigo-400/50 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all duration-200 h-full min-h-[176px] flex flex-col items-center justify-center gap-2 cursor-pointer">
+                        <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center">
+                          <Plus className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm font-medium text-muted-foreground">New group</p>
+                      </div>
+                    }
+                  />
+                )}
               </div>
-            }
-          />
+            </div>
+          ))}
         </div>
       )}
     </div>

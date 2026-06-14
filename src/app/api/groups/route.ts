@@ -47,9 +47,9 @@ export async function GET() {
       settlements,
     )
     const myBalance = Math.round((balanceMap[userId] ?? 0) * 100) / 100
-    // Only surface active or upcoming events on the card
     const activeTrips = (trips as any[]).filter((t) => new Date(t.endDate) >= now)
-    return { ...g, myBalance, activeTrips }
+    const isOwner = g.createdById === userId
+    return { ...g, myBalance, activeTrips, isOwner }
   })
 
   return NextResponse.json(result)
