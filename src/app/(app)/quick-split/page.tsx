@@ -150,7 +150,7 @@ export default function QuickSplitPage() {
 
   const loadBalances = useCallback(async (groupId: string) => {
     setLoadingBalances(true)
-    const res = await fetch(`/api/groups/${groupId}`)
+    const res = await fetch(`/api/groups/${groupId}?allExpenses=true`)
     if (!res.ok) { setLoadingBalances(false); return }
     const data = await res.json()
 

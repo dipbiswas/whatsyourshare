@@ -3,12 +3,13 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { calculateGroupBalances, simplifyDebts, annotateTransfers, guestKey } from "@/lib/balance"
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
   const session = await auth()
   if (!session?.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { id } = await params
+  const allExpenses = new URL(req.url).searchParams.get("allExpenses") === "true"
 
   const group: any = await prisma.group.findFirst({
     where: { id, members: { some: { userId: session.user.id } } },
@@ -16,7 +17,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       members: { include: { user: { select: { id: true, name: true, email: true, avatar: true } } } },
       guests: { where: { linkedUserId: null }, orderBy: { createdAt: "asc" as const } },
       expenses: {
-        where: {
+        where: allExpenses ? undefined : {
           OR: [
             { visibility: "GROUP" },
             { paidById: session.user.id },
