@@ -3,14 +3,15 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
-import { LayoutDashboard, Users, Receipt, Settings, LogOut, DollarSign, Plane, Crown, Sun, Moon, UserCheck, Activity } from "lucide-react"
+import { LayoutDashboard, Users, Receipt, Settings, LogOut, DollarSign, Plane, Crown, Sun, Moon, UserCheck, Activity, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useFeatureGate } from "@/lib/useFeatureGate"
 import { useTheme } from "@/components/providers/ThemeProvider"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
 
 const nav = [
   { href: "/dashboard",  label: "Dashboard",       icon: LayoutDashboard, mobile: true },
@@ -37,6 +38,16 @@ export function Sidebar({ user }: SidebarProps) {
       .then((data) => { if (data?.avatar) setAvatar(data.avatar) })
   }, [])
   const { theme, toggle } = useTheme()
+  const router = useRouter()
+
+  const switchToQuickSplit = useCallback(async () => {
+    await fetch("/api/user/ui-mode", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ uiMode: "QUICK_SPLIT" }),
+    })
+    router.push("/quick-split")
+  }, [router])
 
   const planBadge: Record<string, { label: string; className: string } | null> = {
     FREE: null,
@@ -103,6 +114,15 @@ export function Sidebar({ user }: SidebarProps) {
           <Button
             variant="ghost"
             size="sm"
+            className="w-full justify-start gap-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 text-xs"
+            onClick={switchToQuickSplit}
+          >
+            <Zap className="h-3.5 w-3.5" />
+            Quick Split
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground hover:bg-accent text-xs"
             onClick={toggle}
           >
@@ -137,6 +157,13 @@ export function Sidebar({ user }: SidebarProps) {
               <span className="text-[10px] font-medium">{label}</span>
             </Link>
           ))}
+          <button
+            onClick={switchToQuickSplit}
+            className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all text-indigo-600 dark:text-indigo-400"
+          >
+            <Zap className="h-5 w-5" />
+            <span className="text-[10px] font-medium">Quick Split</span>
+          </button>
           <button
             onClick={toggle}
             className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all text-muted-foreground hover:text-foreground"
