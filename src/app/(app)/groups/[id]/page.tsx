@@ -130,6 +130,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
   const [expandedExpenses, setExpandedExpenses] = useState<Set<string>>(new Set())
   const [approvingId, setApprovingId] = useState<string | null>(null)
   const [openDialog, setOpenDialog] = useState<"addMember" | "addRecurring" | "createTrip" | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [trips, setTrips] = useState<{ id: string; name: string; destination: string | null; coverEmoji: string | null; eventType: string; startDate: string; endDate: string; _count: { days: number } }[]>([])
 
   const userId = session?.user.id ?? ""
@@ -182,6 +183,55 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
       toast.success("Expense deleted")
     } else {
       toast.error("Failed to delete expense")
+    }
+  }
+
+  async function deleteRecurring(recurringId: string) {
+    if (!confirm("Delete this recurring expense? This will stop future auto-splits.")) return
+    setDeletingId(recurringId)
+    try {
+      const res = await fetch(`/api/recurring-expenses/${recurringId}`, { method: "DELETE" })
+      if (res.ok) {
+        setGroup((g) => g ? { ...g, recurringExpenses: g.recurringExpenses.filter((r) => r.id !== recurringId) } : g)
+        toast.success("Recurring expense deleted")
+      } else {
+        toast.error("Failed to delete")
+      }
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  async function deleteSettlement(settlementId: string) {
+    if (!confirm("Delete this settlement? Balances will be recalculated.")) return
+    setDeletingId(settlementId)
+    try {
+      const res = await fetch(`/api/settlements/${settlementId}`, { method: "DELETE" })
+      if (res.ok) {
+        setGroup((g) => g ? { ...g, settlements: g.settlements.filter((s) => s.id !== settlementId) } : g)
+        refreshGroup()
+        toast.success("Settlement deleted")
+      } else {
+        toast.error("Failed to delete")
+      }
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  async function deleteTrip(tripId: string, tripName: string) {
+    if (!confirm(`Delete event "${tripName}"? All itinerary data will be removed.`)) return
+    setDeletingId(tripId)
+    try {
+      const res = await fetch(`/api/trips/${tripId}`, { method: "DELETE" })
+      if (res.ok) {
+        setTrips((prev) => prev.filter((t) => t.id !== tripId))
+        toast.success("Event deleted")
+      } else {
+        toast.error("Failed to delete event")
+      }
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -442,29 +492,29 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
         {/* ── RIGHT: TABS ── */}
         <div className="min-w-0">
       <Tabs defaultValue="expenses">
-        <div className="border-b border-border overflow-x-auto">
+        <div className="border-b border-border overflow-x-auto scrollbar-hide">
           <TabsList className="flex h-auto p-0 gap-0 bg-transparent w-max min-w-full">
             {[
-              { value: "expenses", label: "Expenses", count: group.expenses.length },
+              { value: "expenses",    label: "Expenses",    count: group.expenses.length },
+              { value: "recurring",   label: "Recurring",   count: group.recurringExpenses.length },
               { value: "settlements", label: "Settlements", count: group.settlements.length },
-              { value: "recurring", label: "Recurring", count: group.recurringExpenses.length },
-              { value: "trips", label: "Events", count: trips.length },
-              { value: "members", label: "Members", count: group.members.length },
-              { value: "balances", label: "Balances", count: null },
-              { value: "settings", label: "Settings", count: null },
+              { value: "balances",    label: "Balances",    count: null },
+              { value: "trips",       label: "Events",      count: trips.length },
+              { value: "members",     label: "Members",     count: group.members.length },
+              { value: "settings",    label: "Settings",    count: null },
             ].map(({ value, label, count }) => (
               <TabsTrigger
                 key={value}
                 value={value}
-                className="relative px-4 py-2.5 text-sm font-medium rounded-none bg-transparent text-muted-foreground whitespace-nowrap
-                  data-[state=active]:text-foreground data-[state=active]:shadow-none
-                  after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-full after:bg-transparent
+                className="group relative px-3 py-2.5 text-sm font-medium rounded-none bg-transparent text-muted-foreground whitespace-nowrap
+                  data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 data-[state=active]:shadow-none
+                  after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-transparent
                   data-[state=active]:after:bg-indigo-600 dark:data-[state=active]:after:bg-indigo-400
                   hover:text-foreground transition-colors"
               >
                 {label}
                 {count !== null && count > 0 && (
-                  <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground data-[state=active]:bg-indigo-100 data-[state=active]:text-indigo-700 dark:data-[state=active]:bg-indigo-500/20 dark:data-[state=active]:text-indigo-300">
+                  <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground group-data-[state=active]:bg-indigo-100 group-data-[state=active]:text-indigo-700 dark:group-data-[state=active]:bg-indigo-500/20 dark:group-data-[state=active]:text-indigo-300">
                     {count}
                   </span>
                 )}
@@ -569,7 +619,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               {group.settlements.map((s, idx) => (
                 <div key={s.id}>
                   {idx > 0 && <div className="h-px bg-border/60 mx-4" />}
-                  <div className="flex items-center gap-3 px-4 py-3.5">
+                  <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-accent/40 group/row transition-colors">
                     <div className="flex items-center gap-1.5">
                       <Avatar className="h-7 w-7">
                         <AvatarFallback className="text-[10px] font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
@@ -587,7 +637,17 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                       <p className="text-sm font-semibold text-foreground">{s.fromUser.name} → {s.toUser.name}</p>
                       <p className="text-xs text-muted-foreground">{s.note ? `${s.note} · ` : ""}{format(new Date(s.createdAt), "MMM d, yyyy")}</p>
                     </div>
-                    <p className="font-bold text-emerald-600 dark:text-emerald-400 tabular-nums shrink-0">{formatCurrency(s.amount, s.currency)}</p>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <p className="font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(s.amount, s.currency)}</p>
+                      <Button
+                        variant="ghost" size="icon"
+                        className="h-7 w-7 opacity-0 group-hover/row:opacity-100 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                        disabled={deletingId === s.id}
+                        onClick={() => deleteSettlement(s.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -610,7 +670,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               {group.recurringExpenses.map((r, idx) => (
                 <div key={r.id}>
                   {idx > 0 && <div className="h-px bg-border/60 mx-4" />}
-                  <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-accent/40 transition-colors">
+                  <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-accent/40 group/row transition-colors">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="font-semibold text-foreground text-sm">{r.description}</p>
@@ -622,9 +682,19 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                         Next: {format(new Date(r.nextDueDate), "MMM d")} · {r.category} · by {r.createdBy.name}
                       </p>
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className="font-bold text-foreground text-sm tabular-nums">{formatCurrency(r.lastAmount, r.currency)}</p>
-                      <p className="text-xs text-muted-foreground">per period</p>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="text-right">
+                        <p className="font-bold text-foreground text-sm tabular-nums">{formatCurrency(r.lastAmount, r.currency)}</p>
+                        <p className="text-xs text-muted-foreground">per period</p>
+                      </div>
+                      <Button
+                        variant="ghost" size="icon"
+                        className="h-7 w-7 opacity-0 group-hover/row:opacity-100 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                        disabled={deletingId === r.id}
+                        onClick={() => deleteRecurring(r.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -653,8 +723,8 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           ) : (
             <div className="space-y-3">
               {trips.map((t) => (
-                <Link key={t.id} href={`/trips/${t.id}`}>
-                  <div className="glass rounded-2xl p-4 hover:bg-accent/40 transition-colors flex items-center gap-4">
+                <div key={t.id} className="glass rounded-2xl p-4 hover:bg-accent/40 transition-colors flex items-center gap-4 group/trip">
+                  <Link href={`/trips/${t.id}`} className="flex items-center gap-4 flex-1 min-w-0">
                     <div className="h-12 w-12 rounded-xl bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center text-2xl shrink-0">
                       {t.coverEmoji ?? "✈️"}
                     </div>
@@ -672,8 +742,16 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                       </p>
                     </div>
                     <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                  </div>
-                </Link>
+                  </Link>
+                  <Button
+                    variant="ghost" size="icon"
+                    className="h-7 w-7 opacity-0 group-hover/trip:opacity-100 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all shrink-0"
+                    disabled={deletingId === t.id}
+                    onClick={(e) => { e.preventDefault(); deleteTrip(t.id, t.name) }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               ))}
               <button
                 onClick={() => setOpenDialog("createTrip")}
@@ -877,6 +955,32 @@ function MembersTab({
   const [editingSharesFor, setEditingSharesFor] = useState<string | null>(null)
   const [shareInput, setShareInput] = useState("")
   const [savingShares, setSavingShares] = useState(false)
+  const [togglingRoleFor, setTogglingRoleFor] = useState<string | null>(null)
+
+  async function toggleRole(memberId: string, currentRole: string) {
+    const newRole = currentRole === "ADMIN" ? "MEMBER" : "ADMIN"
+    const label = newRole === "ADMIN" ? "Make admin" : "Remove admin"
+    if (!confirm(`${label} for this member?`)) return
+    setTogglingRoleFor(memberId)
+    try {
+      const res = await fetch(`/api/groups/${group.id}/members`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: memberId, role: newRole }),
+      })
+      if (res.ok) {
+        onGroupChange((g) => g ? {
+          ...g,
+          members: g.members.map((m) => m.userId === memberId ? { ...m, role: newRole } : m)
+        } : g)
+        toast.success(newRole === "ADMIN" ? "Member is now an admin" : "Admin role removed")
+      } else {
+        toast.error("Failed to update role")
+      }
+    } finally {
+      setTogglingRoleFor(null)
+    }
+  }
 
   async function saveShare(memberId: string) {
     const val = parseFloat(shareInput)
@@ -991,7 +1095,7 @@ function MembersTab({
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-2 shrink-0">
                 <p className={cn("text-sm font-bold tabular-nums",
                   balance > 0.01 ? "text-emerald-600 dark:text-emerald-400"
                   : balance < -0.01 ? "text-rose-500 dark:text-rose-400"
@@ -999,6 +1103,17 @@ function MembersTab({
                 )}>
                   {balance > 0.01 ? "+" : ""}{formatCurrency(balance, group.currency)}
                 </p>
+                {isAdmin && !isSelf && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-[11px] text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
+                    disabled={togglingRoleFor === m.userId}
+                    onClick={() => toggleRole(m.userId, m.role)}
+                  >
+                    {m.role === "ADMIN" ? "Demote" : "Make Admin"}
+                  </Button>
+                )}
                 {canRemove && (
                   hasBalance ? (
                     <span className="text-[10px] text-muted-foreground/50" title="Settle up before removing">

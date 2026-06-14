@@ -47,6 +47,26 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   return NextResponse.json(member, { status: 201 })
 }
 
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth()
+  if (!session?.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const { id } = await params
+  const { userId, role } = await req.json()
+
+  const admin = await prisma.groupMember.findFirst({
+    where: { groupId: id, userId: session.user.id, role: "ADMIN" },
+  })
+  if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  if (userId === session.user.id) return NextResponse.json({ error: "Cannot change your own role" }, { status: 400 })
+
+  await prisma.groupMember.update({
+    where: { groupId_userId: { groupId: id, userId } },
+    data: { role },
+  })
+  return NextResponse.json({ success: true })
+}
+
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session?.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
