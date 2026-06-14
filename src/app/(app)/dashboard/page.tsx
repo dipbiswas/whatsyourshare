@@ -114,7 +114,7 @@ export default async function DashboardPage() {
   const greeting = getGreeting(userProfile?.timezone)
 
   return (
-    <div className="p-5 md:p-8 space-y-6 max-w-6xl mx-auto">
+    <div className="p-5 md:p-8 space-y-6 max-w-6xl mr-auto">
       {/* Header */}
       <div>
         <p className="text-sm text-muted-foreground font-medium">{greeting}</p>

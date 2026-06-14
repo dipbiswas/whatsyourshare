@@ -187,7 +187,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
   if (loading) {
     return (
-      <div className="p-5 md:p-8 space-y-6 max-w-5xl mx-auto">
+      <div className="p-5 md:p-8 space-y-6 max-w-5xl mr-auto">
         <div className="flex items-center gap-3">
           <Skeleton className="h-8 w-8 rounded-lg" />
           <div className="space-y-2">
@@ -211,7 +211,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
   const mySettlements = group.suggestedSettlements.filter((s) => s.from === userId)
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto">
+    <div className="p-4 md:p-6 max-w-6xl mr-auto">
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-5">

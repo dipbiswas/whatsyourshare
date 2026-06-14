@@ -67,7 +67,7 @@ export default function GroupsPage() {
   }, [groups, search])
 
   return (
-    <div className="p-5 md:p-8 space-y-6 max-w-6xl mx-auto">
+    <div className="p-5 md:p-8 space-y-6 max-w-6xl mr-auto">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Groups</h1>

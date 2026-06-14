@@ -74,7 +74,7 @@ export default function FriendsPage() {
   const totalIOwe     = iOwe.reduce((s, f) => s + Math.abs(f.netBalance), 0)
 
   return (
-    <div className="p-5 md:p-8 space-y-6 max-w-2xl mx-auto">
+    <div className="p-5 md:p-8 space-y-6 max-w-2xl mr-auto">
 
       {/* Header */}
       <div>

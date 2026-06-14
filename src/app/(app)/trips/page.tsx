@@ -47,7 +47,7 @@ export default function TripsPage() {
 
   if (loading) {
     return (
-      <div className="p-5 md:p-8 space-y-4 max-w-5xl mx-auto">
+      <div className="p-5 md:p-8 space-y-4 max-w-5xl mr-auto">
         <Skeleton className="h-8 w-48" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => <Skeleton key={i} className="h-44 rounded-2xl" />)}
@@ -57,7 +57,7 @@ export default function TripsPage() {
   }
 
   return (
-    <div className="p-5 md:p-8 space-y-6 max-w-5xl mx-auto">
+    <div className="p-5 md:p-8 space-y-6 max-w-5xl mr-auto">
 
       {/* Header */}
       <div>

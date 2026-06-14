@@ -89,7 +89,7 @@ export default function ActivityPage() {
   const activeGroupName = groups.find((g) => g.id === activeGroup)?.name
 
   return (
-    <div className="p-5 md:p-8 space-y-5 max-w-3xl mx-auto">
+    <div className="p-5 md:p-8 space-y-5 max-w-3xl mr-auto">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">Recent Activity</h1>

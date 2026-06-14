@@ -135,7 +135,7 @@ export default function ExpensesPage() {
   }
 
   return (
-    <div className="p-5 md:p-8 space-y-5 max-w-3xl mx-auto">
+    <div className="p-5 md:p-8 space-y-5 max-w-3xl mr-auto">
 
       {/* Header */}
       <div>
