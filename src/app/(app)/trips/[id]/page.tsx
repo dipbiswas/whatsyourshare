@@ -202,6 +202,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
   }
 
   const [newItemTitle, setNewItemTitle] = useState("")
+  const [newItemAssigneeId, setNewItemAssigneeId] = useState("")
   const [addingItem, setAddingItem] = useState(false)
   const [donePromptItemId, setDonePromptItemId] = useState<string | null>(null)
 
@@ -213,15 +214,27 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
       const res = await fetch(`/api/trips/${id}/action-items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title }),
+        body: JSON.stringify({ title, ...(newItemAssigneeId ? { assigneeId: newItemAssigneeId } : {}) }),
       })
       if (!res.ok) { toast.error("Failed to create action item"); return }
       const item = await res.json()
       setActionItems((prev) => [...prev, item])
       setNewItemTitle("")
+      setNewItemAssigneeId("")
     } finally {
       setAddingItem(false)
     }
+  }
+
+  async function assignActionItem(itemId: string, assigneeId: string | null) {
+    const res = await fetch(`/api/trips/${id}/action-items/${itemId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assigneeId }),
+    })
+    if (!res.ok) { toast.error("Failed to update assignee"); return }
+    const updated = await res.json()
+    setActionItems((prev) => prev.map((i) => i.id === itemId ? updated : i))
   }
 
   async function deleteActionItem(itemId: string) {
@@ -863,6 +876,19 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                 placeholder="Add an action item…"
                 className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-background"
               />
+              <Select value={newItemAssigneeId} onValueChange={(v) => setNewItemAssigneeId(v ?? "")}>
+                <SelectTrigger className="h-9 w-36 text-xs rounded-xl">
+                  <SelectValue placeholder="Assign to…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="" className="text-xs text-gray-400">Unassigned</SelectItem>
+                  {eventMembers.map((m) => (
+                    <SelectItem key={m.userId} value={m.userId} className="text-xs">
+                      {m.user.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
                 size="sm"
                 className="bg-indigo-600 hover:bg-indigo-700 h-9"
@@ -907,15 +933,32 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                           }`}>
                             {item.status === "OPEN" ? "Open" : item.status === "IN_PROGRESS" ? "In progress" : "Done"}
                           </span>
-                          {item.assignee && (
-                            <span className="text-xs text-gray-400">· {item.assignee.name}</span>
-                          )}
                           {item.expense && (
                             <span className="text-xs text-indigo-500 font-medium">
                               · {formatCurrency(item.expense.amount, trip.group.currency)} logged
                             </span>
                           )}
                         </div>
+                      </div>
+
+                      {/* Assignee picker */}
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <Select
+                          value={item.assignee?.id ?? ""}
+                          onValueChange={(val) => assignActionItem(item.id, val === "" ? null : val)}
+                        >
+                          <SelectTrigger className="h-7 w-32 text-xs border-dashed rounded-lg">
+                            <SelectValue placeholder="Assign…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="" className="text-xs text-gray-400">Unassigned</SelectItem>
+                            {eventMembers.map((m) => (
+                              <SelectItem key={m.userId} value={m.userId} className="text-xs">
+                                {m.user.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <button
