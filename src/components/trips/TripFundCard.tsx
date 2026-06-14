@@ -129,7 +129,8 @@ export function TripFundCard({
         const text = await res.text()
         let message = "Payment failed"
         try { message = JSON.parse(text).error ?? message } catch { /* non-JSON */ }
-        toast.error(message)
+        console.error("[Stripe checkout]", message)
+        toast.error(message, { duration: 8000 })
         return
       }
       const { url } = await res.json()
