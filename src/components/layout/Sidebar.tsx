@@ -40,14 +40,17 @@ export function Sidebar({ user }: SidebarProps) {
   const { theme, toggle } = useTheme()
   const router = useRouter()
 
-  const switchToQuickSplit = useCallback(async () => {
+  const isQuickSplit = pathname === "/quick-split"
+
+  const switchMode = useCallback(async () => {
+    const newMode = isQuickSplit ? "FULL" : "QUICK_SPLIT"
     await fetch("/api/user/ui-mode", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ uiMode: "QUICK_SPLIT" }),
+      body: JSON.stringify({ uiMode: newMode }),
     })
-    router.push("/quick-split")
-  }, [router])
+    router.push(isQuickSplit ? "/dashboard" : "/quick-split")
+  }, [router, isQuickSplit])
 
   const planBadge: Record<string, { label: string; className: string } | null> = {
     FREE: null,
@@ -115,10 +118,10 @@ export function Sidebar({ user }: SidebarProps) {
             variant="ghost"
             size="sm"
             className="w-full justify-start gap-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 text-xs"
-            onClick={switchToQuickSplit}
+            onClick={switchMode}
           >
             <Zap className="h-3.5 w-3.5" />
-            Quick Split
+            {isQuickSplit ? "Full View" : "Quick Split"}
           </Button>
           <Button
             variant="ghost"
@@ -158,11 +161,11 @@ export function Sidebar({ user }: SidebarProps) {
             </Link>
           ))}
           <button
-            onClick={switchToQuickSplit}
+            onClick={switchMode}
             className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all text-indigo-600 dark:text-indigo-400"
           >
             <Zap className="h-5 w-5" />
-            <span className="text-[10px] font-medium">Quick Split</span>
+            <span className="text-[10px] font-medium">{isQuickSplit ? "Full View" : "Quick Split"}</span>
           </button>
           <button
             onClick={toggle}
