@@ -1,6 +1,16 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
+import { z } from "zod"
+
+const patchSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  destination: z.string().nullable().optional(),
+  eventType: z.string().optional(),
+  coverEmoji: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+})
 
 export async function GET(
   _req: Request,
@@ -83,6 +93,38 @@ export async function GET(
     console.error("[GET /api/trips/[id]] error:", err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
+}
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth()
+  if (!session?.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const { id } = await params
+  const body = await req.json()
+  const parsed = patchSchema.safeParse(body)
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+
+  const trip = await prisma.trip.findFirst({
+    where: { id, createdById: session.user.id },
+  })
+  if (!trip) return NextResponse.json({ error: "Not found or forbidden" }, { status: 404 })
+
+  const { startDate, endDate, ...rest } = parsed.data
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updated = await (prisma.trip.update as any)({
+    where: { id },
+    data: {
+      ...rest,
+      ...(startDate ? { startDate: new Date(startDate) } : {}),
+      ...(endDate ? { endDate: new Date(endDate) } : {}),
+    },
+  })
+
+  return NextResponse.json(updated)
 }
 
 export async function DELETE(
