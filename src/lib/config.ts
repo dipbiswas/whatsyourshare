@@ -29,9 +29,10 @@ export function invalidateCache() {
 // Typed getters
 export const config = {
   platform: {
-    feeRate:    () => get("platform.fee_rate")    as Promise<number>,
-    aiModel:    () => get("platform.ai_model")    as Promise<string>,
-    aiMaxTokens:() => get("platform.ai_max_tokens") as Promise<number>,
+    feeRate:       () => get("platform.fee_rate")       as Promise<number>,
+    aiModel:       () => get("platform.ai_model")       as Promise<string>,
+    aiMaxTokens:   () => get("platform.ai_max_tokens")  as Promise<number>,
+    stripeEnabled: () => get("platform.stripe_enabled") as Promise<boolean>,
   },
   pricing: {
     topupSmall: () => Promise.all([

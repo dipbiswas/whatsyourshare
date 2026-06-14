@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
+import { config } from "@/lib/config"
 
 export async function GET() {
-  return NextResponse.json({
-    stripeEnabled: process.env.STRIPE_ENABLED === "true",
-  })
+  const stripeEnabled = await config.platform.stripeEnabled().catch(() => false)
+  return NextResponse.json({ stripeEnabled })
 }
