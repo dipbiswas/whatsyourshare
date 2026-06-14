@@ -14,7 +14,7 @@ async function get(key: string): Promise<unknown> {
   const cached = cache.get(key)
   if (cached && cached.expiresAt > Date.now()) return cached.value
 
-  const row = await (prisma.systemConfig as any).findUnique({ where: { key } })
+  const row = await (prisma as any).systemConfig.findUnique({ where: { key } })
   if (!row) throw new Error(`Config key "${key}" not found`)
 
   const value = parseValue(row.value, row.type)

@@ -133,7 +133,7 @@ export async function PATCH(
   // hideFromNonMembers can be toggled by any trip member; other fields require organizer
   const hasOrganizerFields = Object.keys(organizerFields).length > 0
 
-  const trip = await prisma.trip.findFirst({
+  const trip: any = await prisma.trip.findFirst({
     where: hasOrganizerFields
       ? { id, createdById: session.user.id }
       : { id, group: { members: { some: { userId: session.user.id } } } },

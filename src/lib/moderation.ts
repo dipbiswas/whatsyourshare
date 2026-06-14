@@ -53,12 +53,12 @@ export async function checkAndFlag(
   if (!result.flagged) return
 
   // Avoid duplicate flags for the same entity
-  const existing = await (prisma.contentFlag as any).findFirst({
+  const existing = await (prisma as any).contentFlag.findFirst({
     where: { entityType, entityId, status: "PENDING" },
   })
   if (existing) return
 
-  await (prisma.contentFlag as any).create({
+  await (prisma as any).contentFlag.create({
     data: {
       entityType,
       entityId,

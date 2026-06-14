@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   const where = { status: status as "PENDING" | "DISMISSED" | "ACTIONED" }
 
   const [flags, total] = await Promise.all([
-    (prisma.contentFlag as any).findMany({
+    (prisma as any).contentFlag.findMany({
       where,
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
         resolvedBy: { select: { id: true, name: true } },
       },
     }),
-    (prisma.contentFlag as any).count({ where }),
+    (prisma as any).contentFlag.count({ where }),
   ])
 
   // Attach entity display info
@@ -86,11 +86,11 @@ export async function PATCH(req: Request) {
   const { flagId, action, note } = await req.json()
   // action: "dismiss" | "delete_content" | "warn_user"
 
-  const flag = await (prisma.contentFlag as any).findUnique({ where: { id: flagId } })
+  const flag = await (prisma as any).contentFlag.findUnique({ where: { id: flagId } })
   if (!flag) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
   if (action === "dismiss") {
-    await (prisma.contentFlag as any).update({
+    await (prisma as any).contentFlag.update({
       where: { id: flagId },
       data: { status: "DISMISSED", resolvedById: adminId, resolvedAt: new Date(), resolveNote: note ?? "False positive" },
     })
@@ -103,13 +103,13 @@ export async function PATCH(req: Request) {
       else if (flag.entityType === "ACTION_ITEM") await (prisma as any).actionItem.delete({ where: { id: flag.entityId } })
     } catch { /* already deleted */ }
 
-    await (prisma.contentFlag as any).update({
+    await (prisma as any).contentFlag.update({
       where: { id: flagId },
       data: { status: "ACTIONED", resolvedById: adminId, resolvedAt: new Date(), resolveNote: note ?? "Content deleted" },
     })
   } else if (action === "warn_user") {
     // Just mark actioned — future: send warning email
-    await (prisma.contentFlag as any).update({
+    await (prisma as any).contentFlag.update({
       where: { id: flagId },
       data: { status: "ACTIONED", resolvedById: adminId, resolvedAt: new Date(), resolveNote: note ?? "User warned" },
     })

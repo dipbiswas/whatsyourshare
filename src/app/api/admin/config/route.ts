@@ -7,7 +7,7 @@ export async function GET() {
   const check = await requireAdmin()
   if (check instanceof NextResponse) return check
 
-  const rows = await (prisma.systemConfig as any).findMany({ orderBy: [{ group: "asc" }, { key: "asc" }] })
+  const rows = await (prisma as any).systemConfig.findMany({ orderBy: [{ group: "asc" }, { key: "asc" }] })
   return NextResponse.json(rows)
 }
 
@@ -19,7 +19,7 @@ export async function PATCH(req: Request) {
   const { key, value } = await req.json()
   if (!key || value === undefined) return NextResponse.json({ error: "key and value required" }, { status: 400 })
 
-  const existing = await (prisma.systemConfig as any).findUnique({ where: { key } })
+  const existing = await (prisma as any).systemConfig.findUnique({ where: { key } })
   if (!existing) return NextResponse.json({ error: "Config key not found" }, { status: 404 })
 
   // Validate based on type
@@ -30,7 +30,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Value must be true or false" }, { status: 400 })
   }
 
-  const updated = await (prisma.systemConfig as any).update({
+  const updated = await (prisma as any).systemConfig.update({
     where: { key },
     data: { value: String(value), updatedById: adminId },
   })

@@ -13,7 +13,7 @@ export async function checkScanQuota(userId: string, feature: string): Promise<Q
   })
 
   const plan = (user?.plan ?? "FREE") as "FREE" | "PRO" | "FAMILY"
-  const limits = planLimits(plan)
+  const limits = await planLimits(plan)
   const bonusScans: number = user?.bonusScans ?? 0
 
   if (limits.maxAiScans === 0 && bonusScans === 0) {

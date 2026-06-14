@@ -6,6 +6,6 @@ export async function GET() {
   const check = await requireAdmin()
   if (check instanceof NextResponse) return check
 
-  const count = await (prisma.contentFlag as any).count({ where: { status: "PENDING" } })
+  const count = await (prisma as any).contentFlag.count({ where: { status: "PENDING" } })
   return NextResponse.json({ count })
 }

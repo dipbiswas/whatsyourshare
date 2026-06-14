@@ -20,9 +20,9 @@ export async function GET() {
 
   const userId = session.user.id
 
-  const groups = await prisma.group.findMany({
+  const groups: any[] = await prisma.group.findMany({
     where: { members: { some: { userId } } },
-    include: {
+    include: ({
       members: { include: { user: { select: { id: true, name: true, email: true, avatar: true } } } },
       _count: { select: { expenses: true } },
       expenses: {
@@ -35,14 +35,14 @@ export async function GET() {
         select: { id: true, name: true, coverEmoji: true, eventType: true, startDate: true, endDate: true },
         orderBy: { startDate: "asc" },
       },
-    },
+    } as any),
     orderBy: { updatedAt: "desc" },
   })
 
   const now = new Date()
   const result = groups.map(({ expenses, settlements, trips, ...g }) => {
     const balanceMap = calculateGroupBalances(
-      g.members.map((m) => ({ userId: m.userId })),
+      g.members.map((m: any) => ({ userId: m.userId })),
       expenses,
       settlements,
     )

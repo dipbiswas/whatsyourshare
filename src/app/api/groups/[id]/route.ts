@@ -10,9 +10,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const { id } = await params
 
-  const group = await prisma.group.findFirst({
+  const group: any = await prisma.group.findFirst({
     where: { id, members: { some: { userId: session.user.id } } },
-    include: {
+    include: ({
       members: { include: { user: { select: { id: true, name: true, email: true, avatar: true } } } },
       expenses: {
         where: {
@@ -40,13 +40,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         include: { createdBy: { select: { id: true, name: true } } },
         orderBy: { createdAt: "desc" },
       },
-    },
+    } as any),
   })
 
   if (!group) return NextResponse.json({ error: "Group not found" }, { status: 404 })
 
   // Filter out event expenses hidden from non-members
-  const visibleExpenses = group.expenses.filter((e) => {
+  const visibleExpenses = group.expenses.filter((e: any) => {
     if (!e.trip?.hideFromNonMembers) return true
     const memberIds = Array.isArray(e.trip.memberIds) ? (e.trip.memberIds as string[]) : []
     // No memberIds set = open to all trip members; fall back to allowing it
@@ -58,29 +58,29 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   for (const m of group.members) nameMap[m.userId] = m.user.name
 
   const balanceMap = calculateGroupBalances(
-    group.members.map((m) => ({ userId: m.userId })),
-    visibleExpenses.map((e) => ({
+    group.members.map((m: any) => ({ userId: m.userId })),
+    visibleExpenses.map((e: any) => ({
       paidById: e.paidById,
       amount: e.amount,
-      splits: e.splits.map((s) => ({ userId: s.userId, amount: s.amount })),
+      splits: e.splits.map((s: any) => ({ userId: s.userId, amount: s.amount })),
     })),
-    group.settlements.map((s) => ({ fromUserId: s.fromUserId, toUserId: s.toUserId, amount: s.amount }))
+    group.settlements.map((s: any) => ({ fromUserId: s.fromUserId, toUserId: s.toUserId, amount: s.amount }))
   )
 
   const suggestedSettlements = simplifyDebts(balanceMap, nameMap)
 
-  const expensesForAnnotation = visibleExpenses.map((e) => ({
+  const expensesForAnnotation = visibleExpenses.map((e: any) => ({
     id: e.id,
     description: e.description,
     date: e.date.toISOString(),
     paidById: e.paidById,
-    splits: e.splits.map((s) => ({ userId: s.userId, amount: s.amount })),
+    splits: e.splits.map((s: any) => ({ userId: s.userId, amount: s.amount })),
   }))
 
   const annotatedSettlements = annotateTransfers(suggestedSettlements, expensesForAnnotation, nameMap)
 
   // Strip internal trip fields before sending to client
-  const clientExpenses = visibleExpenses.map(({ trip, ...e }) => ({
+  const clientExpenses = visibleExpenses.map(({ trip, ...e }: any) => ({
     ...e,
     trip: trip ? { id: trip.id, name: trip.name } : null,
   }))
