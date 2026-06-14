@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatCurrency } from "@/lib/balance"
+import { AddSettlementDialog } from "@/components/settlements/AddSettlementDialog"
 
 interface Group {
   id: string
@@ -111,6 +112,7 @@ export default function QuickSplitPage() {
 
   const [switching, setSwitching] = useState(false)
   const [defaultCurrency, setDefaultCurrency] = useState("USD")
+  const [currentUserId, setCurrentUserId] = useState("")
   const [friends, setFriends] = useState<Friend[]>([])
   const [friendSearch, setFriendSearch] = useState("")
 
@@ -121,6 +123,7 @@ export default function QuickSplitPage() {
       fetch("/api/friends").then((r) => r.ok ? r.json() : []),
     ]).then(([groupData, accountData, friendsData]) => {
       if (accountData?.defaultCurrency) setDefaultCurrency(accountData.defaultCurrency)
+      if (accountData?.id) setCurrentUserId(accountData.id)
       setFriends(friendsData)
       setGroups(groupData)
       if (groupData.length > 0) selectGroup(groupData[0])
@@ -314,18 +317,6 @@ export default function QuickSplitPage() {
     } finally {
       setAddingExpense(false)
     }
-  }
-
-  async function markSettled(settlement: Settlement) {
-    if (!selectedGroup) return
-    const res = await fetch(`/api/groups/${selectedGroup.id}/settlements`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fromUserId: settlement.from, toUserId: settlement.to, amount: settlement.amount }),
-    })
-    if (!res.ok) { toast.error("Failed to record settlement"); return }
-    toast.success("Settlement recorded!")
-    await loadBalances(selectedGroup.id)
   }
 
   function openEditExpense(e: Expense) {
@@ -724,12 +715,23 @@ export default function QuickSplitPage() {
                       <span className="ml-auto text-indigo-600 dark:text-indigo-400 font-semibold tabular-nums">
                         {formatCurrency(s.amount, selectedGroup?.currency ?? "USD")}
                       </span>
-                      <button
-                        onClick={() => markSettled(s)}
-                        className="text-[11px] border border-border rounded-md px-2 py-0.5 text-muted-foreground hover:bg-muted transition-colors ml-1"
-                      >
-                        Settled
-                      </button>
+                      {selectedGroup && (
+                        <AddSettlementDialog
+                          groupId={selectedGroup.id}
+                          currency={selectedGroup.currency}
+                          members={selectedGroup.members}
+                          currentUserId={currentUserId}
+                          suggestedTo={s.to}
+                          suggestedAmount={s.amount}
+                          onCreated={() => loadBalances(selectedGroup.id)}
+                          compact
+                          trigger={
+                            <button className="text-[11px] border border-border rounded-md px-2 py-0.5 text-muted-foreground hover:bg-muted transition-colors ml-1">
+                              Settle
+                            </button>
+                          }
+                        />
+                      )}
                     </div>
                   ))}
                 </div>
