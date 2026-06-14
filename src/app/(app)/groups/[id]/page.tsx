@@ -53,6 +53,7 @@ import { InteracHelperDialog } from "@/components/settlements/InteracHelperDialo
 import { formatCurrency } from "@/lib/balance"
 import { cn } from "@/lib/utils"
 import type { AnnotatedTransfer } from "@/lib/balance"
+import { QuickSplitBanner } from "@/components/layout/QuickSplitBanner"
 
 interface Member {
   userId: string
@@ -286,6 +287,8 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mr-auto">
+
+      <QuickSplitBanner />
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-5">
