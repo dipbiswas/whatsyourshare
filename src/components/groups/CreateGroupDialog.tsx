@@ -104,7 +104,8 @@ export function CreateGroupDialog({ onCreated, trigger }: Props) {
         }),
       })
       if (!res.ok) {
-        toast.error("Failed to create group")
+        const data = await res.json().catch(() => ({}))
+        toast.error(data.message ?? data.error ?? "Failed to create group")
         return
       }
       const group = await res.json()
