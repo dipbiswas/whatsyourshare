@@ -20,6 +20,9 @@ import {
   Check,
   X,
   Pencil,
+  Circle,
+  Clock3,
+  CheckCircle2,
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -104,6 +107,18 @@ interface TripDetail {
   memberSpend: Record<string, number>
   groupSettlements: { fromUserId: string; toUserId: string; amount: number }[]
   memberIds: string[] | null
+  eventExpenses: Expense[]
+}
+
+interface ActionItem {
+  id: string
+  title: string
+  description: string | null
+  status: "OPEN" | "IN_PROGRESS" | "DONE"
+  dueDate: string | null
+  assignee: { id: string; name: string; avatar: string | null } | null
+  createdBy: { id: string; name: string }
+  expense: { id: string; description: string; amount: number; currency: string } | null
 }
 
 export default function TripDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -115,6 +130,8 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
   const [loading, setLoading] = useState(true)
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set())
   const [generatingDays, setGeneratingDays] = useState(false)
+  const [actionItems, setActionItems] = useState<ActionItem[]>([])
+  const [activeTab, setActiveTab] = useState<"itinerary" | "planning" | "expenses">("itinerary")
 
   const userId = session?.user.id ?? ""
 
@@ -153,6 +170,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
         toast.error("Failed to load trip: " + (err?.message ?? "unknown error"))
       })
       .finally(() => setLoading(false))
+    fetch(`/api/trips/${id}/action-items`).then((r) => r.ok ? r.json() : []).then(setActionItems)
   }, [id, router])
 
   async function generateAllDays() {
@@ -176,6 +194,57 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
   async function refreshTrip() {
     const updated = await fetch(`/api/trips/${id}`).then((r) => r.json())
     setTrip(updated)
+  }
+
+  async function refreshActionItems() {
+    const items = await fetch(`/api/trips/${id}/action-items`).then((r) => r.ok ? r.json() : [])
+    setActionItems(items)
+  }
+
+  const [newItemTitle, setNewItemTitle] = useState("")
+  const [addingItem, setAddingItem] = useState(false)
+  const [donePromptItemId, setDonePromptItemId] = useState<string | null>(null)
+
+  async function createActionItem() {
+    const title = newItemTitle.trim()
+    if (!title) return
+    setAddingItem(true)
+    try {
+      const res = await fetch(`/api/trips/${id}/action-items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      })
+      if (!res.ok) { toast.error("Failed to create action item"); return }
+      const item = await res.json()
+      setActionItems((prev) => [...prev, item])
+      setNewItemTitle("")
+    } finally {
+      setAddingItem(false)
+    }
+  }
+
+  async function deleteActionItem(itemId: string) {
+    if (!confirm("Delete this action item?")) return
+    const res = await fetch(`/api/trips/${id}/action-items/${itemId}`, { method: "DELETE" })
+    if (!res.ok) { toast.error("Failed to delete"); return }
+    setActionItems((prev) => prev.filter((i) => i.id !== itemId))
+    if (donePromptItemId === itemId) setDonePromptItemId(null)
+  }
+
+  async function cycleActionItemStatus(item: ActionItem) {
+    const next: ActionItem["status"] =
+      item.status === "OPEN" ? "IN_PROGRESS" : item.status === "IN_PROGRESS" ? "DONE" : "OPEN"
+    const res = await fetch(`/api/trips/${id}/action-items/${item.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: next }),
+    })
+    if (!res.ok) { toast.error("Failed to update status"); return }
+    const updated = await res.json()
+    setActionItems((prev) => prev.map((i) => i.id === item.id ? updated : i))
+    if (next === "DONE") setDonePromptItemId(item.id)
+    else if (donePromptItemId === item.id) setDonePromptItemId(null)
   }
 
   const [editingMembers, setEditingMembers] = useState(false)
@@ -575,196 +644,382 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
         )
       })()}
 
-      {/* Itinerary Timeline */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-gray-900">Itinerary</h2>
-          {trip.days.length === 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              onClick={generateAllDays}
-              disabled={generatingDays}
+      {/* Section tabs */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-0 border-b border-gray-200">
+          {(["itinerary", "planning", "expenses"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-1.5 ${
+                activeTab === tab
+                  ? "border-indigo-600 text-indigo-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
             >
-              <Calendar className="h-3.5 w-3.5" />
-              {generatingDays ? "Generating…" : `Generate ${totalDays} days`}
-            </Button>
-          )}
+              {tab === "itinerary" ? "Itinerary" : tab === "planning" ? "Planning" : "Event Expenses"}
+              {tab === "planning" && actionItems.length > 0 && (
+                <span className="text-xs bg-indigo-100 text-indigo-600 rounded-full px-1.5 py-0.5 leading-none">
+                  {actionItems.length}
+                </span>
+              )}
+              {tab === "expenses" && trip.eventExpenses.length > 0 && (
+                <span className="text-xs bg-indigo-100 text-indigo-600 rounded-full px-1.5 py-0.5 leading-none">
+                  {trip.eventExpenses.length}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
-        {trip.days.length === 0 ? (
-          <Card className="border-0 shadow-sm border-dashed border-2 border-gray-200">
-            <CardContent className="py-10 text-center text-gray-400">
-              <Calendar className="h-8 w-8 mx-auto mb-2 opacity-40" />
-              <p className="font-medium">No itinerary days yet</p>
-              <p className="text-sm mt-1">Click &quot;Generate days&quot; to create a day-by-day timeline</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            {trip.days.map((day, dayIdx) => {
-              const isOpen = expandedDays.has(day.id)
-              const dayTotal = day.expenses.reduce((s, e) => s + e.amount, 0)
-              return (
-                <Card key={day.id} className="border-0 shadow-sm overflow-hidden relative">
-                  {/* Day header */}
-                  <button
-                    onClick={() =>
-                      setExpandedDays((prev) => {
-                        const next = new Set(prev)
-                        next.has(day.id) ? next.delete(day.id) : next.add(day.id)
-                        return next
-                      })
-                    }
-                    className="w-full flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 font-bold text-sm shrink-0">
-                      {dayIdx + 1}
-                    </div>
-                    <div className="flex-1 text-left">
-                      <p className="font-medium text-gray-900">
-                        {day.label ?? `Day ${dayIdx + 1}`}
-                      </p>
-                      <p className="text-xs text-gray-500">{format(new Date(day.date), "EEEE, MMM d")}</p>
-                    </div>
-                    <div className="text-right mr-2">
-                      {dayTotal > 0 && (
-                        <p className="text-sm font-semibold text-gray-700">
-                          {formatCurrency(dayTotal, trip.group.currency)}
-                        </p>
-                      )}
-                      <p className="text-xs text-gray-400">{day.expenses.length} expense{day.expenses.length !== 1 ? "s" : ""}</p>
-                    </div>
-                    {isOpen ? (
-                      <ChevronUp className="h-4 w-4 text-gray-400 shrink-0" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" />
-                    )}
-                  </button>
-                  {/* Add expense button – stops propagation so it doesn't toggle the day */}
-                  <div className="absolute right-12 top-1/2 -translate-y-1/2" onClick={(e) => e.stopPropagation()}>
-                    <AddExpenseDialog
-                      groupId={trip.group.id}
-                      currency={trip.group.currency}
-                      members={trip.group.members}
-                      currentUserId={userId}
-                      tripDayId={day.id}
-                      onCreated={refreshTrip}
-                      trigger={
-                        <button className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 dark:text-indigo-400 px-2.5 py-1.5 rounded-lg transition-colors">
-                          <Plus className="h-3.5 w-3.5" /> Add
-                        </button>
-                      }
-                    />
-                  </div>
+        {/* Itinerary tab */}
+        {activeTab === "itinerary" && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              {trip.days.length === 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 ml-auto"
+                  onClick={generateAllDays}
+                  disabled={generatingDays}
+                >
+                  <Calendar className="h-3.5 w-3.5" />
+                  {generatingDays ? "Generating…" : `Generate ${totalDays} days`}
+                </Button>
+              )}
+            </div>
 
-                  {/* Day expenses */}
-                  {isOpen && (
-                    <div className="border-t border-gray-100">
-                      {day.expenses.length === 0 ? (
-                        <div className="flex items-center justify-between px-4 py-3 pl-16">
-                          <p className="text-sm text-gray-400">No expenses for this day</p>
-                          <AddExpenseDialog
-                            groupId={trip.group.id}
-                            currency={trip.group.currency}
-                            members={trip.group.members}
-                            currentUserId={userId}
-                            tripDayId={day.id}
-                            onCreated={refreshTrip}
-                            trigger={
-                              <button className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 px-2.5 py-1.5 rounded-lg transition-colors">
-                                <Plus className="h-3.5 w-3.5" /> Add expense
-                              </button>
-                            }
-                          />
+            {trip.days.length === 0 ? (
+              <Card className="border-0 shadow-sm border-dashed border-2 border-gray-200">
+                <CardContent className="py-10 text-center text-gray-400">
+                  <Calendar className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                  <p className="font-medium">No itinerary days yet</p>
+                  <p className="text-sm mt-1">Click &quot;Generate days&quot; to create a day-by-day timeline</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                {trip.days.map((day, dayIdx) => {
+                  const isOpen = expandedDays.has(day.id)
+                  const dayTotal = day.expenses.reduce((s, e) => s + e.amount, 0)
+                  return (
+                    <Card key={day.id} className="border-0 shadow-sm overflow-hidden relative">
+                      <button
+                        onClick={() =>
+                          setExpandedDays((prev) => {
+                            const next = new Set(prev)
+                            next.has(day.id) ? next.delete(day.id) : next.add(day.id)
+                            return next
+                          })
+                        }
+                        className="w-full flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 font-bold text-sm shrink-0">
+                          {dayIdx + 1}
                         </div>
-                      ) : (
-                        day.expenses.map((expense, idx) => (
-                          <div key={expense.id}>
-                            {idx > 0 && <Separator />}
-                            <div className="flex items-center gap-3 px-4 py-3 pl-16 hover:bg-gray-50 group">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-medium text-gray-800 truncate">{expense.description}</p>
-                                  <Badge variant="secondary" className="text-xs shrink-0">{expense.category}</Badge>
-                                </div>
-                                <p className="text-xs text-gray-500 mt-0.5">
-                                  Paid by {expense.paidBy.name}
-                                </p>
-                              </div>
-                              <p className="text-sm font-semibold text-gray-900 shrink-0">
-                                {formatCurrency(expense.amount, trip.group.currency)}
-                              </p>
-                              <button
-                                title="Unlink from day"
-                                onClick={() => linkExpenseToDay(expense.id, null)}
-                                className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-50 text-red-400 hover:text-red-600 transition-all"
-                              >
-                                <Link2Off className="h-3.5 w-3.5" />
-                              </button>
+                        <div className="flex-1 text-left">
+                          <p className="font-medium text-gray-900">{day.label ?? `Day ${dayIdx + 1}`}</p>
+                          <p className="text-xs text-gray-500">{format(new Date(day.date), "EEEE, MMM d")}</p>
+                        </div>
+                        <div className="text-right mr-2">
+                          {dayTotal > 0 && (
+                            <p className="text-sm font-semibold text-gray-700">
+                              {formatCurrency(dayTotal, trip.group.currency)}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-400">{day.expenses.length} expense{day.expenses.length !== 1 ? "s" : ""}</p>
+                        </div>
+                        {isOpen ? <ChevronUp className="h-4 w-4 text-gray-400 shrink-0" /> : <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" />}
+                      </button>
+                      <div className="absolute right-12 top-1/2 -translate-y-1/2" onClick={(e) => e.stopPropagation()}>
+                        <AddExpenseDialog
+                          groupId={trip.group.id}
+                          currency={trip.group.currency}
+                          members={trip.group.members}
+                          currentUserId={userId}
+                          tripDayId={day.id}
+                          onCreated={refreshTrip}
+                          trigger={
+                            <button className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 dark:text-indigo-400 px-2.5 py-1.5 rounded-lg transition-colors">
+                              <Plus className="h-3.5 w-3.5" /> Add
+                            </button>
+                          }
+                        />
+                      </div>
+                      {isOpen && (
+                        <div className="border-t border-gray-100">
+                          {day.expenses.length === 0 ? (
+                            <div className="flex items-center justify-between px-4 py-3 pl-16">
+                              <p className="text-sm text-gray-400">No expenses for this day</p>
+                              <AddExpenseDialog
+                                groupId={trip.group.id}
+                                currency={trip.group.currency}
+                                members={trip.group.members}
+                                currentUserId={userId}
+                                tripDayId={day.id}
+                                onCreated={refreshTrip}
+                                trigger={
+                                  <button className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 px-2.5 py-1.5 rounded-lg transition-colors">
+                                    <Plus className="h-3.5 w-3.5" /> Add expense
+                                  </button>
+                                }
+                              />
                             </div>
-                          </div>
-                        ))
+                          ) : (
+                            day.expenses.map((expense, idx) => (
+                              <div key={expense.id}>
+                                {idx > 0 && <Separator />}
+                                <div className="flex items-center gap-3 px-4 py-3 pl-16 hover:bg-gray-50 group">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-sm font-medium text-gray-800 truncate">{expense.description}</p>
+                                      <Badge variant="secondary" className="text-xs shrink-0">{expense.category}</Badge>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-0.5">Paid by {expense.paidBy.name}</p>
+                                  </div>
+                                  <p className="text-sm font-semibold text-gray-900 shrink-0">
+                                    {formatCurrency(expense.amount, trip.group.currency)}
+                                  </p>
+                                  <button
+                                    title="Unlink from day"
+                                    onClick={() => linkExpenseToDay(expense.id, null)}
+                                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-50 text-red-400 hover:text-red-600 transition-all"
+                                  >
+                                    <Link2Off className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
                       )}
-                    </div>
-                  )}
+                    </Card>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Unlinked expenses */}
+            {trip.unlinkedExpenses.length > 0 && (
+              <div className="space-y-3 pt-2">
+                <h2 className="text-base font-semibold text-gray-900">
+                  Unlinked group expenses
+                  <span className="ml-2 text-sm font-normal text-gray-400">— assign these to a trip day</span>
+                </h2>
+                <Card className="border-0 shadow-sm">
+                  <CardContent className="p-0">
+                    {trip.unlinkedExpenses.map((expense, idx) => (
+                      <div key={expense.id}>
+                        {idx > 0 && <Separator />}
+                        <div className="flex items-center gap-4 p-4 hover:bg-gray-50">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-gray-900 truncate">{expense.description}</p>
+                              <Badge variant="secondary" className="text-xs shrink-0">{expense.category}</Badge>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              Paid by {expense.paidBy.name} · {format(new Date(expense.date), "MMM d")}
+                            </p>
+                          </div>
+                          <p className="text-sm font-semibold text-gray-900 shrink-0">
+                            {formatCurrency(expense.amount, trip.group.currency)}
+                          </p>
+                          {trip.days.length > 0 && (
+                            <Select onValueChange={(dayId) => { if (typeof dayId === "string") linkExpenseToDay(expense.id, dayId) }}>
+                              <SelectTrigger className="h-8 w-28 text-xs">
+                                <Link2 className="h-3 w-3 mr-1" />
+                                <SelectValue placeholder="Add to day" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {trip.days.map((day, i) => (
+                                  <SelectItem key={day.id} value={day.id} className="text-xs">
+                                    {day.label ?? `Day ${i + 1}`} · {format(new Date(day.date), "MMM d")}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
                 </Card>
-              )
-            })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Planning tab */}
+        {activeTab === "planning" && (
+          <div className="space-y-3">
+            {/* Add item form */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newItemTitle}
+                onChange={(e) => setNewItemTitle(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") createActionItem() }}
+                placeholder="Add an action item…"
+                className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-background"
+              />
+              <Button
+                size="sm"
+                className="bg-indigo-600 hover:bg-indigo-700 h-9"
+                disabled={addingItem || !newItemTitle.trim()}
+                onClick={createActionItem}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {actionItems.length === 0 ? (
+              <Card className="border-0 shadow-sm border-dashed border-2 border-gray-200">
+                <CardContent className="py-10 text-center text-gray-400">
+                  <p className="font-medium">No action items yet</p>
+                  <p className="text-sm mt-1">Add tasks above to track what needs to be done</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-1.5">
+                {actionItems.map((item) => (
+                  <div key={item.id} className="space-y-0">
+                    <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border hover:bg-accent/40 group transition-colors">
+                      {/* Status toggle */}
+                      <button
+                        title={`Status: ${item.status} — click to advance`}
+                        onClick={() => cycleActionItemStatus(item)}
+                        className="shrink-0 transition-colors"
+                      >
+                        {item.status === "OPEN" && <Circle className="h-5 w-5 text-gray-400 hover:text-gray-600" />}
+                        {item.status === "IN_PROGRESS" && <Clock3 className="h-5 w-5 text-amber-500 hover:text-amber-600" />}
+                        {item.status === "DONE" && <CheckCircle2 className="h-5 w-5 text-emerald-500 hover:text-emerald-600" />}
+                      </button>
+
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium leading-snug ${item.status === "DONE" ? "line-through text-gray-400" : "text-gray-900"}`}>
+                          {item.title}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className={`text-xs font-medium ${
+                            item.status === "OPEN" ? "text-gray-400" :
+                            item.status === "IN_PROGRESS" ? "text-amber-600" : "text-emerald-600"
+                          }`}>
+                            {item.status === "OPEN" ? "Open" : item.status === "IN_PROGRESS" ? "In progress" : "Done"}
+                          </span>
+                          {item.assignee && (
+                            <span className="text-xs text-gray-400">· {item.assignee.name}</span>
+                          )}
+                          {item.expense && (
+                            <span className="text-xs text-indigo-500 font-medium">
+                              · {formatCurrency(item.expense.amount, trip.group.currency)} logged
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => deleteActionItem(item.id)}
+                        className="md:opacity-0 md:group-hover:opacity-100 p-1 rounded hover:bg-red-50 text-red-400 hover:text-red-600 transition-all shrink-0"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Done prompt */}
+                    {donePromptItemId === item.id && !item.expense && (
+                      <div className="ml-8 mt-1 flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20">
+                        <p className="text-xs text-indigo-700 dark:text-indigo-300 flex-1">
+                          Was money spent on this? Log an expense linked to this event.
+                        </p>
+                        <AddExpenseDialog
+                          groupId={trip.group.id}
+                          currency={trip.group.currency}
+                          members={trip.group.members}
+                          currentUserId={userId}
+                          tripId={trip.id}
+                          onCreated={async () => {
+                            setDonePromptItemId(null)
+                            await refreshTrip()
+                            await refreshActionItems()
+                          }}
+                          trigger={
+                            <button className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-white dark:bg-indigo-500/20 border border-indigo-200 dark:border-indigo-500/30 px-2.5 py-1 rounded-lg transition-colors shrink-0">
+                              Add expense
+                            </button>
+                          }
+                        />
+                        <button
+                          onClick={() => setDonePromptItemId(null)}
+                          className="text-gray-400 hover:text-gray-600 transition-colors shrink-0"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Event Expenses tab */}
+        {activeTab === "expenses" && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500">Expenses linked directly to this event</p>
+              <AddExpenseDialog
+                groupId={trip.group.id}
+                currency={trip.group.currency}
+                members={trip.group.members}
+                currentUserId={userId}
+                tripId={trip.id}
+                onCreated={async () => { await refreshTrip() }}
+                trigger={
+                  <button className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 px-2.5 py-1.5 rounded-lg transition-colors">
+                    <Plus className="h-3.5 w-3.5" /> Add expense
+                  </button>
+                }
+              />
+            </div>
+
+            {trip.eventExpenses.length === 0 ? (
+              <Card className="border-0 shadow-sm border-dashed border-2 border-gray-200">
+                <CardContent className="py-10 text-center text-gray-400">
+                  <p className="font-medium">No event expenses yet</p>
+                  <p className="text-sm mt-1">Expenses added here are linked to this event, not a specific day</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-0">
+                  {trip.eventExpenses.map((expense, idx) => (
+                    <div key={expense.id}>
+                      {idx > 0 && <Separator />}
+                      <div className="flex items-center gap-3 p-4 hover:bg-gray-50">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-gray-900 truncate">{expense.description}</p>
+                            <Badge variant="secondary" className="text-xs shrink-0">{expense.category}</Badge>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Paid by {expense.paidBy.name} · {format(new Date(expense.date), "MMM d")}
+                          </p>
+                        </div>
+                        <p className="text-sm font-semibold text-gray-900 shrink-0">
+                          {formatCurrency(expense.amount, trip.group.currency)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>
-
-      {/* Unlinked expenses */}
-      {trip.unlinkedExpenses.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-base font-semibold text-gray-900">
-            Unlinked group expenses
-            <span className="ml-2 text-sm font-normal text-gray-400">
-              — assign these to a trip day
-            </span>
-          </h2>
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-0">
-              {trip.unlinkedExpenses.map((expense, idx) => (
-                <div key={expense.id}>
-                  {idx > 0 && <Separator />}
-                  <div className="flex items-center gap-4 p-4 hover:bg-gray-50">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-gray-900 truncate">{expense.description}</p>
-                        <Badge variant="secondary" className="text-xs shrink-0">{expense.category}</Badge>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        Paid by {expense.paidBy.name} · {format(new Date(expense.date), "MMM d")}
-                      </p>
-                    </div>
-                    <p className="text-sm font-semibold text-gray-900 shrink-0">
-                      {formatCurrency(expense.amount, trip.group.currency)}
-                    </p>
-                    {trip.days.length > 0 && (
-                      <Select onValueChange={(dayId) => { if (typeof dayId === "string") linkExpenseToDay(expense.id, dayId) }}>
-                        <SelectTrigger className="h-8 w-28 text-xs">
-                          <Link2 className="h-3 w-3 mr-1" />
-                          <SelectValue placeholder="Add to day" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {trip.days.map((day, i) => (
-                            <SelectItem key={day.id} value={day.id} className="text-xs">
-                              {day.label ?? `Day ${i + 1}`} · {format(new Date(day.date), "MMM d")}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   )
 }

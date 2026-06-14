@@ -45,6 +45,8 @@ model User {
   cardTransactions         CardTransaction[]
   pushSubscriptions        PushSubscription[]
   createdInvites           GroupInvite[]
+  assignedActionItems      ActionItem[]  @relation("ActionItemAssignee")
+  createdActionItems       ActionItem[]  @relation("ActionItemCreator")
 }
 
 model Account {
@@ -137,6 +139,7 @@ model Expense {
   approvedAt         DateTime?
   recurringExpenseId String?
   tripDayId          String?
+  tripId             String?
   cardTransactionId  String?           @unique
   guestPayeeName     String?
   createdAt          DateTime  @default(now())
@@ -147,7 +150,9 @@ model Expense {
   splits            ExpenseSplit[]
   recurringExpense  RecurringExpense?  @relation(fields: [recurringExpenseId], references: [id])
   tripDay           TripDay?           @relation(fields: [tripDayId], references: [id])
+  trip              Trip?              @relation("EventExpenses", fields: [tripId], references: [id], onDelete: SetNull)
   cardTransaction   CardTransaction?   @relation(fields: [cardTransactionId], references: [id])
+  actionItem        ActionItem?        @relation("ActionItemExpense")
 }
 
 enum SplitType {
@@ -275,10 +280,37 @@ model Trip {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  group       Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  createdBy   User      @relation(fields: [createdById], references: [id])
+  group       Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdBy   User         @relation(fields: [createdById], references: [id])
   days        TripDay[]
   fund        TripFund?
+  actionItems ActionItem[]
+  expenses    Expense[]    @relation("EventExpenses")
+}
+
+model ActionItem {
+  id          String    @id @default(cuid())
+  tripId      String
+  title       String
+  description String?
+  assigneeId  String?
+  status      ActionItemStatus @default(OPEN)
+  dueDate     DateTime?
+  expenseId   String?   @unique
+  createdById String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  assignee  User?    @relation("ActionItemAssignee", fields: [assigneeId], references: [id])
+  createdBy User     @relation("ActionItemCreator", fields: [createdById], references: [id])
+  expense   Expense? @relation("ActionItemExpense", fields: [expenseId], references: [id])
+}
+
+enum ActionItemStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
 }
 
 model TripDay {

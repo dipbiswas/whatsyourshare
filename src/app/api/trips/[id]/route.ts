@@ -89,7 +89,18 @@ export async function GET(
     }
   }
 
-  return NextResponse.json({ ...trip, unlinkedExpenses, memberSpend, groupSettlements })
+  // Event-level expenses (linked directly to this trip, no day)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const eventExpenses = await (prisma.expense as any).findMany({
+    where: { tripId: id },
+    include: {
+      paidBy: { select: { id: true, name: true } },
+      splits: { include: { user: { select: { id: true, name: true } } } },
+    },
+    orderBy: { date: "desc" },
+  })
+
+  return NextResponse.json({ ...trip, unlinkedExpenses, memberSpend, groupSettlements, eventExpenses })
   } catch (err) {
     console.error("[GET /api/trips/[id]] error:", err)
     return NextResponse.json({ error: String(err) }, { status: 500 })

@@ -32,6 +32,7 @@ interface Props {
   onCreated: () => void
   trigger?: React.ReactNode
   tripDayId?: string
+  tripId?: string
 }
 
 const CATEGORIES = ["General", "Food", "Transport", "Accommodation", "Entertainment", "Utilities", "Other"]
@@ -45,7 +46,7 @@ const SPLIT_TABS: { value: SplitType; label: string; desc: string }[] = [
   { value: "EXACT",      label: "Exact",       desc: "Enter each person's exact amount" },
 ]
 
-export function AddExpenseDialog({ groupId, currency, members, currentUserId, defaultSplitType = "EQUAL", defaultSplitShares, onCreated, trigger, tripDayId }: Props) {
+export function AddExpenseDialog({ groupId, currency, members, currentUserId, defaultSplitType = "EQUAL", defaultSplitShares, onCreated, trigger, tripDayId, tripId }: Props) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [scanning, setScanning] = useState(false)
@@ -185,7 +186,7 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // SHARES is sent as PERCENTAGE to the API (already converted to amounts above)
-        body: JSON.stringify({ ...form, amount, currency, groupId, splitType: splitType === "SHARES" ? "PERCENTAGE" : splitType, splits, date: form.date, guestPayeeName: isGuestPayee ? guestPayee : undefined, ...(tripDayId ? { tripDayId } : {}) }),
+        body: JSON.stringify({ ...form, amount, currency, groupId, splitType: splitType === "SHARES" ? "PERCENTAGE" : splitType, splits, date: form.date, guestPayeeName: isGuestPayee ? guestPayee : undefined, ...(tripDayId ? { tripDayId } : {}), ...(tripId ? { tripId } : {}) }),
       })
       if (!res.ok) { toast.error("Failed to add expense"); return }
       toast.success("Expense added!")
