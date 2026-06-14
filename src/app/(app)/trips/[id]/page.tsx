@@ -35,6 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TripFundCard } from "@/components/trips/TripFundCard"
 import { EditTripDialog } from "@/components/trips/EditTripDialog"
 import { AddExpenseDialog } from "@/components/expenses/AddExpenseDialog"
+import { EditExpenseDialog } from "@/components/expenses/EditExpenseDialog"
 import { AddSettlementDialog } from "@/components/settlements/AddSettlementDialog"
 import { calculateGroupBalances, simplifyDebts, formatCurrency } from "@/lib/balance"
 
@@ -57,6 +58,8 @@ interface Expense {
   currency: string
   category: string
   date: string
+  paidById: string
+  splitType: string
   paidBy: { id: string; name: string }
   splits: Split[]
 }
@@ -131,7 +134,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set())
   const [generatingDays, setGeneratingDays] = useState(false)
   const [actionItems, setActionItems] = useState<ActionItem[]>([])
-  const [activeTab, setActiveTab] = useState<"itinerary" | "planning" | "expenses">("itinerary")
+  const [activeTab, setActiveTab] = useState<"itinerary" | "planning" | "expenses">("planning")
 
   const userId = session?.user.id ?? ""
 
@@ -442,7 +445,8 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
         </Card>
       </div>
 
-      {/* Members */}
+      {/* Members + Funding side by side */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <Card className="border-0 shadow-sm">
         <CardContent className="pt-4 pb-3">
           {!editingMembers ? (
@@ -507,7 +511,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
         </CardContent>
       </Card>
 
-      {/* Trip Fund (Phase 4) */}
+      {/* Trip Fund */}
       <TripFundCard
         tripId={trip.id}
         tripName={trip.name}
@@ -518,149 +522,149 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
         memberCount={eventMembers.length}
         currency={trip.group.currency}
       />
+      </div>
 
-      {/* Per-member cost breakdown */}
-      {Object.keys(trip.memberSpend).length > 0 && (
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-indigo-500" />
-              Per-person breakdown
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {eventMembers.map((m) => {
-                const spent = trip.memberSpend[m.userId] ?? 0
-                return (
-                  <div key={m.userId} className="flex items-center gap-2.5 p-2.5 rounded-lg bg-gray-50">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs font-semibold">
-                        {m.user.name.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-xs font-medium text-gray-700">
-                        {m.user.name}{m.userId === userId ? " (you)" : ""}
-                      </p>
-                      <p className="text-sm font-bold text-gray-900">
-                        {formatCurrency(spent, trip.group.currency)}
-                      </p>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Balances & Settlements */}
+      {/* Per-person breakdown + Balances side by side */}
       {(() => {
         const allExpenses = trip.days.flatMap((d) => d.expenses)
-        if (allExpenses.length === 0) return null
+        const hasSpend = Object.keys(trip.memberSpend).length > 0
+        if (!hasSpend && allExpenses.length === 0) return null
 
         const nameMap: Record<string, string> = {}
         for (const m of eventMembers) nameMap[m.userId] = m.user.name
 
-        const balanceMap = calculateGroupBalances(
-          eventMembers.map((m) => ({ userId: m.userId })),
-          allExpenses.map((e) => ({
-            paidById: e.paidBy.id,
-            amount: e.amount,
-            splits: e.splits.map((s) => ({ userId: s.userId, amount: s.amount })),
-          })),
-          trip.groupSettlements
-        )
+        const balanceMap = allExpenses.length > 0
+          ? calculateGroupBalances(
+              eventMembers.map((m) => ({ userId: m.userId })),
+              allExpenses.map((e) => ({
+                paidById: e.paidBy.id,
+                amount: e.amount,
+                splits: e.splits.map((s) => ({ userId: s.userId, amount: s.amount })),
+              })),
+              trip.groupSettlements
+            )
+          : {}
         const transfers = simplifyDebts(balanceMap, nameMap)
         const allSettled = transfers.length === 0
 
         return (
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <span className="h-4 w-4 text-base leading-none">⚖️</span>
-                Balances
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Per-member net balance */}
-              <div className="space-y-2">
-                {eventMembers.map((m) => {
-                  const bal = balanceMap[m.userId] ?? 0
-                  const isYou = m.userId === userId
-                  return (
-                    <div key={m.userId} className="flex items-center gap-3">
-                      <Avatar className="h-7 w-7 shrink-0">
-                        <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs font-semibold">
-                          {m.user.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="flex-1 text-sm text-gray-700">
-                        {isYou ? "You" : m.user.name}
-                      </span>
-                      {Math.abs(bal) < 0.01 ? (
-                        <span className="text-xs text-gray-400 font-medium">settled</span>
-                      ) : bal > 0 ? (
-                        <span className="text-sm font-semibold text-emerald-600">
-                          +{formatCurrency(bal, trip.group.currency)}
-                        </span>
-                      ) : (
-                        <span className="text-sm font-semibold text-rose-500">
-                          {formatCurrency(bal, trip.group.currency)}
-                        </span>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+            {/* Per-person breakdown */}
+            {hasSpend && (
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-indigo-500" />
+                    Per-person breakdown
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-3">
+                    {eventMembers.map((m) => {
+                      const spent = trip.memberSpend[m.userId] ?? 0
+                      return (
+                        <div key={m.userId} className="flex items-center gap-2.5 p-2.5 rounded-lg bg-gray-50 dark:bg-white/5">
+                          <Avatar className="h-8 w-8 shrink-0">
+                            <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs font-semibold">
+                              {m.user.name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
+                              {m.userId === userId ? "You" : m.user.name.split(" ")[0]}
+                            </p>
+                            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                              {formatCurrency(spent, trip.group.currency)}
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-              {/* Suggested settlements */}
-              {allSettled ? (
-                <div className="flex items-center gap-2 text-sm text-emerald-600 font-medium pt-1 border-t border-gray-100">
-                  <span>✓</span> Everyone is settled up for this event
-                </div>
-              ) : (
-                <div className="pt-2 border-t border-gray-100 space-y-2">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Suggested</p>
-                  {transfers.map((t, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <span className="text-sm text-gray-700 flex-1">
-                        <span className="font-medium">{t.from === userId ? "You" : t.fromName}</span>
-                        <span className="text-gray-400 mx-1.5">→</span>
-                        <span className="font-medium">{t.to === userId ? "you" : t.toName}</span>
-                      </span>
-                      <span className="text-sm font-semibold text-gray-900 shrink-0">
-                        {formatCurrency(t.amount, trip.group.currency)}
-                      </span>
-                      <AddSettlementDialog
-                        groupId={trip.group.id}
-                        currency={trip.group.currency}
-                        members={trip.group.members.map((m) => ({ userId: m.userId, user: { id: m.userId, name: m.user.name } }))}
-                        currentUserId={userId}
-                        suggestedTo={t.to}
-                        suggestedAmount={t.amount}
-                        onCreated={refreshTrip}
-                        compact
-                        trigger={
-                          <button className="text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 px-2.5 py-1.5 rounded-lg transition-colors shrink-0">
-                            Settle up
-                          </button>
-                        }
-                      />
+            {/* Balances */}
+            {allExpenses.length > 0 && (
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <span className="text-base leading-none">⚖️</span>
+                    Balances
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    {eventMembers.map((m) => {
+                      const bal = balanceMap[m.userId] ?? 0
+                      const isYou = m.userId === userId
+                      return (
+                        <div key={m.userId} className="flex items-center gap-3">
+                          <Avatar className="h-7 w-7 shrink-0">
+                            <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs font-semibold">
+                              {m.user.name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="flex-1 text-sm text-gray-700 dark:text-gray-300">
+                            {isYou ? "You" : m.user.name}
+                          </span>
+                          {Math.abs(bal) < 0.01 ? (
+                            <span className="text-xs text-gray-400 font-medium">settled</span>
+                          ) : bal > 0 ? (
+                            <span className="text-sm font-semibold text-emerald-600">+{formatCurrency(bal, trip.group.currency)}</span>
+                          ) : (
+                            <span className="text-sm font-semibold text-rose-500">{formatCurrency(bal, trip.group.currency)}</span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {allSettled ? (
+                    <div className="flex items-center gap-2 text-sm text-emerald-600 font-medium pt-1 border-t border-gray-100">
+                      <span>✓</span> Everyone is settled up
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  ) : (
+                    <div className="pt-2 border-t border-gray-100 space-y-2">
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Suggested</p>
+                      {transfers.map((t, i) => (
+                        <div key={i} className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm text-gray-700 flex-1 min-w-0">
+                            <span className="font-medium">{t.from === userId ? "You" : t.fromName}</span>
+                            <span className="text-gray-400 mx-1">→</span>
+                            <span className="font-medium">{t.to === userId ? "you" : t.toName}</span>
+                          </span>
+                          <span className="text-sm font-semibold text-gray-900 shrink-0">{formatCurrency(t.amount, trip.group.currency)}</span>
+                          <AddSettlementDialog
+                            groupId={trip.group.id}
+                            currency={trip.group.currency}
+                            members={trip.group.members.map((m) => ({ userId: m.userId, user: { id: m.userId, name: m.user.name } }))}
+                            currentUserId={userId}
+                            suggestedTo={t.to}
+                            suggestedAmount={t.amount}
+                            onCreated={refreshTrip}
+                            compact
+                            trigger={
+                              <button className="text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 px-2.5 py-1.5 rounded-lg transition-colors shrink-0">
+                                Settle up
+                              </button>
+                            }
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
         )
       })()}
 
       {/* Section tabs */}
       <div className="space-y-4">
         <div className="flex items-center gap-0 border-b border-gray-200">
-          {(["itinerary", "planning", "expenses"] as const).map((tab) => (
+          {(["planning", "expenses", "itinerary"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -1045,7 +1049,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                   {trip.eventExpenses.map((expense, idx) => (
                     <div key={expense.id}>
                       {idx > 0 && <Separator />}
-                      <div className="flex items-center gap-3 p-4 hover:bg-gray-50">
+                      <div className="flex items-center gap-3 p-4 hover:bg-gray-50 group">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-medium text-gray-900 truncate">{expense.description}</p>
@@ -1058,6 +1062,24 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                         <p className="text-sm font-semibold text-gray-900 shrink-0">
                           {formatCurrency(expense.amount, trip.group.currency)}
                         </p>
+                        <EditExpenseDialog
+                          expense={expense}
+                          members={trip.group.members}
+                          currency={trip.group.currency}
+                          onUpdated={refreshTrip}
+                        />
+                        <button
+                          onClick={async () => {
+                            if (!confirm(`Delete "${expense.description}"?`)) return
+                            const res = await fetch(`/api/expenses/${expense.id}`, { method: "DELETE" })
+                            if (res.ok) { toast.success("Expense deleted"); await refreshTrip() }
+                            else toast.error("Failed to delete expense")
+                          }}
+                          className="md:opacity-0 md:group-hover:opacity-100 p-1 rounded hover:bg-red-50 text-red-400 hover:text-red-600 transition-all shrink-0"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                     </div>
                   ))}
