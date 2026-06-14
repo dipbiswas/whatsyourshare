@@ -538,12 +538,12 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           { value: "balances",    label: "Balances",    count: null,                           icon: ArrowLeftRight },
           { value: "trips",       label: "Events",      count: trips.length,                   icon: Plane },
           { value: "members",     label: "Members",     count: group.members.length + (group.guests?.length ?? 0), icon: Users },
-          { value: "recurring",   label: "Recurring",   count: group.recurringExpenses.length, icon: Repeat2 },
           { value: "insights",    label: "AI Insights", count: null,                           icon: Sparkles },
+          { value: "recurring",   label: "Recurring",   count: group.recurringExpenses.length, icon: Repeat2 },
           { value: "settings",    label: "Settings",    count: null,                           icon: Settings },
         ]
-        const primaryTabs = ALL_TABS.slice(0, 4)
-        const moreTabs    = ALL_TABS.slice(4)
+        const primaryTabs = ALL_TABS.slice(0, 5)
+        const moreTabs    = ALL_TABS.slice(5)
         const isMore = moreTabs.some((t) => t.value === activeGroupTab)
 
         return (
