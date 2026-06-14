@@ -886,10 +886,79 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
             </div>
           </div>
 
-          {/* Section 2 — Settlements */}
+          {/* Section 2 — Suggested Settlements */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">Suggested Settlements</p>
+            {group.suggestedSettlements.length === 0 ? (
+              <div className="glass rounded-2xl px-4 py-5 flex items-center gap-3">
+                <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+                <p className="text-sm text-muted-foreground">All settled up!</p>
+              </div>
+            ) : (
+              <div className="glass rounded-2xl overflow-hidden">
+                {group.suggestedSettlements.map((s, idx) => (
+                  <div key={idx}>
+                    {idx > 0 && <div className="h-px bg-border/60 mx-4" />}
+                    <div className="flex items-center gap-3 px-4 py-3.5">
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Avatar className="h-7 w-7">
+                          <AvatarFallback className="text-[10px] font-bold bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300">
+                            {s.fromName.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/50" />
+                        <Avatar className="h-7 w-7">
+                          <AvatarFallback className="text-[10px] font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                            {s.toName.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground">{s.fromName} → {s.toName}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <p className="font-bold text-rose-600 dark:text-rose-400 tabular-nums">{formatCurrency(s.amount, group.currency)}</p>
+                        <div className="flex items-center gap-1">
+                          {group.currency.toUpperCase() === "CAD" && (
+                            <InteracHelperDialog
+                              amount={s.amount}
+                              currency={group.currency}
+                              toName={s.toName}
+                              toEmail={group.members.find((m) => m.userId === s.to)?.user.email ?? ""}
+                              groupName={group.name}
+                              onSent={async () => {
+                                await fetch("/api/settlements", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ groupId: group.id, toUserId: s.to, amount: s.amount, note: "Interac e-Transfer" }),
+                                })
+                                refreshGroup()
+                              }}
+                            />
+                          )}
+                          <AddSettlementDialog
+                            groupId={group.id}
+                            currency={group.currency}
+                            members={group.members}
+                            currentUserId={userId}
+                            suggestedTo={s.to}
+                            suggestedAmount={s.amount}
+                            onCreated={() => refreshGroup()}
+                            compact
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Section 3 — Settlement History */}
           <div className="space-y-2">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
-              Settlements {group.settlements.length > 0 && <span className="text-muted-foreground/50 font-normal">· {group.settlements.length}</span>}
+              Settlement History {group.settlements.length > 0 && <span className="text-muted-foreground/50 font-normal">· {group.settlements.length}</span>}
             </p>
             {group.settlements.length === 0 ? (
               <div className="text-center py-10">
