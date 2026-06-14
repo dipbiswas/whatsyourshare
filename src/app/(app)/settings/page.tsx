@@ -627,6 +627,18 @@ export default function SettingsPage() {
                     {plan.cta}
                   </Button>
                 )}
+                {plan.key === "FREE" && !isCurrent && currentPlan !== "FREE" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full text-xs font-semibold text-muted-foreground"
+                    onClick={handlePortal}
+                    disabled={loadingPortal}
+                  >
+                    {loadingPortal ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+                    Downgrade to Free
+                  </Button>
+                )}
                 {isCurrent && (
                   <div className={`w-full text-center text-xs font-medium py-1.5 rounded-lg ${
                     plan.key === "PRO" ? "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300" :
