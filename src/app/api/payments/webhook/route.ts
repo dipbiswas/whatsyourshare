@@ -36,7 +36,7 @@ export async function POST(req: Request) {
       typeof session.payment_intent === "string" ? session.payment_intent : null
 
     // Find and mark the contribution paid
-    const contribution = await prisma.fundContribution.findUnique({
+    const contribution = await prisma.fundContribution.findFirst({
       where: { stripeSessionId },
     })
 

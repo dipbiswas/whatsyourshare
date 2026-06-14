@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   const stripeSession = await stripe.checkout.sessions.retrieve(sessionId)
 
   if (stripeSession.payment_status === "paid") {
-    const contribution = await prisma.fundContribution.findUnique({
+    const contribution = await prisma.fundContribution.findFirst({
       where: { stripeSessionId: sessionId },
     })
 

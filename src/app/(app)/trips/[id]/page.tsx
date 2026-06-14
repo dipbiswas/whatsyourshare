@@ -147,8 +147,15 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
       fetch(`/api/payments/verify?sessionId=${stripeSessionId}`)
         .then((r) => r.json())
         .then((data) => {
-          if (data.status === "paid") toast.success("Payment confirmed! Your contribution is recorded.")
-          else toast.error("Payment not confirmed yet — please refresh in a moment.")
+          if (data.status === "paid") {
+            toast.success("Payment confirmed! Your contribution is recorded.")
+            // Refresh trip data so fund card reflects the new PAID contribution
+            fetch(`/api/trips/${id}`)
+              .then((r) => r.ok ? r.json() : null)
+              .then((d) => { if (d) setTrip(d) })
+          } else {
+            toast.error("Payment not confirmed yet — please refresh in a moment.")
+          }
         })
     } else if (payment === "cancelled") {
       toast("Payment cancelled.")
