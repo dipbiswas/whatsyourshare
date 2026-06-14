@@ -10,7 +10,9 @@ const path = require("path")
 const crypto = require("crypto")
 
 const MIGRATIONS_DIR = path.join(__dirname, "../prisma/migrations")
-const DB_URL = process.env.DIRECT_URL || process.env.DATABASE_URL
+const DB_URL = (process.env.DIRECT_URL || process.env.DATABASE_URL || "")
+  .replace("sslmode=require", "sslmode=verify-full")
+  .replace("channel_binding=require", "channel_binding=require")
 
 async function run() {
   if (!DB_URL) {
