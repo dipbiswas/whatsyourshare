@@ -17,6 +17,9 @@ import {
   Link2Off,
   Plus,
   Trash2,
+  Check,
+  X,
+  Pencil,
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -175,6 +178,51 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
     setTrip(updated)
   }
 
+  const [editingMembers, setEditingMembers] = useState(false)
+  const [pendingMemberIds, setPendingMemberIds] = useState<Set<string>>(new Set())
+  const [savingMembers, setSavingMembers] = useState(false)
+
+  function openMemberEdit() {
+    const current = trip?.memberIds
+      ? new Set(trip.memberIds as string[])
+      : new Set(trip?.group.members.map((m) => m.userId) ?? [])
+    setPendingMemberIds(current)
+    setEditingMembers(true)
+  }
+
+  function togglePendingMember(uid: string) {
+    setPendingMemberIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(uid)) {
+        if (next.size === 1) return prev
+        next.delete(uid)
+      } else {
+        next.add(uid)
+      }
+      return next
+    })
+  }
+
+  async function saveMemberIds() {
+    if (!trip) return
+    const allSelected = pendingMemberIds.size === trip.group.members.length
+    const memberIds = allSelected ? null : Array.from(pendingMemberIds)
+    setSavingMembers(true)
+    try {
+      const res = await fetch(`/api/trips/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberIds }),
+      })
+      if (!res.ok) { toast.error("Failed to update members"); return }
+      setTrip((t) => t ? { ...t, memberIds } : t)
+      setEditingMembers(false)
+      toast.success("Members updated")
+    } finally {
+      setSavingMembers(false)
+    }
+  }
+
   async function linkExpenseToDay(expenseId: string, dayId: string | null) {
     const res = await fetch(`/api/trips/${id}/days`, {
       method: "PATCH",
@@ -311,6 +359,71 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
           </CardContent>
         </Card>
       </div>
+
+      {/* Members */}
+      <Card className="border-0 shadow-sm">
+        <CardContent className="pt-4 pb-3">
+          {!editingMembers ? (
+            <div className="flex items-center gap-3">
+              <div className="flex -space-x-2">
+                {eventMembers.map((m, i) => (
+                  <Avatar key={m.userId} className="h-8 w-8 ring-2 ring-white dark:ring-gray-900" style={{ zIndex: eventMembers.length - i }}>
+                    <AvatarFallback className="text-xs font-bold" style={{ background: `hsl(${(m.userId.charCodeAt(0) * 37) % 360}, 70%, 85%)`, color: `hsl(${(m.userId.charCodeAt(0) * 37) % 360}, 60%, 35%)` }}>
+                      {m.user.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                ))}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {eventMembers.map((m) => m.user.name.split(" ")[0]).join(", ")}
+                </p>
+                <p className="text-xs text-muted-foreground">{eventMembers.length} of {trip.group.members.length} members</p>
+              </div>
+              {isOrganizer && (
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-indigo-600 shrink-0" onClick={openMemberEdit}>
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Who&apos;s joining?</p>
+              <div className="space-y-1.5">
+                {trip.group.members.map((m) => {
+                  const selected = pendingMemberIds.has(m.userId)
+                  return (
+                    <button
+                      key={m.userId}
+                      type="button"
+                      onClick={() => togglePendingMember(m.userId)}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border transition-colors text-left ${selected ? "border-indigo-300 bg-indigo-50 dark:bg-indigo-500/10 dark:border-indigo-500/30" : "border-border hover:bg-accent"}`}
+                    >
+                      <Avatar className="h-7 w-7 shrink-0">
+                        <AvatarFallback className="text-xs font-bold" style={{ background: `hsl(${(m.userId.charCodeAt(0) * 37) % 360}, 70%, 85%)`, color: `hsl(${(m.userId.charCodeAt(0) * 37) % 360}, 60%, 35%)` }}>
+                          {m.user.name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="flex-1 text-sm font-medium text-foreground">{m.user.name}</span>
+                      <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${selected ? "bg-indigo-600 border-indigo-600" : "border-border"}`}>
+                        {selected && <Check className="h-3 w-3 text-white" />}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 h-7 text-xs" disabled={savingMembers} onClick={saveMemberIds}>
+                  {savingMembers ? "Saving…" : "Save"}
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditingMembers(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Trip Fund (Phase 4) */}
       <TripFundCard

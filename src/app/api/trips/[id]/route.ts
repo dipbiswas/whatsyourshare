@@ -10,6 +10,7 @@ const patchSchema = z.object({
   coverEmoji: z.string().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
+  memberIds: z.array(z.string()).nullable().optional(),
 })
 
 export async function GET(
