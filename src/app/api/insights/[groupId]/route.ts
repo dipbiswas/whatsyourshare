@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import Anthropic from "@anthropic-ai/sdk"
 import { subDays, subMonths, format } from "date-fns"
 import { config } from "@/lib/config"
+import { checkScanQuota, deductScan } from "@/lib/scan-quota"
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -20,6 +21,9 @@ export async function GET(
     where: { groupId, userId: session.user.id },
   })
   if (!isMember) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+
+  const quota = await checkScanQuota(session.user.id, "ai_insight")
+  if (!quota.allowed) return NextResponse.json({ error: quota.message }, { status: quota.reason === "plan_limit" ? 403 : 429 })
 
   const now = new Date()
   const thirtyDaysAgo = subDays(now, 30)
@@ -113,6 +117,8 @@ Return ONLY a JSON array, e.g.: ["insight 1", "insight 2", "insight 3"]`,
   } catch {
     insights = [text]
   }
+
+  await deductScan(session.user.id, "ai_insight", quota.useBonus)
 
   return NextResponse.json({ insights: insights.slice(0, 4), generatedAt: now })
 }

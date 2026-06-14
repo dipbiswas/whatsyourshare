@@ -105,13 +105,15 @@ export default async function DashboardPage() {
   const data = await getDashboardData(session.user.id)
   const firstName = session.user.name?.split(" ")[0] ?? "there"
 
-  // Fetch user timezone for greeting
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const userProfile = await (prisma.user.findUnique as any)({
     where: { id: session.user.id },
-    select: { timezone: true },
+    select: { timezone: true, plan: true, bonusScans: true },
   })
   const greeting = getGreeting(userProfile?.timezone)
+  const isFreePlan = !userProfile?.plan || userProfile.plan === "FREE"
+  const hasBonus = (userProfile?.bonusScans ?? 0) > 0
+  const canSeeInsights = !isFreePlan || hasBonus
 
   return (
     <div className="p-5 md:p-8 space-y-6 max-w-6xl mr-auto">
@@ -188,7 +190,7 @@ export default async function DashboardPage() {
       {data.groupCount > 0 && <OwesReportCard />}
 
       {/* Insights */}
-      {data.insightsGroup && (
+      {data.insightsGroup && canSeeInsights && (
         <InsightsCard groupId={data.insightsGroup.id} groupName={data.insightsGroup.name} />
       )}
     </div>
