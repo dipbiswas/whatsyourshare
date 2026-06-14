@@ -5,6 +5,13 @@ import { z } from "zod"
 
 const schema = z.object({ uiMode: z.enum(["QUICK_SPLIT", "FULL"]) })
 
+export async function GET() {
+  const session = await auth()
+  if (!session?.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { uiMode: true } })
+  return NextResponse.json({ uiMode: (user as any)?.uiMode ?? "FULL" })
+}
+
 export async function PATCH(req: Request) {
   const session = await auth()
   if (!session?.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

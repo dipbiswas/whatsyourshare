@@ -1,5 +1,4 @@
 import { auth } from "@/auth"
-import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { calculateGroupBalances, formatCurrency } from "@/lib/balance"
 import { planLimits, currentMonth } from "@/lib/plan"
@@ -105,12 +104,6 @@ function getGreeting(timezone?: string) {
 export default async function DashboardPage() {
   const session = await auth()
   if (!session?.user.id) return null
-
-  const modeCheck = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { uiMode: true },
-  })
-  if ((modeCheck as any)?.uiMode === "QUICK_SPLIT") redirect("/quick-split")
 
   const data = await getDashboardData(session.user.id)
   const firstName = session.user.name?.split(" ")[0] ?? "there"

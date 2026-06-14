@@ -27,7 +27,9 @@ export default function LoginPage() {
       if (result?.error) {
         toast.error("Invalid email or password")
       } else {
-        router.push("/dashboard")
+        const uiRes = await fetch("/api/user/ui-mode")
+        const uiData = uiRes.ok ? await uiRes.json() : null
+        router.push(uiData?.uiMode === "QUICK_SPLIT" ? "/quick-split" : "/dashboard")
         router.refresh()
       }
     } finally {
