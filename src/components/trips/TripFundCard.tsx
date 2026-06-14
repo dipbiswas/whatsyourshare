@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { InteracFundDialog } from "@/components/trips/InteracFundDialog"
 import { formatCurrency } from "@/lib/balance"
+import { useConfig } from "@/lib/useConfig"
 
 interface Contribution {
   id: string
@@ -62,6 +63,7 @@ export function TripFundCard({
 }: Props) {
   const label = EVENT_LABEL[eventType] ?? "event"
   const isCAD = currency.toUpperCase() === "CAD"
+  const { stripeEnabled } = useConfig()
 
   const [fund, setFund] = useState<Fund | null>(initialFund)
   const [setupOpen, setSetupOpen] = useState(false)
@@ -178,14 +180,19 @@ export function TripFundCard({
                   onChange={(e) => setSetupForm((f) => ({ ...f, description: e.target.value }))}
                 />
               </div>
-              <div className="rounded-lg bg-indigo-50 border border-indigo-100 p-3 text-xs text-indigo-700">
-                <p className="font-medium mb-1">💳 How payments work</p>
-                <p>
-                  Members can pay via Stripe or{isCAD ? " Interac e-Transfer" : " card"}.
-                  {!isCAD && " A 1.5% platform fee applies to Stripe payments."}
-                  {isCAD && " Stripe charges a 1.5% platform fee; Interac is free."}
-                </p>
-              </div>
+              {(stripeEnabled || isCAD) && (
+                <div className="rounded-lg bg-indigo-50 border border-indigo-100 p-3 text-xs text-indigo-700">
+                  <p className="font-medium mb-1">💳 How payments work</p>
+                  <p>
+                    Members can pay via{stripeEnabled ? " Stripe" : ""}
+                    {stripeEnabled && isCAD ? " or" : ""}
+                    {isCAD ? " Interac e-Transfer" : ""}.
+                    {stripeEnabled && !isCAD && " A 1.5% platform fee applies to Stripe payments."}
+                    {stripeEnabled && isCAD && " Stripe charges a 1.5% platform fee; Interac is free."}
+                    {!stripeEnabled && isCAD && " Interac is free."}
+                  </p>
+                </div>
+              )}
               <DialogFooter>
                 <Button variant="outline" type="button" onClick={() => setSetupOpen(false)}>Cancel</Button>
                 <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={loading}>
@@ -277,14 +284,16 @@ export function TripFundCard({
 
           {/* Contribute CTAs */}
           {fund.status === "COLLECTING" && !iHavePaid && (
-            <div className={`grid gap-2 ${isCAD ? "grid-cols-2" : "grid-cols-1"}`}>
-              <Button
-                className="w-full bg-emerald-600 hover:bg-emerald-700 gap-2"
-                onClick={() => setContributeOpen(true)}
-              >
-                <ExternalLink className="h-4 w-4" />
-                {isCAD ? "Pay via Stripe" : "Contribute to fund"}
-              </Button>
+            <div className={`grid gap-2 ${stripeEnabled && isCAD ? "grid-cols-2" : stripeEnabled || isCAD ? "grid-cols-1" : "hidden"}`}>
+              {stripeEnabled && (
+                <Button
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 gap-2"
+                  onClick={() => setContributeOpen(true)}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Pay via Stripe
+                </Button>
+              )}
               {isCAD && (
                 <Button
                   variant="outline"
@@ -307,7 +316,7 @@ export function TripFundCard({
       </Card>
 
       {/* Stripe contribute dialog */}
-      <Dialog open={contributeOpen} onOpenChange={setContributeOpen}>
+      {stripeEnabled && <Dialog open={contributeOpen} onOpenChange={setContributeOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Contribute to {tripName} fund</DialogTitle>
@@ -339,7 +348,7 @@ export function TripFundCard({
             </DialogFooter>
           </form>
         </DialogContent>
-      </Dialog>
+      </Dialog>}
 
       {/* Interac contribute dialog (CAD only) */}
       {isCAD && (

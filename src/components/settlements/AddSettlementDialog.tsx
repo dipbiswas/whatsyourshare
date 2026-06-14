@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { useConfig } from "@/lib/useConfig"
 
 interface Member {
   userId: string
@@ -43,8 +44,10 @@ export function AddSettlementDialog({
   compact,
   trigger,
 }: Props) {
+  const { stripeEnabled } = useConfig()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<"MANUAL" | "STRIPE_ACH" | "STRIPE_INSTANT">("MANUAL")
   const [form, setForm] = useState({
     fromUserId: currentUserId,
     toUserId: suggestedTo ?? "",
@@ -77,7 +80,7 @@ export function AddSettlementDialog({
       const res = await fetch("/api/settlements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groupId, fromUserId: form.fromUserId, toUserId: form.toUserId, amount, note: form.note, date: form.date }),
+        body: JSON.stringify({ groupId, fromUserId: form.fromUserId, toUserId: form.toUserId, amount, note: form.note, date: form.date, paymentMethod }),
       })
       if (!res.ok) {
         toast.error("Failed to record settlement")
@@ -161,6 +164,27 @@ export function AddSettlementDialog({
                 required
               />
             </div>
+            {stripeEnabled && (
+              <div className="space-y-1.5">
+                <Label>Payment method</Label>
+                <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as typeof paymentMethod)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MANUAL">Manual / Cash / Bank transfer</SelectItem>
+                    <SelectItem value="STRIPE_ACH">Stripe — Bank transfer (ACH)</SelectItem>
+                    <SelectItem value="STRIPE_INSTANT">Stripe — Instant transfer</SelectItem>
+                  </SelectContent>
+                </Select>
+                {paymentMethod !== "MANUAL" && (
+                  <p className="text-xs text-muted-foreground">
+                    Both you and the recipient need a connected Stripe account in Settings.
+                    {paymentMethod === "STRIPE_INSTANT" && " An additional $0.10 instant transfer fee applies."}
+                  </p>
+                )}
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Date</Label>
               <Input
