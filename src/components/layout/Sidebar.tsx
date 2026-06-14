@@ -76,6 +76,19 @@ export function Sidebar({ user }: SidebarProps) {
 
         {/* Nav */}
         <nav className="flex-1 p-3 space-y-0.5">
+          <button
+            onClick={switchMode}
+            className={cn(
+              "w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
+              isQuickSplit
+                ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground"
+            )}
+          >
+            <Zap className="h-4 w-4 shrink-0" />
+            {isQuickSplit ? "Full View" : "Quick Split"}
+          </button>
+          <div className="my-1 border-t border-border" />
           {nav.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
@@ -114,15 +127,6 @@ export function Sidebar({ user }: SidebarProps) {
               <p className="text-xs text-muted-foreground truncate">{user.email}</p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start gap-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 text-xs"
-            onClick={switchMode}
-          >
-            <Zap className="h-3.5 w-3.5" />
-            {isQuickSplit ? "Full View" : "Quick Split"}
-          </Button>
           <Button
             variant="ghost"
             size="sm"
