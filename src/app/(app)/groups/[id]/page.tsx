@@ -955,12 +955,14 @@ function MembersTab({
   const isPercentage = group.defaultSplitType === "PERCENTAGE"
   const [expandedMember, setExpandedMember] = useState<string | null>(null)
   const [editRole, setEditRole] = useState<string>("")
+  const [editSplitType, setEditSplitType] = useState<string>("")
   const [editShare, setEditShare] = useState<string>("")
   const [savingMember, setSavingMember] = useState(false)
 
   function openEdit(m: typeof group.members[0]) {
     setExpandedMember(m.userId)
     setEditRole(m.role)
+    setEditSplitType(group.defaultSplitType || "EQUAL")
     setEditShare(String(group.defaultSplitShares?.[m.userId] ?? ""))
   }
 
@@ -978,19 +980,30 @@ function MembersTab({
         if (!res.ok) { toast.error("Failed to update role"); return }
         onGroupChange((g) => g ? { ...g, members: g.members.map((m) => m.userId === memberId ? { ...m, role: editRole } : m) } : g)
       }
-      // Share/percentage change
-      if (isShares || isPercentage) {
-        const val = parseFloat(editShare)
-        if (!isNaN(val) && val >= 0) {
-          const newShares = { ...(group.defaultSplitShares ?? {}), [memberId]: val }
-          const res = await fetch(`/api/groups/${group.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ defaultSplitShares: newShares }),
-          })
-          if (!res.ok) { toast.error("Failed to update share"); return }
-          onGroupChange((g) => g ? { ...g, defaultSplitShares: newShares } : g)
-        }
+      // Split type + share change
+      const splitTypeChanged = editSplitType !== group.defaultSplitType
+      const isNewShares = editSplitType === "SHARES"
+      const isNewPercentage = editSplitType === "PERCENTAGE"
+      const val = parseFloat(editShare)
+      const shareChanged = (isNewShares || isNewPercentage) && !isNaN(val) && val >= 0
+      if (splitTypeChanged || shareChanged) {
+        const newShares = shareChanged
+          ? { ...(group.defaultSplitShares ?? {}), [memberId]: val }
+          : group.defaultSplitShares
+        const res = await fetch(`/api/groups/${group.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...(splitTypeChanged ? { defaultSplitType: editSplitType } : {}),
+            ...(shareChanged ? { defaultSplitShares: newShares } : {}),
+          }),
+        })
+        if (!res.ok) { toast.error("Failed to update split"); return }
+        onGroupChange((g) => g ? {
+          ...g,
+          ...(splitTypeChanged ? { defaultSplitType: editSplitType } : {}),
+          ...(shareChanged ? { defaultSplitShares: newShares } : {}),
+        } : g)
       }
       toast.success("Member updated")
       setExpandedMember(null)
@@ -1118,21 +1131,43 @@ function MembersTab({
                     </div>
                   </div>
                 )}
-                {(isShares || isPercentage) && (
+                {isAdmin && (
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Split type</p>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {["EQUAL", "SHARES", "PERCENTAGE", "EXACT"].map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setEditSplitType(t)}
+                          className={cn(
+                            "px-2.5 py-1 rounded-lg border text-xs font-medium transition-colors",
+                            editSplitType === t
+                              ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300"
+                              : "border-border text-muted-foreground hover:bg-accent"
+                          )}
+                        >
+                          {t.charAt(0) + t.slice(1).toLowerCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {(editSplitType === "SHARES" || editSplitType === "PERCENTAGE") && (
                   <div className="space-y-1">
                     <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-                      {isPercentage ? "Split percentage" : "Split shares"}
+                      {editSplitType === "PERCENTAGE" ? "Percentage for this member" : "Shares for this member"}
                     </p>
                     <div className="flex items-center gap-2">
                       <Input
-                        type="number" min="0" step={isPercentage ? "0.1" : "1"}
-                        max={isPercentage ? "100" : undefined}
+                        type="number" min="0" step={editSplitType === "PERCENTAGE" ? "0.1" : "1"}
+                        max={editSplitType === "PERCENTAGE" ? "100" : undefined}
                         placeholder="0"
                         value={editShare}
                         onChange={(e) => setEditShare(e.target.value)}
                         className="w-24 h-8 text-sm"
                       />
-                      <span className="text-sm text-muted-foreground">{isPercentage ? "%" : "shares"}</span>
+                      <span className="text-sm text-muted-foreground">{editSplitType === "PERCENTAGE" ? "%" : "shares"}</span>
                     </div>
                   </div>
                 )}
