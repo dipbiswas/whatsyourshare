@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import {
   Users, Receipt, Scale, ArrowLeftRight, Plus, X,
   Check, Settings, ArrowRight, LayoutDashboard, Info, Clock,
+  Pencil, Trash2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatCurrency } from "@/lib/balance"
@@ -98,6 +99,13 @@ export default function QuickSplitPage() {
   const [expensePaidBy, setExpensePaidBy] = useState("")
   const [selectedForSplit, setSelectedForSplit] = useState<Set<string>>(new Set())
   const [addingExpense, setAddingExpense] = useState(false)
+
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
+  const [editDesc, setEditDesc] = useState("")
+  const [editAmount, setEditAmount] = useState("")
+  const [editPaidBy, setEditPaidBy] = useState("")
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [removingMemberId, setRemovingMemberId] = useState<string | null>(null)
 
   const [switching, setSwitching] = useState(false)
   const [defaultCurrency, setDefaultCurrency] = useState("USD")
@@ -315,6 +323,70 @@ export default function QuickSplitPage() {
     if (!res.ok) { toast.error("Failed to record settlement"); return }
     toast.success("Settlement recorded!")
     await loadBalances(selectedGroup.id)
+  }
+
+  function openEditExpense(e: Expense) {
+    setEditingExpense(e)
+    setEditDesc(e.description)
+    setEditAmount(String(e.amount))
+    setEditPaidBy(e.paidBy?.id ?? "")
+  }
+
+  async function saveEditExpense() {
+    if (!editingExpense || !selectedGroup) return
+    const amount = parseFloat(editAmount)
+    if (!editDesc.trim() || !amount || amount <= 0) return
+    setSavingEdit(true)
+    try {
+      const perPerson = Math.round((amount / editingExpense.splits.length) * 100) / 100
+      const splits = editingExpense.splits.map((s) =>
+        s.userId
+          ? { userId: s.userId, amount: perPerson }
+          : { guestMemberId: s.guestMemberId, amount: perPerson }
+      )
+      const res = await fetch(`/api/expenses/${editingExpense.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: editDesc.trim(), amount, paidById: editPaidBy, splitType: "EQUAL", splits }),
+      })
+      if (!res.ok) { toast.error("Failed to update expense"); return }
+      toast.success("Expense updated!")
+      setEditingExpense(null)
+      await loadBalances(selectedGroup.id)
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+  async function deleteExpense(expenseId: string) {
+    if (!selectedGroup) return
+    if (!confirm("Delete this expense?")) return
+    const res = await fetch(`/api/expenses/${expenseId}`, { method: "DELETE" })
+    if (!res.ok) { toast.error("Failed to delete expense"); return }
+    toast.success("Expense deleted")
+    await loadBalances(selectedGroup.id)
+  }
+
+  async function removeMember(userId: string, name: string) {
+    if (!selectedGroup) return
+    if (!confirm(`Remove ${name} from this group?`)) return
+    setRemovingMemberId(userId)
+    try {
+      const res = await fetch(`/api/groups/${selectedGroup.id}/members`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      })
+      if (!res.ok) { const d = await res.json(); toast.error(d.error ?? "Failed to remove member"); return }
+      const updated = { ...selectedGroup, members: selectedGroup.members.filter((m) => m.userId !== userId) }
+      setSelectedGroup(updated)
+      setGroups((prev) => prev.map((g) => g.id === updated.id ? updated : g))
+      setParticipants((prev) => prev.filter((p) => !(p.type === "member" && p.userId === userId)))
+      setSelectedForSplit((prev) => { const next = new Set(prev); next.delete(userId); return next })
+      toast.success(`${name} removed`)
+    } finally {
+      setRemovingMemberId(null)
+    }
   }
 
   async function switchToFull() {
@@ -556,14 +628,26 @@ export default function QuickSplitPage() {
             ) : (
               <div className="space-y-1.5">
                 {expenses.map((e) => (
-                  <div key={e.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/40">
-                    <div className="flex flex-col min-w-0">
+                  <div key={e.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/40">
+                    <div className="flex flex-col min-w-0 flex-1">
                       <span className="text-sm text-foreground truncate">{e.description}</span>
                       <span className="text-[11px] text-muted-foreground">paid by {e.paidBy?.name ?? "—"}</span>
                     </div>
-                    <span className="text-sm font-semibold tabular-nums text-foreground ml-3 shrink-0">
+                    <span className="text-sm font-semibold tabular-nums text-foreground shrink-0">
                       {formatCurrency(e.amount, selectedGroup?.currency ?? "USD")}
                     </span>
+                    <button
+                      onClick={() => openEditExpense(e)}
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors shrink-0"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => deleteExpense(e.id)}
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors shrink-0"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -702,20 +786,31 @@ export default function QuickSplitPage() {
                 const key = p.type === "member" ? p.userId : `guest_${p.guestId}`
                 const included = selectedForSplit.has(key)
                 return (
-                  <button
-                    key={key}
-                    onClick={() => toggleSplit(key)}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/40 hover:bg-muted transition-colors"
-                  >
-                    <div className={cn(
-                      "h-4 w-4 rounded flex items-center justify-center flex-shrink-0 border",
-                      included ? "bg-indigo-600 border-indigo-600" : "border-border"
-                    )}>
-                      {included && <Check className="h-2.5 w-2.5 text-white" />}
-                    </div>
-                    <span className="text-sm text-foreground flex-1 text-left">{p.name}</span>
-                    {p.type === "guest" && <span className="text-[10px] bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 rounded-full px-1.5 py-0.5">guest</span>}
-                  </button>
+                  <div key={key} className="flex items-center gap-2 rounded-lg bg-muted/40 hover:bg-muted transition-colors pr-1">
+                    <button
+                      onClick={() => toggleSplit(key)}
+                      className="flex items-center gap-2.5 px-3 py-2 flex-1 min-w-0"
+                    >
+                      <div className={cn(
+                        "h-4 w-4 rounded flex items-center justify-center flex-shrink-0 border",
+                        included ? "bg-indigo-600 border-indigo-600" : "border-border"
+                      )}>
+                        {included && <Check className="h-2.5 w-2.5 text-white" />}
+                      </div>
+                      <span className="text-sm text-foreground flex-1 text-left truncate">{p.name}</span>
+                      {p.type === "guest" && <span className="text-[10px] bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 rounded-full px-1.5 py-0.5">guest</span>}
+                    </button>
+                    {p.type === "member" && (
+                      <button
+                        onClick={() => removeMember(p.userId, p.name)}
+                        disabled={removingMemberId === p.userId}
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors shrink-0"
+                        title="Remove from group"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
                 )
               })}
             </div>
@@ -826,6 +921,63 @@ export default function QuickSplitPage() {
             >
               Done
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit expense popup */}
+      {editingExpense && selectedGroup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setEditingExpense(null)}>
+          <div className="w-full max-w-sm bg-card border border-border rounded-2xl p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-foreground">Edit expense</h2>
+              <button onClick={() => setEditingExpense(null)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Description</label>
+                <input
+                  type="text"
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Amount ({selectedGroup.currency})</label>
+                <input
+                  type="number"
+                  value={editAmount}
+                  onChange={(e) => setEditAmount(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Paid by</label>
+                <select
+                  value={editPaidBy}
+                  onChange={(e) => setEditPaidBy(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                >
+                  {selectedGroup.members.map((m) => (
+                    <option key={m.userId} value={m.userId}>{m.user.name}</option>
+                  ))}
+                </select>
+              </div>
+              <p className="text-[11px] text-muted-foreground">Split will be recalculated equally among the same members.</p>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={saveEditExpense}
+                disabled={savingEdit || !editDesc.trim() || !parseFloat(editAmount)}
+                className="flex-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm py-2 transition-colors"
+              >
+                {savingEdit ? "Saving…" : "Save changes"}
+              </button>
+              <button onClick={() => setEditingExpense(null)} className="px-4 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted transition-colors">
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
