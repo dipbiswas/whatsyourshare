@@ -612,19 +612,21 @@ export default function SettingsPage() {
                   <Button
                     size="sm"
                     className={`w-full text-xs font-semibold ${
-                      plan.key === "PRO"
+                      plan.key === "PRO" && currentPlan !== "FAMILY"
                         ? "bg-indigo-600 hover:bg-indigo-700 text-white"
-                        : "bg-amber-500 hover:bg-amber-600 text-white"
+                        : plan.key === "FAMILY"
+                        ? "bg-amber-500 hover:bg-amber-600 text-white"
+                        : "border border-indigo-300 text-indigo-700 dark:text-indigo-300 bg-transparent hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
                     }`}
-                    onClick={() => handleUpgrade(plan.key)}
-                    disabled={loadingCheckout === plan.key}
+                    onClick={() => plan.key === "PRO" && currentPlan === "FAMILY" ? handlePortal() : handleUpgrade(plan.key)}
+                    disabled={loadingCheckout === plan.key || (plan.key === "PRO" && currentPlan === "FAMILY" && loadingPortal)}
                   >
-                    {loadingCheckout === plan.key ? (
+                    {(loadingCheckout === plan.key || (plan.key === "PRO" && currentPlan === "FAMILY" && loadingPortal)) ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
                     ) : (
                       <Zap className="h-3.5 w-3.5 mr-1" />
                     )}
-                    {plan.cta}
+                    {plan.key === "PRO" && currentPlan === "FAMILY" ? "Downgrade to Pro" : plan.cta}
                   </Button>
                 )}
                 {plan.key === "FREE" && !isCurrent && currentPlan !== "FREE" && (
