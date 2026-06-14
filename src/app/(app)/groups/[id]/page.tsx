@@ -539,7 +539,6 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           { value: "trips",       label: "Events",      count: trips.length,                   icon: Plane },
           { value: "members",     label: "Members",     count: group.members.length + (group.guests?.length ?? 0), icon: Users },
           { value: "recurring",   label: "Recurring",   count: group.recurringExpenses.length, icon: Repeat2 },
-          { value: "settlements", label: "Settlements", count: group.settlements.length,       icon: ArrowLeftRight },
           { value: "insights",    label: "AI Insights", count: null,                           icon: Sparkles },
           { value: "settings",    label: "Settings",    count: null,                           icon: Settings },
         ]
@@ -714,55 +713,6 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
         </TabsContent>
 
         {/* Settlements */}
-        <TabsContent value="settlements" className="mt-4">
-          {group.settlements.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="mx-auto h-14 w-14 rounded-2xl bg-emerald-50 dark:bg-emerald-500/15 flex items-center justify-center mb-3">
-                <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">No settlements yet</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">Payments between members will appear here</p>
-            </div>
-          ) : (
-            <div className="glass rounded-2xl overflow-hidden">
-              {group.settlements.map((s, idx) => (
-                <div key={s.id}>
-                  {idx > 0 && <div className="h-px bg-border/60 mx-4" />}
-                  <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-accent/40 group/row transition-colors">
-                    <div className="flex items-center gap-1.5">
-                      <Avatar className="h-7 w-7">
-                        <AvatarFallback className="text-[10px] font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
-                          {s.fromUser.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/50" />
-                      <Avatar className="h-7 w-7">
-                        <AvatarFallback className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300">
-                          {s.toUser.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground">{s.fromUser.name} → {s.toUser.name}</p>
-                      <p className="text-xs text-muted-foreground">{s.note ? `${s.note} · ` : ""}{format(new Date(s.createdAt), "MMM d, yyyy")}</p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <p className="font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(s.amount, s.currency)}</p>
-                      <Button
-                        variant="ghost" size="icon"
-                        className="h-7 w-7 md:opacity-0 md:group-hover/row:opacity-100 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
-                        disabled={deletingId === s.id}
-                        onClick={() => deleteSettlement(s.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </TabsContent>
 
         {/* Recurring */}
         <TabsContent value="recurring" className="mt-4">
@@ -885,54 +835,112 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
         </TabsContent>
 
         {/* Balances */}
-        <TabsContent value="balances" className="mt-4">
-          <div className="space-y-3">
-            {[
-              ...group.members.map((m) => ({ key: m.userId, name: m.user.name + (m.userId === userId ? " (you)" : ""), balanceKey: m.userId, isGuest: false })),
-              ...(group.guests ?? []).map((g) => ({ key: `guest_${g.id}`, name: `${g.name} (guest)`, balanceKey: `guest_${g.id}`, isGuest: true })),
-            ].map(({ key, name, balanceKey, isGuest }) => {
-              const balance = group.balanceMap[balanceKey] ?? 0
-              const allBalances = [
-                ...group.members.map((mm) => Math.abs(group.balanceMap[mm.userId] ?? 0)),
-                ...(group.guests ?? []).map((g) => Math.abs(group.balanceMap[`guest_${g.id}`] ?? 0)),
-              ]
-              const maxBalance = Math.max(...allBalances, 1)
-              const barWidth = Math.round((Math.abs(balance) / maxBalance) * 100)
-              return (
-                <div key={key} className="glass rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-2.5">
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-7 w-7 shrink-0">
-                        <AvatarFallback className={cn("text-[10px] font-bold", isGuest ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300" : "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300")}>
-                          {name.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm font-semibold text-foreground">{name}</span>
+        <TabsContent value="balances" className="mt-4 space-y-6">
+          {/* Section 1 — Balances */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">Balances</p>
+            <div className="space-y-3">
+              {[
+                ...group.members.map((m) => ({ key: m.userId, name: m.user.name + (m.userId === userId ? " (you)" : ""), balanceKey: m.userId, isGuest: false })),
+                ...(group.guests ?? []).map((g) => ({ key: `guest_${g.id}`, name: `${g.name} (guest)`, balanceKey: `guest_${g.id}`, isGuest: true })),
+              ].map(({ key, name, balanceKey, isGuest }) => {
+                const balance = group.balanceMap[balanceKey] ?? 0
+                const allBalances = [
+                  ...group.members.map((mm) => Math.abs(group.balanceMap[mm.userId] ?? 0)),
+                  ...(group.guests ?? []).map((g) => Math.abs(group.balanceMap[`guest_${g.id}`] ?? 0)),
+                ]
+                const maxBalance = Math.max(...allBalances, 1)
+                const barWidth = Math.round((Math.abs(balance) / maxBalance) * 100)
+                return (
+                  <div key={key} className="glass rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-2.5">
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-7 w-7 shrink-0">
+                          <AvatarFallback className={cn("text-[10px] font-bold", isGuest ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300" : "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300")}>
+                            {name.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-semibold text-foreground">{name}</span>
+                      </div>
+                      <div className="text-right">
+                        <p className={cn("text-sm font-bold tabular-nums",
+                          balance > 0.01 ? "text-emerald-600 dark:text-emerald-400"
+                          : balance < -0.01 ? "text-rose-500 dark:text-rose-400"
+                          : "text-muted-foreground/50"
+                        )}>
+                          {balance > 0.01 ? "+" : ""}{formatCurrency(balance, group.currency)}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground/60">
+                          {Math.abs(balance) < 0.01 ? "settled" : balance > 0 ? "owed to them" : "they owe"}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className={cn("text-sm font-bold tabular-nums",
-                        balance > 0.01 ? "text-emerald-600 dark:text-emerald-400"
-                        : balance < -0.01 ? "text-rose-500 dark:text-rose-400"
-                        : "text-muted-foreground/50"
-                      )}>
-                        {balance > 0.01 ? "+" : ""}{formatCurrency(balance, group.currency)}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground/60">
-                        {Math.abs(balance) < 0.01 ? "settled" : balance > 0 ? "owed to them" : "they owe"}
-                      </p>
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={cn("h-full rounded-full transition-all",
+                          balance > 0.01 ? "bg-emerald-500" : balance < -0.01 ? "bg-rose-500" : "bg-muted-foreground/20"
+                        )}
+                        style={{ width: `${barWidth}%` }}
+                      />
                     </div>
                   </div>
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={cn("h-full rounded-full transition-all",
-                        balance > 0.01 ? "bg-emerald-500" : balance < -0.01 ? "bg-rose-500" : "bg-muted-foreground/20"
-                      )}
-                      style={{ width: `${barWidth}%` }}
-                    />
-                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Section 2 — Settlements */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
+              Settlements {group.settlements.length > 0 && <span className="text-muted-foreground/50 font-normal">· {group.settlements.length}</span>}
+            </p>
+            {group.settlements.length === 0 ? (
+              <div className="text-center py-10">
+                <div className="mx-auto h-12 w-12 rounded-2xl bg-emerald-50 dark:bg-emerald-500/15 flex items-center justify-center mb-3">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 </div>
-              )
-            })}
+                <p className="text-sm font-medium text-muted-foreground">No settlements yet</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">Payments between members will appear here</p>
+              </div>
+            ) : (
+              <div className="glass rounded-2xl overflow-hidden">
+                {group.settlements.map((s, idx) => (
+                  <div key={s.id}>
+                    {idx > 0 && <div className="h-px bg-border/60 mx-4" />}
+                    <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-accent/40 group/row transition-colors">
+                      <div className="flex items-center gap-1.5">
+                        <Avatar className="h-7 w-7">
+                          <AvatarFallback className="text-[10px] font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                            {s.fromUser.name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/50" />
+                        <Avatar className="h-7 w-7">
+                          <AvatarFallback className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300">
+                            {s.toUser.name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground">{s.fromUser.name} → {s.toUser.name}</p>
+                        <p className="text-xs text-muted-foreground">{s.note ? `${s.note} · ` : ""}{format(new Date(s.createdAt), "MMM d, yyyy")}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <p className="font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(s.amount, s.currency)}</p>
+                        <Button
+                          variant="ghost" size="icon"
+                          className="h-7 w-7 md:opacity-0 md:group-hover/row:opacity-100 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                          disabled={deletingId === s.id}
+                          onClick={() => deleteSettlement(s.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </TabsContent>
 
