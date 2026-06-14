@@ -9,16 +9,17 @@ const patchSchema = z.object({
   isAdmin: z.boolean().optional(),
 })
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const check = await requireAdmin()
   if (check instanceof NextResponse) return check
 
+  const { id } = await params
   const body = await req.json()
   const parsed = patchSchema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
 
   const user = await (prisma.user.update as any)({
-    where: { id: params.id },
+    where: { id },
     data: parsed.data,
     select: { id: true, name: true, email: true, plan: true, isAdmin: true, bonusScans: true },
   })

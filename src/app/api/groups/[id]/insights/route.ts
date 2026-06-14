@@ -7,11 +7,12 @@ import Anthropic from "@anthropic-ai/sdk"
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session?.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const userId = session.user.id
+  const { id: groupId } = await params
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "AI not configured" }, { status: 503 })
@@ -27,7 +28,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   }
 
   // Fetch group data
-  const isMember = await prisma.groupMember.findFirst({ where: { groupId: params.id, userId } })
+  const isMember = await prisma.groupMember.findFirst({ where: { groupId: groupId, userId } })
   if (!isMember) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const now = new Date()
@@ -36,7 +37,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 
   const [group, thisMonthExpenses, lastMonthExpenses, allExpenses, settlements] = await Promise.all([
     prisma.group.findUnique({
-      where: { id: params.id },
+      where: { id: groupId },
       select: {
         name: true,
         currency: true,
@@ -44,19 +45,19 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
       },
     }),
     prisma.expense.findMany({
-      where: { groupId: params.id, date: { gte: startOfThisMonth } },
+      where: { groupId: groupId, date: { gte: startOfThisMonth } },
       select: { amount: true, category: true, description: true, date: true, paidById: true },
     }),
     prisma.expense.findMany({
-      where: { groupId: params.id, date: { gte: startOfLastMonth, lt: startOfThisMonth } },
+      where: { groupId: groupId, date: { gte: startOfLastMonth, lt: startOfThisMonth } },
       select: { amount: true, category: true },
     }),
     prisma.expense.findMany({
-      where: { groupId: params.id },
+      where: { groupId: groupId },
       select: { amount: true, category: true, paidById: true, splits: { select: { userId: true, amount: true } } },
     }),
     prisma.settlement.findMany({
-      where: { groupId: params.id },
+      where: { groupId: groupId },
       select: { fromUserId: true, toUserId: true, amount: true },
     }),
   ])
