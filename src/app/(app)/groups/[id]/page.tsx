@@ -980,30 +980,19 @@ function MembersTab({
         if (!res.ok) { toast.error("Failed to update role"); return }
         onGroupChange((g) => g ? { ...g, members: g.members.map((m) => m.userId === memberId ? { ...m, role: editRole } : m) } : g)
       }
-      // Split type + share change
-      const splitTypeChanged = editSplitType !== group.defaultSplitType
+      // Share/percentage change only (split type is display-only in this panel)
       const isNewShares = editSplitType === "SHARES"
       const isNewPercentage = editSplitType === "PERCENTAGE"
       const val = parseFloat(editShare)
-      const shareChanged = (isNewShares || isNewPercentage) && !isNaN(val) && val >= 0
-      if (splitTypeChanged || shareChanged) {
-        const newShares = shareChanged
-          ? { ...(group.defaultSplitShares ?? {}), [memberId]: val }
-          : group.defaultSplitShares
+      if ((isNewShares || isNewPercentage) && !isNaN(val) && val >= 0) {
+        const newShares = { ...(group.defaultSplitShares ?? {}), [memberId]: val }
         const res = await fetch(`/api/groups/${group.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...(splitTypeChanged ? { defaultSplitType: editSplitType } : {}),
-            ...(shareChanged ? { defaultSplitShares: newShares } : {}),
-          }),
+          body: JSON.stringify({ defaultSplitShares: newShares }),
         })
-        if (!res.ok) { toast.error("Failed to update split"); return }
-        onGroupChange((g) => g ? {
-          ...g,
-          ...(splitTypeChanged ? { defaultSplitType: editSplitType } : {}),
-          ...(shareChanged ? { defaultSplitShares: newShares } : {}),
-        } : g)
+        if (!res.ok) { toast.error("Failed to update share"); return }
+        onGroupChange((g) => g ? { ...g, defaultSplitShares: newShares } : g)
       }
       toast.success("Member updated")
       setExpandedMember(null)
@@ -1133,7 +1122,7 @@ function MembersTab({
                 )}
                 {isAdmin && (
                   <div className="space-y-1">
-                    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Split type</p>
+                    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Split type (for share entry)</p>
                     <div className="flex gap-1.5 flex-wrap">
                       {["EQUAL", "SHARES", "PERCENTAGE", "EXACT"].map((t) => (
                         <button
