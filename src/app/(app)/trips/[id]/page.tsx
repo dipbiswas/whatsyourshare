@@ -16,6 +16,7 @@ import {
   Link2,
   Link2Off,
   Plus,
+  Trash2,
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -225,8 +226,28 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <span className="text-4xl">{trip.coverEmoji ?? "✈️"}</span>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{trip.name}</h1>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-gray-900 flex-1">{trip.name}</h1>
+                {isOrganizer && (
+                  <Button
+                    variant="ghost" size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 shrink-0"
+                    onClick={async () => {
+                      if (!confirm(`Delete "${trip.name}"? This cannot be undone.`)) return
+                      const res = await fetch(`/api/trips/${id}`, { method: "DELETE" })
+                      if (res.ok) {
+                        toast.success("Event deleted")
+                        router.push(`/groups/${trip.group.id}`)
+                      } else {
+                        toast.error("Failed to delete event")
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
               <div className="flex items-center flex-wrap gap-3 mt-1 text-sm text-gray-500">
                 {trip.destination && (
                   <span className="flex items-center gap-1">
