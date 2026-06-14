@@ -53,6 +53,7 @@ import { InteracHelperDialog } from "@/components/settlements/InteracHelperDialo
 import { formatCurrency } from "@/lib/balance"
 import { cn } from "@/lib/utils"
 import type { AnnotatedTransfer } from "@/lib/balance"
+import { useConfig } from "@/lib/useConfig"
 
 interface Member {
   userId: string
@@ -157,6 +158,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
   const [activeGroupTab, setActiveGroupTab] = useState("expenses")
 
   const userId = session?.user.id ?? ""
+  const { stripeEnabled } = useConfig()
 
   const refreshGroup = () =>
     fetch(`/api/groups/${id}`)
@@ -934,6 +936,24 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                                 })
                                 refreshGroup()
                               }}
+                            />
+                          )}
+                          {stripeEnabled && (
+                            <AddSettlementDialog
+                              groupId={group.id}
+                              currency={group.currency}
+                              members={group.members}
+                              currentUserId={userId}
+                              suggestedTo={s.to}
+                              suggestedAmount={s.amount}
+                              defaultPaymentMethod="STRIPE_ACH"
+                              onCreated={() => refreshGroup()}
+                              compact
+                              trigger={
+                                <Button variant="outline" size="sm" className="h-7 text-xs px-2 border-indigo-200 text-indigo-600 hover:bg-indigo-50">
+                                  Pay via Stripe
+                                </Button>
+                              }
                             />
                           )}
                           <AddSettlementDialog

@@ -28,6 +28,7 @@ interface Props {
   currentUserId: string
   suggestedTo?: string
   suggestedAmount?: number
+  defaultPaymentMethod?: "MANUAL" | "STRIPE_ACH" | "STRIPE_INSTANT"
   onCreated: () => void
   compact?: boolean
   trigger?: React.ReactNode
@@ -40,6 +41,7 @@ export function AddSettlementDialog({
   currentUserId,
   suggestedTo,
   suggestedAmount,
+  defaultPaymentMethod = "MANUAL",
   onCreated,
   compact,
   trigger,
@@ -47,7 +49,7 @@ export function AddSettlementDialog({
   const { stripeEnabled } = useConfig()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<"MANUAL" | "STRIPE_ACH" | "STRIPE_INSTANT">("MANUAL")
+  const [paymentMethod, setPaymentMethod] = useState<"MANUAL" | "STRIPE_ACH" | "STRIPE_INSTANT">(defaultPaymentMethod)
   const [form, setForm] = useState({
     fromUserId: currentUserId,
     toUserId: suggestedTo ?? "",
@@ -90,6 +92,7 @@ export function AddSettlementDialog({
       onCreated()
       setOpen(false)
       setForm({ fromUserId: currentUserId, toUserId: "", amount: "", note: "", date: new Date().toISOString().split("T")[0] })
+      setPaymentMethod(defaultPaymentMethod)
     } finally {
       setLoading(false)
     }
