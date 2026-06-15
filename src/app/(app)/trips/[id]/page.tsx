@@ -743,7 +743,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                                   currentUserId={userId}
                                   suggestedTo={t.to}
                                   suggestedAmount={t.amount}
-                                  defaultPaymentMethod="STRIPE_ACH"
+
                                   onCreated={refreshTrip}
                                   compact
                                   trigger={

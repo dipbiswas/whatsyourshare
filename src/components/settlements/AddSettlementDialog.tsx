@@ -14,7 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { useConfig } from "@/lib/useConfig"
 
 interface Member {
   userId: string
@@ -28,7 +27,6 @@ interface Props {
   currentUserId: string
   suggestedTo?: string
   suggestedAmount?: number
-  defaultPaymentMethod?: "MANUAL" | "STRIPE_ACH" | "STRIPE_INSTANT"
   onCreated: () => void
   compact?: boolean
   trigger?: React.ReactNode
@@ -41,15 +39,12 @@ export function AddSettlementDialog({
   currentUserId,
   suggestedTo,
   suggestedAmount,
-  defaultPaymentMethod = "MANUAL",
   onCreated,
   compact,
   trigger,
 }: Props) {
-  const { stripeEnabled } = useConfig()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<"MANUAL" | "STRIPE_ACH" | "STRIPE_INSTANT">(defaultPaymentMethod)
   const [form, setForm] = useState({
     fromUserId: currentUserId,
     toUserId: suggestedTo ?? "",
@@ -58,7 +53,6 @@ export function AddSettlementDialog({
     date: new Date().toISOString().split("T")[0],
   })
 
-  // When "paying from" changes, reset "paying to" so they can't be the same
   function setFromUser(id: string | null) {
     if (!id) return
     setForm((f) => ({ ...f, fromUserId: id, toUserId: f.toUserId === id ? "" : f.toUserId }))
@@ -82,7 +76,7 @@ export function AddSettlementDialog({
       const res = await fetch("/api/settlements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groupId, fromUserId: form.fromUserId, toUserId: form.toUserId, amount, note: form.note, date: form.date, paymentMethod }),
+        body: JSON.stringify({ groupId, fromUserId: form.fromUserId, toUserId: form.toUserId, amount, note: form.note, date: form.date }),
       })
       if (!res.ok) {
         toast.error("Failed to record settlement")
@@ -92,7 +86,6 @@ export function AddSettlementDialog({
       onCreated()
       setOpen(false)
       setForm({ fromUserId: currentUserId, toUserId: "", amount: "", note: "", date: new Date().toISOString().split("T")[0] })
-      setPaymentMethod(defaultPaymentMethod)
     } finally {
       setLoading(false)
     }
@@ -167,27 +160,6 @@ export function AddSettlementDialog({
                 required
               />
             </div>
-            {stripeEnabled && (
-              <div className="space-y-1.5">
-                <Label>Payment method</Label>
-                <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as typeof paymentMethod)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MANUAL">Cash / Interac / Bank transfer</SelectItem>
-                    <SelectItem value="STRIPE_ACH">Stripe — Standard (1–3 business days)</SelectItem>
-                    <SelectItem value="STRIPE_INSTANT">Stripe — Instant (arrives in minutes)</SelectItem>
-                  </SelectContent>
-                </Select>
-                {paymentMethod !== "MANUAL" && (
-                  <p className="text-xs text-muted-foreground">
-                    Both you and the recipient need a connected Stripe account in Settings.
-                    {paymentMethod === "STRIPE_INSTANT" && " An additional $0.10 instant transfer fee applies."}
-                  </p>
-                )}
-              </div>
-            )}
             <div className="space-y-1.5">
               <Label>Date</Label>
               <Input
@@ -200,7 +172,7 @@ export function AddSettlementDialog({
             <div className="space-y-1.5">
               <Label>Note (optional)</Label>
               <Input
-                placeholder="Bank transfer, cash, etc."
+                placeholder="Interac, cash, bank transfer…"
                 value={form.note}
                 onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
               />

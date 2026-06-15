@@ -951,7 +951,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                               currentUserId={userId}
                               suggestedTo={s.to}
                               suggestedAmount={s.amount}
-                              defaultPaymentMethod="STRIPE_ACH"
+
                               onCreated={() => refreshGroup()}
                               compact
                               trigger={
