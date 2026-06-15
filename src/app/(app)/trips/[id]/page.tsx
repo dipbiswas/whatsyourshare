@@ -37,7 +37,9 @@ import { EditTripDialog } from "@/components/trips/EditTripDialog"
 import { AddExpenseDialog } from "@/components/expenses/AddExpenseDialog"
 import { EditExpenseDialog } from "@/components/expenses/EditExpenseDialog"
 import { AddSettlementDialog } from "@/components/settlements/AddSettlementDialog"
+import { InteracHelperDialog } from "@/components/settlements/InteracHelperDialog"
 import { calculateGroupBalances, simplifyDebts, formatCurrency } from "@/lib/balance"
+import { useConfig } from "@/lib/useConfig"
 
 interface Member {
   userId: string
@@ -139,6 +141,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
   const [activeTab, setActiveTab] = useState<"itinerary" | "planning" | "expenses">("planning")
 
   const userId = session?.user.id ?? ""
+  const { stripeEnabled } = useConfig()
 
   // Handle Stripe return
   useEffect(() => {
@@ -698,33 +701,77 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                       <span>✓</span> Everyone is settled up
                     </div>
                   ) : (
-                    <div className="pt-2 border-t border-gray-100 space-y-2">
+                    <div className="pt-2 border-t border-gray-100 space-y-3">
                       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Suggested</p>
-                      {transfers.map((t, i) => (
-                        <div key={i} className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm text-gray-700 flex-1 min-w-0">
-                            <span className="font-medium">{t.from === userId ? "You" : t.fromName}</span>
-                            <span className="text-gray-400 mx-1">→</span>
-                            <span className="font-medium">{t.to === userId ? "you" : t.toName}</span>
-                          </span>
-                          <span className="text-sm font-semibold text-gray-900 shrink-0">{formatCurrency(t.amount, trip.group.currency)}</span>
-                          <AddSettlementDialog
-                            groupId={trip.group.id}
-                            currency={trip.group.currency}
-                            members={trip.group.members.map((m) => ({ userId: m.userId, user: { id: m.userId, name: m.user.name } }))}
-                            currentUserId={userId}
-                            suggestedTo={t.to}
-                            suggestedAmount={t.amount}
-                            onCreated={refreshTrip}
-                            compact
-                            trigger={
-                              <button className="text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 px-2.5 py-1.5 rounded-lg transition-colors shrink-0">
-                                Settle up
-                              </button>
-                            }
-                          />
-                        </div>
-                      ))}
+                      {transfers.map((t, i) => {
+                        const isCAD = trip.group.currency.toUpperCase() === "CAD"
+                        const members = trip.group.members.map((m) => ({ userId: m.userId, user: { id: m.userId, name: m.user.name } }))
+                        const toEmail = trip.group.members.find((m) => m.userId === t.to)?.user.email ?? ""
+                        return (
+                          <div key={i} className="space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-700 flex-1 min-w-0">
+                                <span className="font-medium">{t.from === userId ? "You" : t.fromName}</span>
+                                <span className="text-gray-400 mx-1">→</span>
+                                <span className="font-medium">{t.to === userId ? "you" : t.toName}</span>
+                              </span>
+                              <span className="text-sm font-semibold text-gray-900 shrink-0">{formatCurrency(t.amount, trip.group.currency)}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {isCAD && (
+                                <InteracHelperDialog
+                                  amount={t.amount}
+                                  currency={trip.group.currency}
+                                  toName={t.toName}
+                                  toEmail={toEmail}
+                                  groupName={trip.name}
+                                  onSent={async () => {
+                                    await fetch("/api/settlements", {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ groupId: trip.group.id, toUserId: t.to, amount: t.amount, note: "Interac e-Transfer" }),
+                                    })
+                                    refreshTrip()
+                                  }}
+                                />
+                              )}
+                              {stripeEnabled && (
+                                <AddSettlementDialog
+                                  groupId={trip.group.id}
+                                  currency={trip.group.currency}
+                                  members={members}
+                                  currentUserId={userId}
+                                  suggestedTo={t.to}
+                                  suggestedAmount={t.amount}
+                                  defaultPaymentMethod="STRIPE_ACH"
+                                  onCreated={refreshTrip}
+                                  compact
+                                  trigger={
+                                    <Button variant="outline" size="sm" className="h-7 text-xs px-2 border-indigo-200 text-indigo-600 hover:bg-indigo-50">
+                                      Pay via Stripe
+                                    </Button>
+                                  }
+                                />
+                              )}
+                              <AddSettlementDialog
+                                groupId={trip.group.id}
+                                currency={trip.group.currency}
+                                members={members}
+                                currentUserId={userId}
+                                suggestedTo={t.to}
+                                suggestedAmount={t.amount}
+                                onCreated={refreshTrip}
+                                compact
+                                trigger={
+                                  <button className="text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1.5 rounded-lg transition-colors shrink-0">
+                                    Settle up
+                                  </button>
+                                }
+                              />
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
                 </CardContent>
