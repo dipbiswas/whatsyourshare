@@ -175,9 +175,9 @@ export function AddSettlementDialog({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="MANUAL">Manual / Cash / Bank transfer</SelectItem>
-                    <SelectItem value="STRIPE_ACH">Stripe — Bank transfer (ACH)</SelectItem>
-                    <SelectItem value="STRIPE_INSTANT">Stripe — Instant transfer</SelectItem>
+                    <SelectItem value="MANUAL">Cash / Interac / Bank transfer</SelectItem>
+                    <SelectItem value="STRIPE_ACH">Stripe — Standard (1–3 business days)</SelectItem>
+                    <SelectItem value="STRIPE_INSTANT">Stripe — Instant (arrives in minutes)</SelectItem>
                   </SelectContent>
                 </Select>
                 {paymentMethod !== "MANUAL" && (
