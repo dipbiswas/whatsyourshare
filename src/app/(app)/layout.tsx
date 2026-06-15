@@ -10,7 +10,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex h-full">
       <Sidebar user={session.user} />
-      <main className="flex-1 overflow-auto pb-20 lg:pb-0">
+      <main className="flex-1 overflow-auto">
+        {/* Spacer so hamburger button doesn't overlap page content on mobile */}
+        <div className="lg:hidden h-14" />
         {children}
       </main>
       <PushProvider />

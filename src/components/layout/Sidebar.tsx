@@ -158,31 +158,14 @@ export function Sidebar({ user }: SidebarProps) {
         </div>
       </aside>
 
-      {/* Mobile bottom tab bar */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/90 dark:bg-black/40 backdrop-blur-xl border-t border-border pb-safe">
-        <div className="flex items-center justify-around px-2 pt-2 pb-1">
-          {nav.filter((n) => n.mobile).map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all",
-                isActive(href) ? "text-indigo-600 dark:text-indigo-400" : "text-muted-foreground"
-              )}
-            >
-              <Icon className={cn("h-5 w-5", isActive(href) && "stroke-[2.5px]")} />
-              <span className="text-[10px] font-medium">{label}</span>
-            </Link>
-          ))}
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all text-muted-foreground hover:text-foreground"
-          >
-            <Menu className="h-5 w-5" />
-            <span className="text-[10px] font-medium">More</span>
-          </button>
-        </div>
-      </nav>
+      {/* Mobile hamburger button */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="lg:hidden fixed top-4 left-4 z-50 h-9 w-9 flex items-center justify-center rounded-xl bg-background border border-border shadow-sm text-foreground hover:bg-accent transition-colors"
+        aria-label="Open menu"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
 
       {/* Mobile drawer */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
