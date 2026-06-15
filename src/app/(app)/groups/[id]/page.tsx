@@ -943,24 +943,6 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                               }}
                             />
                           )}
-                          {stripeEnabled && (
-                            <AddSettlementDialog
-                              groupId={group.id}
-                              currency={group.currency}
-                              members={group.members}
-                              currentUserId={userId}
-                              suggestedTo={s.to}
-                              suggestedAmount={s.amount}
-
-                              onCreated={() => refreshGroup()}
-                              compact
-                              trigger={
-                                <Button variant="outline" size="sm" className="h-7 text-xs px-2 border-indigo-200 text-indigo-600 hover:bg-indigo-50">
-                                  Pay via Stripe
-                                </Button>
-                              }
-                            />
-                          )}
                           <AddSettlementDialog
                             groupId={group.id}
                             currency={group.currency}
