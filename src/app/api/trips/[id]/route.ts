@@ -35,7 +35,7 @@ export async function GET(
           id: true,
           name: true,
           currency: true,
-          members: { include: { user: { select: { id: true, name: true, avatar: true } } } },
+          members: { include: { user: { select: { id: true, name: true, email: true, avatar: true } } } },
         },
       },
       days: {

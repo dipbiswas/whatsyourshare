@@ -44,7 +44,7 @@ import { useConfig } from "@/lib/useConfig"
 interface Member {
   userId: string
   role: string
-  user: { id: string; name: string; avatar: string | null }
+  user: { id: string; name: string; email: string; avatar: string | null }
 }
 
 interface Split {
