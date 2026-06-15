@@ -158,14 +158,22 @@ export function Sidebar({ user }: SidebarProps) {
         </div>
       </aside>
 
-      {/* Mobile hamburger button */}
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 h-9 w-9 flex items-center justify-center rounded-xl bg-background border border-border shadow-sm text-foreground hover:bg-accent transition-colors"
-        aria-label="Open menu"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
+      {/* Mobile header bar */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-3 bg-background/95 backdrop-blur border-b border-border">
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="h-9 w-9 flex items-center justify-center rounded-xl border border-border shadow-sm text-foreground hover:bg-accent transition-colors"
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 shadow-sm shadow-indigo-200">
+            <DollarSign className="h-3.5 w-3.5 text-white" />
+          </div>
+          <span className="font-bold text-foreground tracking-tight text-sm">WhatsYourShare</span>
+        </div>
+      </div>
 
       {/* Mobile drawer */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
