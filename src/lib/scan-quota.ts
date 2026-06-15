@@ -17,7 +17,7 @@ export async function checkScanQuota(userId: string, feature: string): Promise<Q
   const bonusScans: number = user?.bonusScans ?? 0
 
   if (limits.maxAiScans === 0 && bonusScans === 0) {
-    return { allowed: false, reason: "plan_limit", message: "Receipt scanning is a Pro feature. Upgrade to scan receipts." }
+    return { allowed: false, reason: "plan_limit", message: "AI features are a Pro plan benefit. Upgrade to get monthly tokens." }
   }
 
   const month = currentMonth()
@@ -38,7 +38,7 @@ export async function checkScanQuota(userId: string, feature: string): Promise<Q
   return {
     allowed: false,
     reason: "exhausted",
-    message: `You've used all ${limits.maxAiScans} monthly scans. Top up to keep going.`,
+    message: `You've used all ${limits.maxAiScans} monthly tokens. Top up to keep going.`,
   }
 }
 

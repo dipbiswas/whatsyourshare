@@ -45,7 +45,7 @@ export function AiPlanningDialog({
 
   async function generate() {
     if (localScans <= 0) {
-      toast.error("No scans remaining. Top up to continue.")
+      toast.error("No tokens remaining. Top up to continue.")
       return
     }
     setGenerating(true)
@@ -128,7 +128,7 @@ export function AiPlanningDialog({
           <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
             <span>{memberCount} people · {days} day{days !== 1 ? "s" : ""}</span>
             <span className={localScans <= 0 ? "text-rose-500 font-semibold" : ""}>
-              {localScans} scan{localScans !== 1 ? "s" : ""} remaining
+              {localScans} token{localScans !== 1 ? "s" : ""} remaining
             </span>
           </div>
 
@@ -153,9 +153,9 @@ export function AiPlanningDialog({
             {generating ? (
               <><RefreshCw className="h-4 w-4 animate-spin" />Generating…</>
             ) : generated ? (
-              <><RefreshCw className="h-4 w-4" />Regenerate · uses 1 scan</>
+              <><RefreshCw className="h-4 w-4" />Regenerate · uses 1 token</>
             ) : (
-              <><Sparkles className="h-4 w-4" />Generate · uses 1 scan</>
+              <><Sparkles className="h-4 w-4" />Generate · uses 1 token</>
             )}
           </Button>
 

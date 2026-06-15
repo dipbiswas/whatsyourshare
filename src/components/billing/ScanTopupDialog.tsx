@@ -77,13 +77,13 @@ export function ScanTopupDialog({ open, onOpenChange, currentBonus = 0 }: Props)
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-indigo-500" />
-            Top up AI scans
+            Top up AI tokens
           </DialogTitle>
           <DialogDescription>
-            One-time purchase — scans never expire and work across all your groups.
+            One-time purchase — tokens never expire and work across all your groups.
             {currentBonus > 0 && (
               <span className="block mt-1 text-indigo-600 dark:text-indigo-400 font-medium">
-                You currently have {currentBonus} bonus scan{currentBonus !== 1 ? "s" : ""}.
+                You currently have {currentBonus} bonus token{currentBonus !== 1 ? "s" : ""}.
               </span>
             )}
           </DialogDescription>
@@ -113,8 +113,8 @@ export function ScanTopupDialog({ open, onOpenChange, currentBonus = 0 }: Props)
                 </span>
               )}
               <div>
-                <p className="text-sm font-semibold text-foreground">{pack.scans} AI scans</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{formatPerScan(pack.priceCents, pack.scans)} per scan</p>
+                <p className="text-sm font-semibold text-foreground">{pack.scans} AI tokens</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{formatPerScan(pack.priceCents, pack.scans)} per token</p>
               </div>
               <div className="text-right shrink-0">
                 <p className="text-base font-bold text-foreground">{formatPrice(pack.priceCents)}</p>
@@ -132,13 +132,13 @@ export function ScanTopupDialog({ open, onOpenChange, currentBonus = 0 }: Props)
           {loading
             ? <><Loader2 className="h-4 w-4 animate-spin" /> Redirecting…</>
             : selectedPack
-              ? <><Zap className="h-4 w-4" /> Buy {selectedPack.scans} scans — {formatPrice(selectedPack.priceCents)}</>
-              : "Buy scans"
+              ? <><Zap className="h-4 w-4" /> Buy {selectedPack.scans} tokens — {formatPrice(selectedPack.priceCents)}</>
+              : "Buy tokens"
           }
         </Button>
 
         <p className="text-center text-[11px] text-muted-foreground -mt-1">
-          Secure checkout via Stripe. Scans are added instantly after payment.
+          Secure checkout via Stripe. Tokens are added instantly after payment.
         </p>
       </DialogContent>
     </Dialog>

@@ -118,8 +118,8 @@ export function InsightsTab({ groupId, canUseAI, aiScansUsed, aiScansLimit, bonu
           <p className="text-xs text-muted-foreground mt-0.5">
             {onFreePlan
               ? bonus > 0
-                ? <><span className="text-indigo-600 dark:text-indigo-400">{bonus} bonus scan{bonus !== 1 ? "s" : ""}</span> · each generation uses 1</>
-                : "Buy scans below to get started"
+                ? <><span className="text-indigo-600 dark:text-indigo-400">{bonus} bonus token{bonus !== 1 ? "s" : ""}</span> · each generation uses 1</>
+                : "Buy tokens below to get started"
               : <>{used}/{aiScansLimit} monthly{bonus > 0 && <span className="text-indigo-600 dark:text-indigo-400"> · {bonus} bonus</span>} · each generation uses 1</>
             }
           </p>
@@ -141,7 +141,7 @@ export function InsightsTab({ groupId, canUseAI, aiScansUsed, aiScansLimit, bonu
             onClick={runInsights}
             disabled={loading || !canGenerate}
             className="gap-2 bg-indigo-600 hover:bg-indigo-700"
-            title="Uses 1 AI scan from your allowance"
+            title="Uses 1 AI token from your allowance"
           >
             {loading ? (
               <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Analyzing…</>
@@ -164,7 +164,7 @@ export function InsightsTab({ groupId, canUseAI, aiScansUsed, aiScansLimit, bonu
             <div>
               <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">AI Insights — Pro feature</p>
               <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-                Upgrade to Pro for 20 scans/month, or buy a one-time top-up pack to try it now.
+                Upgrade to Pro for 20 tokens/month, or buy a one-time top-up pack to try it now.
               </p>
             </div>
           </div>
@@ -178,7 +178,7 @@ export function InsightsTab({ groupId, canUseAI, aiScansUsed, aiScansLimit, bonu
               className="flex-1 flex items-center justify-center gap-1.5 bg-background hover:bg-accent border border-border text-foreground/80 text-xs font-medium py-2 rounded-lg transition-colors"
             >
               <ShoppingCart className="h-3 w-3" />
-              {prices ? `Buy scans from $${(prices.small / 100).toFixed(2)}` : "Buy scans"}
+              {prices ? `Buy tokens from $${(prices.small / 100).toFixed(2)}` : "Buy tokens"}
             </button>
           </div>
         </div>
@@ -188,7 +188,7 @@ export function InsightsTab({ groupId, canUseAI, aiScansUsed, aiScansLimit, bonu
       {!onFreePlan && monthlyExhausted && bonus === 0 && !loading && (
         <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Monthly scans used up</p>
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Monthly tokens used up</p>
             <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
               Resets next month, or top up now for instant access.
             </p>
@@ -216,7 +216,7 @@ export function InsightsTab({ groupId, canUseAI, aiScansUsed, aiScansLimit, bonu
           <p className="text-sm text-muted-foreground max-w-xs">
             Generate AI-powered spending analysis, settlement recommendations, and anomaly detection for this group.
           </p>
-          <p className="text-xs text-muted-foreground/60">Uses 1 scan from your {aiScansLimit}/month allowance</p>
+          <p className="text-xs text-muted-foreground/60">Uses 1 token from your {aiScansLimit}/month allowance</p>
         </div>
       )}
 

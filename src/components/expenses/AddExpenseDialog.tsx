@@ -327,7 +327,7 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
             )}>
               <span className="flex items-center gap-2">
                 <Camera className="h-4 w-4" />
-                {scanStatus.limit === 0 ? "Receipt scanning (Pro only)" : `Scan limit reached (${scanStatus.used}/${scanStatus.limit})`}
+                {scanStatus.limit === 0 ? "Receipt scanning (Pro only)" : `Token limit reached (${scanStatus.used}/${scanStatus.limit})`}
               </span>
               <span className="flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400">
                 <Zap className="h-3 w-3" /> Upgrade
@@ -345,7 +345,7 @@ export function AddExpenseDialog({ groupId, currency, members, currentUserId, de
                 : <><Camera className="h-4 w-4" /> Scan a receipt to auto-fill</>
               }
               {scanStatus && (
-                <span className="ml-auto text-xs text-muted-foreground">{scanStatus.limit - scanStatus.used}/{scanStatus.limit} left</span>
+                <span className="ml-auto text-xs text-muted-foreground">{scanStatus.limit - scanStatus.used}/{scanStatus.limit} tokens left</span>
               )}
               <input type="file" accept="image/*" capture="environment" className="hidden"
                 disabled={scanning}
