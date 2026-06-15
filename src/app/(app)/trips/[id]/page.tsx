@@ -39,7 +39,6 @@ import { EditExpenseDialog } from "@/components/expenses/EditExpenseDialog"
 import { AddSettlementDialog } from "@/components/settlements/AddSettlementDialog"
 import { InteracHelperDialog } from "@/components/settlements/InteracHelperDialog"
 import { calculateGroupBalances, simplifyDebts, formatCurrency } from "@/lib/balance"
-import { useConfig } from "@/lib/useConfig"
 
 interface Member {
   userId: string
@@ -141,7 +140,6 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
   const [activeTab, setActiveTab] = useState<"itinerary" | "planning" | "expenses">("planning")
 
   const userId = session?.user.id ?? ""
-  const { stripeEnabled } = useConfig()
 
   // Handle Stripe return
   useEffect(() => {
@@ -733,24 +731,6 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                                     })
                                     refreshTrip()
                                   }}
-                                />
-                              )}
-                              {stripeEnabled && (
-                                <AddSettlementDialog
-                                  groupId={trip.group.id}
-                                  currency={trip.group.currency}
-                                  members={members}
-                                  currentUserId={userId}
-                                  suggestedTo={t.to}
-                                  suggestedAmount={t.amount}
-
-                                  onCreated={refreshTrip}
-                                  compact
-                                  trigger={
-                                    <Button variant="outline" size="sm" className="h-7 text-xs px-2 border-indigo-200 text-indigo-600 hover:bg-indigo-50">
-                                      Pay via Stripe
-                                    </Button>
-                                  }
                                 />
                               )}
                               <AddSettlementDialog
