@@ -20,7 +20,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }
 
   // Plan / quota enforcement
-  const quota = await checkScanQuota(userId, "ai_insight")
+  const quota = await checkScanQuota(userId, "ai_scan")
   if (!quota.allowed) {
     return NextResponse.json(
       { error: quota.reason, message: quota.message },
@@ -138,7 +138,7 @@ Be concise and friendly. Use real names from the data. Only mention categories/a
   const clean = text.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim()
   const insights = JSON.parse(clean)
 
-  await deductScan(userId, "ai_insight", quota.useBonus)
+  await deductScan(userId, "ai_scan", quota.useBonus)
 
   const monthlyRemaining = Math.max(0, quota.monthlyLimit - quota.monthlyUsed - (quota.useBonus ? 0 : 1))
   const bonusAfter = quota.useBonus ? quota.bonusScans - 1 : quota.bonusScans

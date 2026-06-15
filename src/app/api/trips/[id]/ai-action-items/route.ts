@@ -23,7 +23,7 @@ export async function POST(
   })
   if (!trip) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  const quota = await checkScanQuota(session.user.id, "ai_action_items")
+  const quota = await checkScanQuota(session.user.id, "ai_scan")
   if (!quota.allowed) return NextResponse.json({ error: quota.message, reason: quota.reason }, { status: quota.reason === "plan_limit" ? 403 : 429 })
 
   const { description, existingItems } = await req.json() as {
@@ -86,7 +86,7 @@ Rules:
       return NextResponse.json({ error: "AI returned an unexpected response format. Please try again." }, { status: 500 })
     }
 
-    await deductScan(session.user.id, "ai_action_items", quota.useBonus)
+    await deductScan(session.user.id, "ai_scan", quota.useBonus)
 
     return NextResponse.json({
       preEvent: parsed.preEvent ?? [],

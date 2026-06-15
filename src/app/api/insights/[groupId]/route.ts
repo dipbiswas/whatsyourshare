@@ -22,7 +22,7 @@ export async function GET(
   })
   if (!isMember) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-  const quota = await checkScanQuota(session.user.id, "ai_insight")
+  const quota = await checkScanQuota(session.user.id, "ai_scan")
   if (!quota.allowed) return NextResponse.json({ error: quota.message }, { status: quota.reason === "plan_limit" ? 403 : 429 })
 
   const now = new Date()
@@ -118,7 +118,7 @@ Return ONLY a JSON array, e.g.: ["insight 1", "insight 2", "insight 3"]`,
     insights = [text]
   }
 
-  await deductScan(session.user.id, "ai_insight", quota.useBonus)
+  await deductScan(session.user.id, "ai_scan", quota.useBonus)
 
   return NextResponse.json({ insights: insights.slice(0, 4), generatedAt: now })
 }

@@ -36,7 +36,7 @@ export async function POST(req: Request) {
   }
 
   const userId = session.user.id
-  const quota = await checkScanQuota(userId, "receipt_scan")
+  const quota = await checkScanQuota(userId, "ai_scan")
   if (!quota.allowed) {
     return NextResponse.json(
       { error: quota.reason, message: quota.message },
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
     const clean = text.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim()
     const parsed = JSON.parse(clean)
 
-    await deductScan(userId, "receipt_scan", quota.useBonus)
+    await deductScan(userId, "ai_scan", quota.useBonus)
 
     const monthlyRemaining = Math.max(0, quota.monthlyLimit - quota.monthlyUsed - (quota.useBonus ? 0 : 1))
     const bonusAfter = quota.useBonus ? quota.bonusScans - 1 : quota.bonusScans
