@@ -19,7 +19,8 @@ export async function POST() {
   const user = await prisma.user.findUnique({ where: { id: session.user.id } })
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
-  const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
+  const appUrl = process.env.NEXTAUTH_URL
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
 
   let connectId = user.stripeConnectId
 

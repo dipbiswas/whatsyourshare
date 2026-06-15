@@ -119,8 +119,16 @@ export function TripFundCard({
     try {
       const res = await fetch("/api/connect/onboard", { method: "POST" })
       const data = await res.json()
-      if (data.url) window.location.href = data.url
-      else toast.error("Could not start Stripe onboarding")
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        const msg = data.error ?? "Could not start Stripe onboarding"
+        console.error("[Connect onboard]", msg)
+        toast.error(msg, { duration: 8000 })
+      }
+    } catch (err) {
+      console.error("[Connect onboard]", err)
+      toast.error("Could not reach server — please try again")
     } finally {
       setConnectLoading(false)
     }
