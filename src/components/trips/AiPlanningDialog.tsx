@@ -64,8 +64,9 @@ export function AiPlanningDialog({
       setDayOf(data.dayOf)
       setGenerated(true)
       setLocalScans(data.scansRemaining ?? localScans - 1)
-    } catch {
-      toast.error("Failed to generate action items")
+    } catch (err) {
+      console.error("[AiPlanningDialog]", err)
+      toast.error("Could not reach server — please try again")
     } finally {
       setGenerating(false)
     }

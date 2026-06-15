@@ -75,8 +75,16 @@ Rules:
       messages: [{ role: "user", content: userPrompt }],
     })
 
-    const text = message.content[0].type === "text" ? message.content[0].text : ""
-    const parsed = JSON.parse(text)
+    const raw = message.content[0].type === "text" ? message.content[0].text : ""
+    // Strip markdown code fences if present
+    const text = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim()
+    let parsed: { preEvent?: unknown[]; dayOf?: unknown[] }
+    try {
+      parsed = JSON.parse(text)
+    } catch (parseErr) {
+      console.error("[AI action items] JSON parse error:", parseErr, "\nRaw response:", raw)
+      return NextResponse.json({ error: "AI returned an unexpected response format. Please try again." }, { status: 500 })
+    }
 
     await deductScan(session.user.id, "ai_action_items", quota.useBonus)
 
