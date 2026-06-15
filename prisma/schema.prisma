@@ -36,9 +36,11 @@ model User {
 
   groupMemberships         GroupMember[]
   paidExpenses             Expense[]     @relation("PaidBy")
+  createdExpenses          Expense[]     @relation("ExpenseCreatedBy")
   expenseSplits            ExpenseSplit[]
   sentSettlements          Settlement[]  @relation("SentBy")
   receivedSettlements      Settlement[]  @relation("ReceivedBy")
+  createdSettlements       Settlement[]  @relation("SettlementCreatedBy")
   createdGroups            Group[]
   accounts                 Account[]
   sessions                 Session[]
@@ -143,6 +145,7 @@ model Expense {
   splitType   SplitType @default(EQUAL)
   date        DateTime  @default(now())
   paidById           String
+  createdById        String?
   visibility         ExpenseVisibility @default(GROUP)
   approvalStatus     ApprovalStatus    @default(NA)
   approvedById       String?
@@ -157,6 +160,7 @@ model Expense {
 
   group             Group             @relation(fields: [groupId], references: [id], onDelete: Cascade)
   paidBy            User              @relation("PaidBy", fields: [paidById], references: [id])
+  createdBy         User?             @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
   splits            ExpenseSplit[]
   recurringExpense  RecurringExpense?  @relation(fields: [recurringExpenseId], references: [id])
   tripDay           TripDay?           @relation(fields: [tripDayId], references: [id])
@@ -288,11 +292,13 @@ model Settlement {
   stripeTransferId      String?
   stripePaymentIntentId String?
   completedAt           DateTime?
+  createdById           String?
   createdAt             DateTime         @default(now())
 
-  group    Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  fromUser User  @relation("SentBy", fields: [fromUserId], references: [id])
-  toUser   User  @relation("ReceivedBy", fields: [toUserId], references: [id])
+  group     Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  fromUser  User   @relation("SentBy", fields: [fromUserId], references: [id])
+  toUser    User   @relation("ReceivedBy", fields: [toUserId], references: [id])
+  createdBy User?  @relation("SettlementCreatedBy", fields: [createdById], references: [id])
 }
 
 model Trip {

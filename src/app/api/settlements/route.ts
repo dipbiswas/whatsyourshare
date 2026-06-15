@@ -91,6 +91,7 @@ export async function POST(req: Request) {
       data: {
         ...rest,
         fromUserId,
+        createdById: session.user.id,
         currency: group?.currency ?? "USD",
         paymentMethod,
         status: "PROCESSING",
@@ -116,6 +117,7 @@ export async function POST(req: Request) {
     data: {
       ...rest,
       fromUserId,
+      createdById: session.user.id,
       currency: group?.currency ?? "USD",
       paymentMethod: "MANUAL",
       status: "COMPLETED",

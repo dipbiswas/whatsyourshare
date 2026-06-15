@@ -43,6 +43,7 @@ export async function GET(
           expenses: {
             include: {
               paidBy: { select: { id: true, name: true } },
+              createdBy: { select: { id: true, name: true } },
               splits: { include: { user: { select: { id: true, name: true } } } },
             },
             orderBy: { date: "asc" },

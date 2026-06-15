@@ -88,6 +88,7 @@ interface Expense {
   approvalStatus: "NA" | "PENDING_APPROVAL" | "APPROVED" | "REJECTED"
   paidById: string
   paidBy: { id: string; name: string; avatar: string | null }
+  createdBy?: { id: string; name: string } | null
   guestPayeeName?: string | null
   splits: Split[]
   trip?: { id: string; name: string } | null
@@ -112,6 +113,7 @@ interface Settlement {
   createdAt: string
   fromUser: { id: string; name: string; avatar: string | null }
   toUser: { id: string; name: string; avatar: string | null }
+  createdBy?: { id: string; name: string } | null
 }
 
 interface GroupDetail {
@@ -665,7 +667,10 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {expense.guestPayeeName ? `${expense.guestPayeeName} (external)` : expense.paidBy.name} · {format(new Date(expense.date), "MMM d")} · {expense.category}
+                          Paid by {expense.guestPayeeName ? `${expense.guestPayeeName} (external)` : expense.paidBy.name} · {format(new Date(expense.date), "MMM d")} · {expense.category}
+                          {expense.createdBy && expense.createdBy.id !== expense.paidById && (
+                            <> · <span className="text-muted-foreground/70">added by {expense.createdBy.name}</span></>
+                          )}
                         </p>
                       </div>
                     </button>
@@ -1009,7 +1014,12 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-foreground">{s.fromUser.name} → {s.toUser.name}</p>
-                        <p className="text-xs text-muted-foreground">{s.note ? `${s.note} · ` : ""}{format(new Date(s.createdAt), "MMM d, yyyy")}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {s.note ? `${s.note} · ` : ""}{format(new Date(s.createdAt), "MMM d, yyyy")}
+                          {s.createdBy && s.createdBy.id !== s.fromUser.id && (
+                            <> · <span className="text-muted-foreground/70">recorded by {s.createdBy.name}</span></>
+                          )}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <p className="font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(s.amount, s.currency)}</p>

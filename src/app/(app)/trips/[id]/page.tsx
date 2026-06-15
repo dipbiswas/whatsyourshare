@@ -61,6 +61,7 @@ interface Expense {
   paidById: string
   splitType: string
   paidBy: { id: string; name: string }
+  createdBy?: { id: string; name: string } | null
   splits: Split[]
 }
 
@@ -865,7 +866,10 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                                       <p className="text-sm font-medium text-gray-800 truncate">{expense.description}</p>
                                       <Badge variant="secondary" className="text-xs shrink-0">{expense.category}</Badge>
                                     </div>
-                                    <p className="text-xs text-gray-500 mt-0.5">Paid by {expense.paidBy.name}</p>
+                                    <p className="text-xs text-gray-500 mt-0.5">
+                                      Paid by {expense.paidBy.name}
+                                      {expense.createdBy && expense.createdBy.id !== expense.paidById && ` · added by ${expense.createdBy.name}`}
+                                    </p>
                                   </div>
                                   <p className="text-sm font-semibold text-gray-900 shrink-0">
                                     {formatCurrency(expense.amount, trip.group.currency)}
@@ -909,6 +913,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                             </div>
                             <p className="text-xs text-gray-500 mt-0.5">
                               Paid by {expense.paidBy.name} · {format(new Date(expense.date), "MMM d")}
+                              {expense.createdBy && expense.createdBy.id !== expense.paidById && ` · added by ${expense.createdBy.name}`}
                             </p>
                           </div>
                           <p className="text-sm font-semibold text-gray-900 shrink-0">
@@ -1026,7 +1031,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                             </p>
                           </>
                         )}
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                           <span className={`text-xs font-medium ${
                             item.status === "OPEN" ? "text-gray-400" :
                             item.status === "IN_PROGRESS" ? "text-amber-600" : "text-emerald-600"
@@ -1038,6 +1043,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                               · {formatCurrency(item.expense.amount, trip.group.currency)} logged
                             </span>
                           )}
+                          <span className="text-xs text-gray-400">· by {item.createdBy.name}</span>
                         </div>
                       </div>
 

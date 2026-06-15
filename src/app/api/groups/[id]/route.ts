@@ -26,6 +26,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         },
         include: {
           paidBy: { select: { id: true, name: true, avatar: true } },
+          createdBy: { select: { id: true, name: true } },
           splits: { include: { user: { select: { id: true, name: true } }, guest: ({ select: { id: true, name: true } } as any) } },
           trip: { select: { id: true, name: true, hideFromNonMembers: true, memberIds: true } },
         },
@@ -35,6 +36,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         include: {
           fromUser: { select: { id: true, name: true, avatar: true } },
           toUser: { select: { id: true, name: true, avatar: true } },
+          createdBy: { select: { id: true, name: true } },
         },
         orderBy: { createdAt: "desc" },
       },

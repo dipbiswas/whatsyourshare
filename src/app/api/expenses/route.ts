@@ -68,6 +68,7 @@ export async function POST(req: Request) {
   const expense = await prisma.expense.create({
     data: {
       ...rest,
+      createdById: session.user.id,
       date: date ? new Date(date) : new Date(),
       ...(guestPayeeName ? { guestPayeeName } : {}),
       ...(tripDayId ? { tripDayId } : {}),
@@ -76,6 +77,7 @@ export async function POST(req: Request) {
     },
     include: {
       paidBy: { select: { id: true, name: true, avatar: true } },
+      createdBy: { select: { id: true, name: true } },
       splits: { include: { user: { select: { id: true, name: true } }, guest: ({ select: { id: true, name: true } } as any) } },
     },
   })
