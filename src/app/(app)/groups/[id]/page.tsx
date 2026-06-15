@@ -551,14 +551,14 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           { value: "recurring",   label: "Recurring",   count: group.recurringExpenses.length, icon: Repeat2 },
           { value: "settings",    label: "Settings",    count: null,                           icon: Settings },
         ]
-        const primaryTabs = ALL_TABS.slice(0, 5)
-        const moreTabs    = ALL_TABS.slice(5)
+        const primaryTabs = ALL_TABS.slice(0, 4)
+        const moreTabs    = ALL_TABS.slice(4)
         const isMore = moreTabs.some((t) => t.value === activeGroupTab)
 
         return (
           <div className="border-b border-border flex items-center">
             {/* Primary tabs */}
-            <div className="flex">
+            <div className="flex overflow-x-auto scrollbar-none">
               {primaryTabs.map(({ value, label, count }) => {
                 const active = activeGroupTab === value
                 return (
