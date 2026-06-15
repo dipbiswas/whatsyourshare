@@ -120,6 +120,7 @@ interface GroupDetail {
   id: string
   name: string
   description: string | null
+  emoji: string | null
   currency: string
   workspaceType: "PERSONAL" | "TEAM"
   defaultSplitType: string
@@ -299,6 +300,12 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
+          <div className="flex items-center gap-3 min-w-0">
+            {group.emoji && (
+              <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-xl shrink-0">
+                {group.emoji}
+              </div>
+            )}
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-xl font-bold text-foreground leading-tight">{group.name}</h1>
@@ -323,9 +330,10 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               <span className="text-xs text-muted-foreground">{group.members.length} members</span>
             </div>
           </div>
+          </div>
         </div>
         <div className="hidden md:flex items-center gap-1.5 shrink-0">
-          <a href={`/groups/${group.id}/print`} target="_blank" rel="noopener noreferrer"
+          <a href={`/groups/${group.id}/print`}
             className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg px-2.5 py-1.5 hover:bg-accent transition-colors">
             <Printer className="h-3.5 w-3.5" />Print
           </a>
@@ -574,8 +582,52 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               })}
             </div>
 
+            {/* Tab action button */}
+            <div className="ml-auto shrink-0 flex items-center gap-1 pr-1">
+              {activeGroupTab === "expenses" && (
+                <AddExpenseDialog
+                  groupId={group.id}
+                  currency={group.currency}
+                  members={group.members}
+                  currentUserId={userId}
+                  defaultSplitType={group.defaultSplitType as "EQUAL" | "SELECTED" | "SHARES" | "PERCENTAGE" | "EXACT"}
+                  defaultSplitShares={group.defaultSplitShares ?? undefined}
+                  onCreated={() => refreshGroup()}
+                  trigger={
+                    <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors">
+                      <Plus className="h-3.5 w-3.5" />Add
+                    </button>
+                  }
+                />
+              )}
+              {activeGroupTab === "members" && (
+                <button
+                  onClick={() => setOpenDialog("addMember")}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors"
+                >
+                  <Plus className="h-3.5 w-3.5" />Add
+                </button>
+              )}
+              {activeGroupTab === "recurring" && (
+                <button
+                  onClick={() => setOpenDialog("addRecurring")}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors"
+                >
+                  <Plus className="h-3.5 w-3.5" />Add
+                </button>
+              )}
+              {activeGroupTab === "trips" && (
+                <button
+                  onClick={() => setOpenDialog("createTrip")}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors"
+                >
+                  <Plus className="h-3.5 w-3.5" />New Event
+                </button>
+              )}
+            </div>
+
             {/* More dropdown */}
-            <div className="relative ml-auto shrink-0">
+            <div className="relative shrink-0">
               <button
                 onClick={() => setMoreMenuOpen((v) => !v)}
                 className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
@@ -676,7 +728,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                     </button>
                     <div className="text-right shrink-0">
                       <p className="font-bold text-foreground text-sm tabular-nums">{formatCurrency(expense.amount, expense.currency)}</p>
-                      <div className="flex items-center justify-end gap-0.5 mt-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-end gap-0.5 mt-0.5">
                         {isAdmin && group.workspaceType === "TEAM" && expense.approvalStatus === "PENDING_APPROVAL" && (
                           <>
                             <Button variant="ghost" size="icon" className="h-6 w-6 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-500/10" disabled={approvingId === expense.id} onClick={() => approveExpense(expense.id, "APPROVE")}>
@@ -1278,11 +1330,6 @@ function MembersTab({
                 </p>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
-                {canRemove && hasBalance && (
-                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium" title="Settle up before removing">
-                    Unsettled
-                  </span>
-                )}
                 <p className={cn("text-sm font-bold tabular-nums",
                   balance > 0.01 ? "text-emerald-600 dark:text-emerald-400"
                   : balance < -0.01 ? "text-rose-500 dark:text-rose-400"
@@ -1299,33 +1346,33 @@ function MembersTab({
                   {isExpanded ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
                 </Button>
                 {canRemove && (
-                  hasBalance ? null : (
-                    <Button
-                      variant="ghost" size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10"
-                      onClick={async () => {
-                        if (!confirm(isSelf ? "Leave this group?" : `Remove ${m.user.name} from this group?`)) return
-                        const res = await fetch(`/api/groups/${group.id}/members`, {
-                          method: "DELETE",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ userId: m.userId }),
-                        })
-                        if (res.ok) {
-                          if (isSelf) {
-                            onLeave()
-                          } else {
-                            onGroupChange((g) => g ? { ...g, members: g.members.filter((mem) => mem.userId !== m.userId) } : g)
-                            toast.success(`${m.user.name} removed from group`)
-                          }
+                  <Button
+                    variant="ghost" size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={hasBalance}
+                    title={hasBalance ? "Settle up before removing" : isSelf ? "Leave group" : `Remove ${m.user.name}`}
+                    onClick={async () => {
+                      if (!confirm(isSelf ? "Leave this group?" : `Remove ${m.user.name} from this group?`)) return
+                      const res = await fetch(`/api/groups/${group.id}/members`, {
+                        method: "DELETE",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ userId: m.userId }),
+                      })
+                      if (res.ok) {
+                        if (isSelf) {
+                          onLeave()
                         } else {
-                          const data = await res.json()
-                          toast.error(data.error ?? "Failed to remove member")
+                          onGroupChange((g) => g ? { ...g, members: g.members.filter((mem) => mem.userId !== m.userId) } : g)
+                          toast.success(`${m.user.name} removed from group`)
                         }
-                      }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  )
+                      } else {
+                        const data = await res.json()
+                        toast.error(data.error ?? "Failed to remove member")
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 )}
               </div>
             </div>
@@ -1580,6 +1627,7 @@ function GroupSettingsCard({
 }) {
   const [name, setName] = useState(group.name)
   const [description, setDescription] = useState(group.description ?? "")
+  const [emoji, setEmoji] = useState(group.emoji ?? "")
   const [currency, setCurrency] = useState(group.currency)
   const [splitType, setSplitType] = useState(group.defaultSplitType || "EQUAL")
   const [shares, setShares] = useState<Record<string, string>>(
@@ -1599,11 +1647,11 @@ function GroupSettingsCard({
       const res = await fetch(`/api/groups/${group.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), description: description.trim() || null, currency, defaultSplitType: splitType, defaultSplitShares: splitShares }),
+        body: JSON.stringify({ name: name.trim(), description: description.trim() || null, emoji: emoji.trim() || null, currency, defaultSplitType: splitType, defaultSplitShares: splitShares }),
       })
       if (!res.ok) { toast.error("Failed to update group"); return }
       toast.success("Group updated")
-      onUpdated({ name: name.trim(), description: description.trim() || null, currency, defaultSplitType: splitType, defaultSplitShares: splitShares })
+      onUpdated({ name: name.trim(), description: description.trim() || null, emoji: emoji.trim() || null, currency, defaultSplitType: splitType, defaultSplitShares: splitShares })
     } finally {
       setSaving(false)
     }
@@ -1622,9 +1670,15 @@ function GroupSettingsCard({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label className="text-sm">Group name</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Family, Apartment" />
+        <div className="space-y-1.5 sm:col-span-2 flex gap-3 items-end">
+          <div className="space-y-1.5 w-20">
+            <Label className="text-sm">Icon</Label>
+            <Input value={emoji} onChange={(e) => setEmoji(e.target.value)} placeholder="👥" className="text-center text-xl" maxLength={2} />
+          </div>
+          <div className="flex-1 space-y-1.5">
+            <Label className="text-sm">Group name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Family, Apartment" />
+          </div>
         </div>
         <div className="space-y-1.5">
           <Label className="text-sm">Description <span className="text-muted-foreground font-normal">(optional)</span></Label>

@@ -6,7 +6,8 @@ import { z } from "zod"
 
 const createSchema = z.object({
   title: z.string().min(1).max(200),
-  description: z.string().optional(),
+  description: z.string().optional().nullable(),
+  category: z.string().optional(),
   assigneeId: z.string().optional(),
   dueDate: z.string().optional(),
 })

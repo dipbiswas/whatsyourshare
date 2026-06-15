@@ -110,7 +110,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const body = await req.json()
-  const { name, description, currency, defaultSplitType, defaultSplitShares } = body
+  const { name, description, emoji, currency, defaultSplitType, defaultSplitShares } = body
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updated = await (prisma.group.update as any)({
@@ -118,11 +118,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     data: {
       ...(name !== undefined ? { name } : {}),
       ...(description !== undefined ? { description } : {}),
+      ...(emoji !== undefined ? { emoji } : {}),
       ...(currency !== undefined ? { currency } : {}),
       ...(defaultSplitType !== undefined ? { defaultSplitType } : {}),
       ...(defaultSplitShares !== undefined ? { defaultSplitShares } : {}),
     },
-    select: { id: true, name: true, description: true, currency: true, defaultSplitType: true, defaultSplitShares: true },
+    select: { id: true, name: true, description: true, emoji: true, currency: true, defaultSplitType: true, defaultSplitShares: true },
   })
 
   return NextResponse.json(updated)

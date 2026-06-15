@@ -552,22 +552,22 @@ export default function QuickSplitPage() {
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">Description</label>
-                <input
-                  type="text"
-                  placeholder="Dinner, cab, groceries…"
-                  value={expenseDesc}
-                  onChange={(e) => setExpenseDesc(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                />
-              </div>
-              <div>
                 <label className="text-xs text-muted-foreground block mb-1">Amount ({selectedGroup?.currency ?? "USD"})</label>
                 <input
                   type="number"
                   placeholder="0.00"
                   value={expenseAmount}
                   onChange={(e) => setExpenseAmount(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Description</label>
+                <input
+                  type="text"
+                  placeholder="Dinner, cab, groceries…"
+                  value={expenseDesc}
+                  onChange={(e) => setExpenseDesc(e.target.value)}
                   className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                 />
               </div>
@@ -1022,20 +1022,20 @@ export default function QuickSplitPage() {
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">Description</label>
-                <input
-                  type="text"
-                  value={editDesc}
-                  onChange={(e) => setEditDesc(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                />
-              </div>
-              <div>
                 <label className="text-xs text-muted-foreground block mb-1">Amount ({selectedGroup.currency})</label>
                 <input
                   type="number"
                   value={editAmount}
                   onChange={(e) => setEditAmount(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Description</label>
+                <input
+                  type="text"
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
                   className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                 />
               </div>

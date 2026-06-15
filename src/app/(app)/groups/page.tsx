@@ -45,6 +45,7 @@ interface Group {
   id: string
   name: string
   description: string | null
+  emoji: string | null
   currency: string
   _count: { expenses: number }
   members: Member[]
@@ -169,11 +170,18 @@ export default function GroupsPage() {
 
                   <div className="p-5 flex flex-col flex-1 gap-4">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {group.emoji && (
+                          <div className="h-9 w-9 rounded-xl bg-muted flex items-center justify-center text-lg shrink-0">
+                            {group.emoji}
+                          </div>
+                        )}
+                        <div className="min-w-0">
                         <h3 className="font-bold text-foreground text-base leading-tight">{group.name}</h3>
                         {group.description && (
                           <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{group.description}</p>
                         )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         {group._count.expenses > 0 && Math.abs(group.myBalance) < 0.01 && (

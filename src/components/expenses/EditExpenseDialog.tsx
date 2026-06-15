@@ -198,12 +198,6 @@ export function EditExpenseDialog({ expense, members, currency: groupCurrency, o
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-            {/* Description */}
-            <div className="space-y-1.5">
-              <Label>Description</Label>
-              <Input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} required />
-            </div>
-
             {/* Amount + Category + Date */}
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
@@ -222,6 +216,12 @@ export function EditExpenseDialog({ expense, members, currency: groupCurrency, o
                 <Label>Date</Label>
                 <Input type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} required />
               </div>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-1.5">
+              <Label>Description</Label>
+              <Input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} required />
             </div>
 
             {/* Paid by */}

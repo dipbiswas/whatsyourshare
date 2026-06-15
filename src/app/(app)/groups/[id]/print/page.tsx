@@ -81,7 +81,7 @@ export default async function GroupPrintPage({ params }: Props) {
             body { margin: 0; background: white; }
             body * { visibility: hidden; }
             .print-page, .print-page * { visibility: visible; }
-            .print-page { position: fixed; left: 0; top: 0; width: 100%; padding: 0; }
+            .print-page { width: 100%; padding: 0; }
             .no-print { display: none !important; }
             @page { margin: 1.5cm; size: A4; }
           }

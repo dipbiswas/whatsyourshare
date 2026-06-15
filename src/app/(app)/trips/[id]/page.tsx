@@ -34,6 +34,7 @@ import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TripFundCard } from "@/components/trips/TripFundCard"
 import { EditTripDialog } from "@/components/trips/EditTripDialog"
+import { AiPlanningDialog } from "@/components/trips/AiPlanningDialog"
 import { AddExpenseDialog } from "@/components/expenses/AddExpenseDialog"
 import { EditExpenseDialog } from "@/components/expenses/EditExpenseDialog"
 import { AddSettlementDialog } from "@/components/settlements/AddSettlementDialog"
@@ -120,6 +121,7 @@ interface ActionItem {
   id: string
   title: string
   description: string | null
+  category: string
   status: "OPEN" | "IN_PROGRESS" | "DONE"
   dueDate: string | null
   assignee: { id: string; name: string; avatar: string | null } | null
@@ -137,6 +139,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set())
   const [generatingDays, setGeneratingDays] = useState(false)
   const [actionItems, setActionItems] = useState<ActionItem[]>([])
+  const [scansAvailable, setScansAvailable] = useState(0)
   const [activeTab, setActiveTab] = useState<"itinerary" | "planning" | "expenses">("planning")
 
   const userId = session?.user.id ?? ""
@@ -184,6 +187,9 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
       })
       .finally(() => setLoading(false))
     fetch(`/api/trips/${id}/action-items`).then((r) => r.ok ? r.json() : []).then(setActionItems)
+    fetch("/api/account/scan-quota").then((r) => r.ok ? r.json() : null).then((d) => {
+      if (d) setScansAvailable(d.remaining ?? 0)
+    })
   }, [id, router])
 
   async function generateAllDays() {
@@ -216,10 +222,25 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
 
   const [newItemTitle, setNewItemTitle] = useState("")
   const [newItemAssigneeId, setNewItemAssigneeId] = useState("")
+  const [newItemCategory, setNewItemCategory] = useState<"task" | "cost">("task")
   const [addingItem, setAddingItem] = useState(false)
   const [donePromptItemId, setDonePromptItemId] = useState<string | null>(null)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [editingItemTitle, setEditingItemTitle] = useState("")
+
+  async function bulkCreateActionItems(items: { title: string; category: string; description?: string | null }[]) {
+    const created: ActionItem[] = []
+    for (const item of items) {
+      const res = await fetch(`/api/trips/${id}/action-items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: item.title, category: item.category, description: item.description ?? undefined }),
+      })
+      if (res.ok) created.push(await res.json())
+    }
+    setActionItems((prev) => [...prev, ...created])
+    setScansAvailable((s) => Math.max(0, s - 1))
+  }
 
   async function createActionItem() {
     const title = newItemTitle.trim()
@@ -229,13 +250,14 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
       const res = await fetch(`/api/trips/${id}/action-items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, ...(newItemAssigneeId ? { assigneeId: newItemAssigneeId } : {}) }),
+        body: JSON.stringify({ title, category: newItemCategory, ...(newItemAssigneeId ? { assigneeId: newItemAssigneeId } : {}) }),
       })
       if (!res.ok) { toast.error("Failed to create action item"); return }
       const item = await res.json()
       setActionItems((prev) => [...prev, item])
       setNewItemTitle("")
       setNewItemAssigneeId("")
+      setNewItemCategory("task")
     } finally {
       setAddingItem(false)
     }
@@ -974,39 +996,88 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
         {/* Planning tab */}
         {activeTab === "planning" && (
           <div className="space-y-3">
+            {/* AI generate button */}
+            {trip && (
+              <div className="flex justify-end">
+                <AiPlanningDialog
+                  tripId={trip.id}
+                  tripName={trip.name}
+                  memberCount={eventMembers.length}
+                  days={Math.max(1, Math.round((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)}
+                  existingTitles={actionItems.map((i) => i.title)}
+                  scansAvailable={scansAvailable}
+                  onSave={bulkCreateActionItems}
+                />
+              </div>
+            )}
             {/* Add item form */}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newItemTitle}
-                onChange={(e) => setNewItemTitle(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") createActionItem() }}
-                placeholder="Add an action item…"
-                className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-background"
-              />
-              <Select value={newItemAssigneeId} onValueChange={(v) => setNewItemAssigneeId(v ?? "")}>
-                <SelectTrigger className="h-9 w-36 text-xs rounded-xl">
-                  <span className="truncate text-xs text-left flex-1">
-                    {eventMembers.find((m) => m.userId === newItemAssigneeId)?.user.name ?? <span className="text-muted-foreground">Assign to…</span>}
+            <div className="rounded-xl border border-border bg-background p-3 space-y-2.5">
+              {/* Category toggle */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setNewItemCategory("task")}
+                  className={`flex-1 flex flex-col items-start px-3 py-2 rounded-lg border text-left transition-colors ${
+                    newItemCategory === "task"
+                      ? "border-indigo-400 bg-indigo-50 dark:bg-indigo-500/10"
+                      : "border-border hover:bg-accent"
+                  }`}
+                >
+                  <span className={`text-xs font-semibold ${newItemCategory === "task" ? "text-indigo-700 dark:text-indigo-300" : "text-foreground"}`}>
+                    ✓ Task
                   </span>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="" className="text-xs text-gray-400">Unassigned</SelectItem>
-                  {eventMembers.map((m) => (
-                    <SelectItem key={m.userId} value={m.userId} className="text-xs">
-                      {m.user.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                size="sm"
-                className="bg-indigo-600 hover:bg-indigo-700 h-9"
-                disabled={addingItem || !newItemTitle.trim()}
-                onClick={createActionItem}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+                  <span className="text-[11px] text-muted-foreground mt-0.5">Something to do</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewItemCategory("cost")}
+                  className={`flex-1 flex flex-col items-start px-3 py-2 rounded-lg border text-left transition-colors ${
+                    newItemCategory === "cost"
+                      ? "border-amber-400 bg-amber-50 dark:bg-amber-500/10"
+                      : "border-border hover:bg-accent"
+                  }`}
+                >
+                  <span className={`text-xs font-semibold ${newItemCategory === "cost" ? "text-amber-700 dark:text-amber-300" : "text-foreground"}`}>
+                    $ Day-of cost
+                  </span>
+                  <span className="text-[11px] text-muted-foreground mt-0.5">Something you'll spend money on</span>
+                </button>
+              </div>
+
+              {/* Input row */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newItemTitle}
+                  onChange={(e) => setNewItemTitle(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") createActionItem() }}
+                  placeholder={newItemCategory === "cost" ? "e.g. Groceries, Restaurant dinner…" : "e.g. Book hotel, Pack bags…"}
+                  className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-background"
+                />
+                <Select value={newItemAssigneeId} onValueChange={(v) => setNewItemAssigneeId(v ?? "")}>
+                  <SelectTrigger className="h-9 w-32 text-xs rounded-xl">
+                    <span className="truncate text-xs text-left flex-1">
+                      {eventMembers.find((m) => m.userId === newItemAssigneeId)?.user.name ?? <span className="text-muted-foreground">Assign…</span>}
+                    </span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="" className="text-xs text-gray-400">Unassigned</SelectItem>
+                    {eventMembers.map((m) => (
+                      <SelectItem key={m.userId} value={m.userId} className="text-xs">
+                        {m.user.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  className="bg-indigo-600 hover:bg-indigo-700 h-9"
+                  disabled={addingItem || !newItemTitle.trim()}
+                  onClick={createActionItem}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             {actionItems.length === 0 ? (
@@ -1065,6 +1136,11 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                           }`}>
                             {item.status === "OPEN" ? "Open" : item.status === "IN_PROGRESS" ? "In progress" : "Done"}
                           </span>
+                          {item.category === "cost" && !item.expense && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-amber-600 bg-amber-50 dark:bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-500/20">
+                              Day-of cost
+                            </span>
+                          )}
                           {item.expense && (
                             <span className="text-xs text-indigo-500 font-medium">
                               · {formatCurrency(item.expense.amount, trip.group.currency)} logged
@@ -1095,6 +1171,26 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                           </SelectContent>
                         </Select>
                       </div>
+
+                      {/* Log expense shortcut for day-of cost items */}
+                      {item.category === "cost" && !item.expense && (
+                        <AddExpenseDialog
+                          groupId={trip.group.id}
+                          currency={trip.group.currency}
+                          members={trip.group.members}
+                          currentUserId={userId}
+                          tripId={trip.id}
+                          onCreated={async () => { await refreshTrip(); await refreshActionItems() }}
+                          trigger={
+                            <button
+                              className="shrink-0 flex items-center gap-1 text-[11px] font-semibold text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 border border-amber-200 dark:border-amber-500/30 px-2 py-1 rounded-lg transition-colors whitespace-nowrap"
+                              title="Log as expense"
+                            >
+                              → Log expense
+                            </button>
+                          }
+                        />
+                      )}
 
                       {editingItemId !== item.id && (
                         <button

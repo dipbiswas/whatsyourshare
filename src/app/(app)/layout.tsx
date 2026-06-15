@@ -10,7 +10,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex h-full">
       <Sidebar user={session.user} />
-      <main className="flex-1 overflow-auto pb-20 md:pb-0">
+      <main className="flex-1 overflow-auto pb-20 lg:pb-0">
         {children}
       </main>
       <PushProvider />

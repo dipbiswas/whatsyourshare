@@ -99,6 +99,7 @@ model Group {
   id          String   @id @default(cuid())
   name        String
   description String?
+  emoji       String?
   currency    String   @default("USD")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -329,6 +330,7 @@ model ActionItem {
   tripId      String
   title       String
   description String?
+  category    String    @default("task")
   assigneeId  String?
   status      ActionItemStatus @default(OPEN)
   dueDate     DateTime?
