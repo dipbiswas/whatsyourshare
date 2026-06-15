@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { InteracFundDialog } from "@/components/trips/InteracFundDialog"
 import { formatCurrency } from "@/lib/balance"
 import { useConfig } from "@/lib/useConfig"
@@ -76,6 +77,7 @@ export function TripFundCard({
   const [setupForm, setSetupForm] = useState({
     targetAmount: fund ? String(fund.targetAmount) : "",
     description: fund?.description ?? "",
+    status: (fund?.status ?? "COLLECTING") as "COLLECTING" | "CLOSED" | "DISBURSED",
   })
   const [contributeAmount, setContributeAmount] = useState(
     fund ? String(Math.ceil(fund.targetAmount / memberCount)) : ""
@@ -103,12 +105,12 @@ export function TripFundCard({
       const res = await fetch(`/api/trips/${tripId}/fund`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetAmount: amt, currency, description: setupForm.description || undefined }),
+        body: JSON.stringify({ targetAmount: amt, currency, description: setupForm.description || undefined, status: setupForm.status }),
       })
-      if (!res.ok) { toast.error("Failed to set up fund"); return }
+      if (!res.ok) { toast.error("Failed to update fund"); return }
       await refreshFund()
       setSetupOpen(false)
-      toast.success("Fund set up!")
+      toast.success("Fund updated!")
     } finally {
       setLoading(false)
     }
@@ -235,7 +237,10 @@ export function TripFundCard({
             </Badge>
           </CardTitle>
           {isOrganizer && (
-            <Button variant="ghost" size="sm" className="h-7 text-xs text-emerald-600" onClick={() => setSetupOpen(true)}>
+            <Button variant="ghost" size="sm" className="h-7 text-xs text-emerald-600" onClick={() => {
+              setSetupForm({ targetAmount: String(fund.targetAmount), description: fund.description ?? "", status: fund.status })
+              setSetupOpen(true)
+            }}>
               Edit
             </Button>
           )}
@@ -423,6 +428,25 @@ export function TripFundCard({
                 <Input placeholder="Airbnb deposit, group transport…"
                   value={setupForm.description}
                   onChange={(e) => setSetupForm((f) => ({ ...f, description: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Fund status</Label>
+                <Select value={setupForm.status} onValueChange={(v) => setSetupForm((f) => ({ ...f, status: v as typeof f.status }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="COLLECTING">Collecting — accepting payments</SelectItem>
+                    <SelectItem value="CLOSED">Closed — no more payments</SelectItem>
+                    <SelectItem value="DISBURSED">Disbursed — funds sent to organizer</SelectItem>
+                  </SelectContent>
+                </Select>
+                {setupForm.status === "CLOSED" && (
+                  <p className="text-xs text-amber-600">Members won&apos;t be able to pay once closed.</p>
+                )}
+                {setupForm.status === "DISBURSED" && (
+                  <p className="text-xs text-emerald-600">Mark this after Stripe has paid out the funds to your bank.</p>
+                )}
               </div>
               <DialogFooter>
                 <Button variant="outline" type="button" onClick={() => setSetupOpen(false)}>Cancel</Button>

@@ -4,9 +4,10 @@ import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 
 const fundSchema = z.object({
-  targetAmount: z.number().positive(),
-  currency: z.string().default("USD"),
+  targetAmount: z.number().positive().optional(),
+  currency: z.string().optional(),
   description: z.string().optional(),
+  status: z.enum(["COLLECTING", "CLOSED", "DISBURSED"]).optional(),
 })
 
 export async function GET(
@@ -54,10 +55,11 @@ export async function PUT(
   })
   if (!trip) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
+  const { targetAmount, currency, description, status } = parsed.data
   const fund = await prisma.tripFund.upsert({
     where: { tripId },
-    create: { tripId, ...parsed.data },
-    update: parsed.data,
+    create: { tripId, targetAmount: targetAmount ?? 0, currency: currency ?? "USD", description, status },
+    update: { ...(targetAmount !== undefined && { targetAmount }), ...(currency && { currency }), ...(description !== undefined && { description }), ...(status && { status }) },
   })
 
   return NextResponse.json(fund)
